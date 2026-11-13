@@ -263,7 +263,7 @@ CREATE TABLE IF NOT EXISTS `sepay_transactions` (
 
 -- 1. Tài khoản Quản trị viên mặc định (Mật khẩu: Admin@123456)
 INSERT INTO `users` (`name`, `email`, `password`, `phone`, `balance`, `role`) VALUES 
-('Admin VanKha', 'admin@vankhateamshop.vn', '$2y$12$KkQ1bWqW8g8rC4xQ8Kx2w.m1T0gJ8Ww2zL5q1sY3kP4r8q1w.m1T0', '0987654321', 0.00, 'admin');
+('Admin VanKha', 'admin@vankhateamshop.vn', '$2y$10$lXm/W78DmA658z82aSv4PuKrghKPrlGHJWGSd70T0aNGfQAG.zTAi', '0987654321', 0.00, 'admin');
 
 -- 2. Cấu hình nhà cung cấp API đối tác
 INSERT INTO `suppliers` (`code`, `name`, `api_url`, `api_key`, `balance`, `min_balance_alert`, `is_active`) VALUES
