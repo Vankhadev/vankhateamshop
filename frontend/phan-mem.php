@@ -12,12 +12,12 @@ require_once __DIR__ . '/../backend/security.php';
 
 thietLapBaoMatHeaders();
 
-// Lấy toàn bộ sản phẩm Phần mềm AI (Category ID 1000 hoặc chứa TungDV hoặc SWF)
+// Lấy toàn bộ sản phẩm Phần mềm AI (Category ID 1000 hoặc chứa SWF hoặc thuộc danh mục software)
 $sqlSoftwares = "
     SELECT p.*, c.name AS category_name, c.slug AS category_slug 
     FROM `products` p
     JOIN `categories` c ON p.category_id = c.id
-    WHERE p.is_active = 1 AND (p.category_id = 1000 OR p.name LIKE '%TungDV%' OR p.sku LIKE '%SWF%')
+    WHERE p.is_active = 1 AND (p.category_id = 1000 OR p.sku LIKE '%SWF%' OR c.slug = 'software' OR p.name LIKE '%Studio Pro%' OR p.name LIKE '%AutoFlow%' OR p.name LIKE '%TungDV%')
     ORDER BY p.price DESC, p.id ASC
 ";
 $softwares = $pdo->query($sqlSoftwares)->fetchAll();
@@ -28,6 +28,7 @@ if (empty($softwares)) {
 }
 
 $siteNameDisplay = layCaiDatHeThong('site_name', SHOP_NAME);
+$tenNganSite = trim(explode(' - ', $siteNameDisplay)[0]);
 $soZaloDisplay = layCaiDatHeThong('site_contact_zalo', SHOP_ZALO);
 $teleDisplay = layCaiDatHeThong('site_contact_telegram', SHOP_TELEGRAM);
 
@@ -35,10 +36,13 @@ $sanPhamJs = [];
 foreach ($softwares as $p) {
     $featuresArr = !empty($p['features']) ? json_decode($p['features'], true) : [];
     if (!is_array($featuresArr)) $featuresArr = [];
+    // Tự động thay thế TungDV thành Tên Website trên toàn bộ giao diện
+    $tenHienThi = preg_replace('/TungDV\s*/i', $tenNganSite . ' ', $p['name']);
+    $moTaHienThi = preg_replace('/TungDV\s*/i', $tenNganSite . ' ', $p['description'] ?? '');
     $sanPhamJs[] = [
         'id'             => (int)$p['id'],
         'category_id'    => (int)$p['category_id'],
-        'name'           => $p['name'],
+        'name'           => $tenHienThi,
         'slug'           => $p['slug'],
         'sku'            => $p['sku'],
         'image'          => $p['image'] ?? '',
@@ -47,7 +51,7 @@ foreach ($softwares as $p) {
         'badge'          => $p['badge'] ?? 'Bản quyền AI',
         'request_count'  => $p['request_count'],
         'features'       => $featuresArr,
-        'description'    => $p['description'],
+        'description'    => $moTaHienThi,
         'is_hot'         => (bool)$p['is_hot']
     ];
 }
@@ -59,16 +63,16 @@ foreach ($softwares as $p) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- SEO TIÊU ĐỀ & TỪ KHÓA TÌM KIẾM ĐỈNH CAO -->
-    <title>Phần Mềm TungDV AI - Studio Pro, AutoFlow, Voice, AutoEdit | <?= htmlspecialchars($siteNameDisplay) ?></title>
-    <meta name="description" content="Đại lý phân phối phần mềm TungDV AI chính hãng: TungDV Studio Pro dịch và lồng tiếng video, TungDV AutoFlow tạo video tự động, TungDV Voice clone giọng đọc, TungDV AutoEdit. Giao key tự động 24/7.">
-    <meta name="keywords" content="tungdv, phan mem tungdv, tungdv studio pro, tungdv autoflow, tungdv voice, tungdv autoedit, tungdv motion, tool ai lam video, phan mem ai video">
+    <title>Hệ Thống Phần Mềm AI & Tự Động Hóa - Studio Pro, AutoFlow, Voice | <?= htmlspecialchars($siteNameDisplay) ?></title>
+    <meta name="description" content="Kho phần mềm AI và công cụ làm video tự động hóa chính hãng tại <?= htmlspecialchars($siteNameDisplay) ?>: Studio Pro dịch lồng tiếng video, AutoFlow tạo video tự động, Voice clone giọng đọc, AutoEdit. Giao key tự động 24/7.">
+    <meta name="keywords" content="phan mem ai, studio pro, autoflow, voice, autoedit, motion, tool ai lam video, phan mem video <?= htmlspecialchars($siteNameDisplay) ?>">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
     <link rel="canonical" href="<?= SITE_URL ?>/phan-mem">
 
     <!-- OPEN GRAPH CHO ZALO, FACEBOOK -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="<?= SITE_URL ?>/phan-mem">
-    <meta property="og:title" content="Phần Mềm TungDV AI - Studio Pro, AutoFlow, Voice, AutoEdit">
+    <meta property="og:title" content="Hệ Thống Phần Mềm AI & Tự Động Hóa - <?= htmlspecialchars($siteNameDisplay) ?>">
     <meta property="og:description" content="Tự động hóa sản xuất video AI, dịch lồng tiếng, clone giọng đọc và edit video tự động trên Windows. Kích hoạt nhận key ngay lập tức.">
     <meta property="og:image" content="<?= !empty($softwares[0]['image']) ? $softwares[0]['image'] : (SITE_URL . '/assets/images/banner.png') ?>">
     <meta property="og:site_name" content="<?= htmlspecialchars($siteNameDisplay) ?>">
@@ -82,8 +86,8 @@ foreach ($softwares as $p) {
     {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      "name": "Bộ Phần Mềm AI TungDV Chính Hãng",
-      "description": "Kho phần mềm công cụ hỗ trợ người làm video, dịch lồng tiếng và tự động hóa AI phát triển bởi TungDV.",
+      "name": "Bộ Phần Mềm AI <?= addslashes($siteNameDisplay) ?> Chính Hãng",
+      "description": "Kho phần mềm công cụ hỗ trợ người làm video, dịch lồng tiếng và tự động hóa AI phát hành bởi <?= addslashes($siteNameDisplay) ?>.",
       "url": "<?= SITE_URL ?>/phan-mem",
       "publisher": {
         "@type": "Organization",
@@ -106,15 +110,15 @@ foreach ($softwares as $p) {
 
     <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12">
 
-        <!-- HERO BANNER GIỚI THIỆU PHẦN MỀM TUNGDV -->
+        <!-- HERO BANNER GIỚI THIỆU PHẦN MỀM -->
         <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-950/60 via-gray-900 to-indigo-950/60 border border-emerald-500/20 p-8 sm:p-12 shadow-2xl">
             <div class="relative z-10 max-w-3xl space-y-4">
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold tracking-wide uppercase">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold tracking-wide uppercase">
                     <i class="fas fa-cubes text-emerald-400"></i>
-                    <span>TungDV AI Software Suite</span>
+                    <span><?= htmlspecialchars($tenNganSite) ?> AI Software Suite</span>
                 </div>
                 <h1 class="text-2xl sm:text-4xl font-black text-white tracking-tight leading-tight">
-                    Hệ Thống Phần Mềm AI & Tự Động Hóa <span class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-200">TungDV</span>
+                    Hệ Thống Phần Mềm AI & Tự Động Hóa <span class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-200"><?= htmlspecialchars($tenNganSite) ?></span>
                 </h1>
                 <p class="text-sm sm:text-base text-gray-300 leading-relaxed">
                     Trọn bộ giải pháp thông minh dành cho Content Creator, Youtuber, Tiktoker: Dịch lồng tiếng video đa ngôn ngữ, tạo video AI từ kịch bản, clone giọng đọc siêu thực và cắt dựng video tự động.
@@ -133,12 +137,12 @@ foreach ($softwares as $p) {
             </div>
         </div>
 
-        <!-- DANH SÁCH PHẦN MỀM TUNGDV -->
+        <!-- DANH SÁCH PHẦN MỀM -->
         <div>
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 border-b border-gray-800 pb-4">
                 <div>
                     <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                        <i class="fas fa-microchip text-emerald-400"></i> Các Phần Mềm TungDV Đang Mở Bán
+                        <i class="fas fa-microchip text-emerald-400"></i> Các Phần Mềm AI <?= htmlspecialchars($tenNganSite) ?> Đang Mở Bán
                     </h2>
                     <p class="text-xs text-gray-400 mt-1">Chọn phần mềm cần dùng để kích hoạt ngay mã bản quyền và tài liệu hướng dẫn</p>
                 </div>
@@ -157,7 +161,7 @@ foreach ($softwares as $p) {
                             <div class="flex items-start justify-between gap-3 mb-4">
                                 <div class="w-16 h-16 rounded-2xl bg-gray-900 border border-gray-800 p-2 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform overflow-hidden shadow-inner">
                                     <template x-if="sp.image">
-                                        <img :src="sp.image" :alt="sp.name" class="w-full h-full object-contain rounded-xl" onerror="this.src='https://placehold.co/120x120/111827/10b981?text=TungDV'">
+                                        <img :src="sp.image" :alt="sp.name" class="w-full h-full object-contain rounded-xl" onerror="this.src='https://placehold.co/120x120/111827/10b981?text=Software'">
                                     </template>
                                     <template x-if="!sp.image">
                                         <i class="fas fa-cube text-2xl text-emerald-400"></i>
@@ -227,7 +231,7 @@ foreach ($softwares as $p) {
                 </div>
                 <h3 class="text-sm font-bold text-white">Cập Nhật & Nâng Cấp</h3>
                 <p class="text-xs text-gray-400 leading-relaxed">
-                    Hỗ trợ cập nhật các phiên bản mới của phần mềm TungDV khi có tính năng và model AI mới phát hành.
+                    Hỗ trợ cập nhật các phiên bản mới của phần mềm khi có tính năng và model AI mới phát hành.
                 </p>
             </div>
 

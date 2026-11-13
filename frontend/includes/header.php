@@ -54,6 +54,7 @@ if ((!isset($topUsers) || !is_array($topUsers)) && isset($pdo)) {
 }
 
 $tenWebsiteHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_name', defined('SHOP_NAME') ? SHOP_NAME : 'TiemAI.io.vn') : (defined('SHOP_NAME') ? SHOP_NAME : 'TiemAI.io.vn');
+$tenNganHeader = trim(explode(' - ', $tenWebsiteHeader)[0]);
 $soZaloHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_contact_zalo', defined('SHOP_ZALO') ? SHOP_ZALO : '0904045075') : (defined('SHOP_ZALO') ? SHOP_ZALO : '0904045075');
 $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_contact_telegram', defined('SHOP_TELEGRAM') ? SHOP_TELEGRAM : 'https://t.me/vankhashop') : (defined('SHOP_TELEGRAM') ? SHOP_TELEGRAM : 'https://t.me/vankhashop');
 ?>
@@ -67,32 +68,32 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
 
     <!-- THANH HEADER CHÍNH -->
     <header class="sticky top-0 z-50 bg-[#0F172A]/95 backdrop-blur-md border-b border-gray-800">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
+        <div class="max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 gap-3">
                 
                 <!-- Logo Shop -->
-                <a href="/" class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-blue-500/20">
+                <a href="/" class="flex items-center gap-2.5 shrink-0 mr-1 xl:mr-4">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-base shadow-lg shadow-blue-500/20 shrink-0">
                         VK
                     </div>
-                    <div>
-                        <span class="text-lg font-bold text-white tracking-wide block">VanKha<span class="text-blue-500">Shop</span></span>
-                        <span class="text-[10px] text-gray-400 font-semibold tracking-wider uppercase">Cổng API AI Tự Động</span>
+                    <div class="hidden sm:block shrink-0">
+                        <span class="text-base font-bold text-white tracking-wide block leading-tight whitespace-nowrap"><?= htmlspecialchars($tenNganHeader) ?></span>
+                        <span class="text-[9px] text-gray-400 font-semibold tracking-wider uppercase block leading-tight whitespace-nowrap">Cổng API AI Tự Động</span>
                     </div>
                 </a>
 
                 <!-- Menu điều hướng trung tâm (Đồng bộ mọi trang) -->
-                <nav class="hidden lg:flex items-center space-x-5 text-sm font-medium">
-                    <a href="/" class="text-white hover:text-blue-400 transition font-bold">Trang Chủ</a>
-                    <a href="/san-pham" class="text-gray-300 hover:text-white transition">Sản Phẩm</a>
-                    <a href="/phan-mem" class="text-gray-300 hover:text-white transition flex items-center gap-1.5 font-medium">
+                <nav class="hidden lg:flex items-center gap-3 xl:gap-5 text-xs xl:text-sm font-medium">
+                    <a href="/" class="text-white hover:text-blue-400 transition font-bold whitespace-nowrap">Trang Chủ</a>
+                    <a href="/san-pham" class="text-gray-300 hover:text-white transition whitespace-nowrap">Sản Phẩm</a>
+                    <a href="/phan-mem" class="text-gray-300 hover:text-emerald-400 transition flex items-center gap-1.5 font-medium whitespace-nowrap">
                         <i class="fas fa-cubes text-emerald-400 text-xs"></i>
                         <span>Phần Mềm</span>
                     </a>
 
                     <!-- DROPDOWN 1: QUẢN LÝ API -->
                     <div class="relative" @click.away="moMenuApi = false">
-                        <button @click="moMenuApi = !moMenuApi; moMenuHD = false" class="text-gray-300 hover:text-white transition flex items-center gap-1.5 focus:outline-none">
+                        <button @click="moMenuApi = !moMenuApi; moMenuHD = false" class="text-gray-300 hover:text-white transition flex items-center gap-1.5 focus:outline-none whitespace-nowrap">
                             <span>Quản lý API</span>
                             <i class="fas fa-chevron-down text-[10px] text-gray-400 transition-transform" :class="moMenuApi ? 'rotate-180' : ''"></i>
                         </button>
@@ -102,19 +103,19 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                              x-transition:enter-start="opacity-0 translate-y-1"
                              x-transition:enter-end="opacity-100 translate-y-0"
                              class="absolute left-0 mt-2 w-52 bg-[#1E293B] border border-gray-700/80 rounded-2xl shadow-2xl p-2 z-50 space-y-1 text-xs font-semibold" style="display: none;">
-                            <a href="/san-pham" @click="moMenuApi = false" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition">
+                            <a href="/san-pham" @click="moMenuApi = false" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
                                 <i class="fas fa-tag text-blue-400 w-4 text-center"></i>
                                 <span>Bảng giá Model</span>
                             </a>
-                            <a href="javascript:void(0)" @click="moMenuApi = false; moPopupKiemTraKey = true" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition">
+                            <a href="javascript:void(0)" @click="moMenuApi = false; moPopupKiemTraKey = true" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
                                 <i class="fas fa-chart-line text-green-400 w-4 text-center"></i>
                                 <span>Kiểm tra usage</span>
                             </a>
-                            <a href="<?= $daDangNhap ? '/user/nap-tien' : '/login' ?>" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition">
+                            <a href="<?= $daDangNhap ? '/user/nap-tien' : '/login' ?>" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
                                 <i class="fas fa-coins text-amber-400 w-4 text-center"></i>
                                 <span>Nạp Credit API</span>
                             </a>
-                            <a href="https://status.gwai.cloud/" target="_blank" rel="noopener noreferrer" @click="moMenuApi = false" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition">
+                            <a href="https://status.gwai.cloud/" target="_blank" rel="noopener noreferrer" @click="moMenuApi = false" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
                                 <i class="fas fa-wave-square text-purple-400 w-4 text-center"></i>
                                 <span>Trạng thái Model</span>
                                 <i class="fas fa-arrow-up-right-from-square text-[9px] text-gray-500 ml-auto"></i>
@@ -124,7 +125,7 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
 
                     <!-- DROPDOWN 2: HƯỚNG DẪN -->
                     <div class="relative" @click.away="moMenuHD = false">
-                        <button @click="moMenuHD = !moMenuHD; moMenuApi = false" class="text-gray-300 hover:text-white transition flex items-center gap-1.5 focus:outline-none">
+                        <button @click="moMenuHD = !moMenuHD; moMenuApi = false" class="text-gray-300 hover:text-white transition flex items-center gap-1.5 focus:outline-none whitespace-nowrap">
                             <span>Hướng dẫn</span>
                             <i class="fas fa-chevron-down text-[10px] text-gray-400 transition-transform" :class="moMenuHD ? 'rotate-180' : ''"></i>
                         </button>
@@ -134,15 +135,15 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                              x-transition:enter-start="opacity-0 translate-y-1"
                              x-transition:enter-end="opacity-100 translate-y-0"
                              class="absolute left-0 mt-2 w-52 bg-[#1E293B] border border-gray-700/80 rounded-2xl shadow-2xl p-2 z-50 space-y-1 text-xs font-semibold" style="display: none;">
-                            <a href="/docs" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition">
+                            <a href="/docs" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
                                 <i class="fas fa-handshake text-amber-400 w-4 text-center"></i>
                                 <span>Tài Liệu Buyer API</span>
                             </a>
-                            <a href="/user/api-docs" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition">
+                            <a href="/user/api-docs" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
                                 <i class="fas fa-laptop-code text-blue-400 w-4 text-center"></i>
                                 <span>Kết Nối Cursor IDE</span>
                             </a>
-                            <a href="/chinh-sach" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition">
+                            <a href="/chinh-sach" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
                                 <i class="fas fa-shield-halved text-green-400 w-4 text-center"></i>
                                 <span>Chính Sách Bảo Hành</span>
                             </a>
@@ -150,56 +151,60 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                     </div>
 
                     <!-- BẢNG XẾP HẠNG -->
-                    <a href="javascript:void(0)" @click="moPopupBangXepHang = true" class="text-gray-300 hover:text-amber-400 transition flex items-center gap-1.5 font-medium">
-                        <i class="fas fa-trophy text-amber-400"></i> Bảng Xếp Hạng
+                    <a href="javascript:void(0)" @click="moPopupBangXepHang = true" class="text-gray-300 hover:text-amber-400 transition flex items-center gap-1.5 font-medium whitespace-nowrap">
+                        <i class="fas fa-trophy text-amber-400"></i>
+                        <span>Bảng Xếp Hạng</span>
                     </a>
-                    
-                    <?php if ($daDangNhap): ?>
-                        <a href="/user/dashboard" class="text-gray-300 hover:text-blue-400 transition flex items-center gap-1.5">
-                            <i class="fas fa-wallet text-green-400"></i> Ví: <?= number_format($userHienTai['balance'] ?? 0, 0, ',', '.') ?>đ
-                        </a>
-                    <?php endif; ?>
-
-                    <?php if (!empty($userHienTai['role']) && $userHienTai['role'] === 'admin'): ?>
-                        <a href="/admin/dashboard" class="text-amber-400 hover:text-amber-300 transition text-xs font-bold px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/30">
-                            <i class="fas fa-shield-halved mr-1"></i> Admin
-                        </a>
-                    <?php endif; ?>
                 </nav>
 
-                <!-- Khu vực Nút Tra Cứu Key & Đăng Nhập bên phải -->
-                <div class="flex items-center space-x-3">
-                    <button @click="moPopupKiemTraKey = true" class="px-3.5 py-1.5 rounded-lg border border-gray-700 bg-gray-800/80 text-xs font-semibold text-gray-200 hover:bg-gray-700 transition flex items-center gap-1.5 shadow-sm">
-                        <i class="fas fa-chart-line text-blue-400"></i> Tra Cứu Key
+                <!-- Khu vực Người dùng & Công cụ bên phải -->
+                <div class="flex items-center gap-2 xl:gap-3 shrink-0">
+                    <button @click="moPopupKiemTraKey = true" class="hidden sm:inline-flex px-3 py-1.5 rounded-xl border border-gray-700 bg-gray-800/80 text-xs font-semibold text-gray-200 hover:bg-gray-700 hover:text-white transition items-center gap-1.5 shadow-sm whitespace-nowrap">
+                        <i class="fas fa-chart-line text-blue-400"></i>
+                        <span>Tra Cứu Key</span>
                     </button>
 
                     <?php if ($daDangNhap): ?>
-                        <!-- Người dùng đã đăng nhập -->
-                        <div class="flex items-center space-x-2 bg-gray-800/80 border border-gray-700 rounded-xl px-2.5 py-1">
+                        <!-- Ví tiền thành viên -->
+                        <a href="/user/nap-tien" title="Bấm để nạp thêm tiền vào ví" class="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold text-xs transition flex items-center gap-1.5 whitespace-nowrap shadow-sm">
+                            <i class="fas fa-wallet text-emerald-400"></i>
+                            <span>Ví: <?= number_format($userHienTai['balance'] ?? 0, 0, ',', '.') ?>đ</span>
+                        </a>
+
+                        <?php if (!empty($userHienTai['role']) && $userHienTai['role'] === 'admin'): ?>
+                            <!-- Nút tắt Admin -->
+                            <a href="/admin/dashboard" class="text-amber-400 hover:text-amber-300 transition text-xs font-bold px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-1 whitespace-nowrap shadow-sm">
+                                <i class="fas fa-shield-halved text-amber-400"></i>
+                                <span>Admin</span>
+                            </a>
+                        <?php endif; ?>
+
+                        <!-- Thông tin cá nhân & Đăng xuất -->
+                        <div class="flex items-center gap-2 bg-gray-800/80 border border-gray-700 rounded-xl px-2.5 py-1 shadow-sm shrink-0">
                             <?php if (!empty($userHienTai['avatar'])): ?>
-                                <img src="<?= htmlspecialchars($userHienTai['avatar']) ?>" class="w-6 h-6 rounded-full object-cover">
+                                <img src="<?= htmlspecialchars($userHienTai['avatar']) ?>" class="w-6 h-6 rounded-full object-cover shrink-0">
                             <?php else: ?>
-                                <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">
+                                <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
                                     <?= mb_substr($userHienTai['name'] ?? 'U', 0, 1) ?>
                                 </div>
                             <?php endif; ?>
-                            <a href="/user/dashboard" class="text-xs font-bold text-white hover:text-blue-400 max-w-[100px] truncate">
+                            <a href="/user/dashboard" class="text-xs font-bold text-white hover:text-blue-400 max-w-[90px] truncate whitespace-nowrap">
                                 <?= htmlspecialchars($userHienTai['name']) ?>
                             </a>
-                            <a href="/logout" title="Đăng xuất" class="text-gray-400 hover:text-red-400 text-xs pl-1">
+                            <a href="/logout" title="Đăng xuất" class="text-gray-400 hover:text-red-400 text-xs pl-0.5">
                                 <i class="fas fa-right-from-bracket"></i>
                             </a>
                         </div>
                     <?php else: ?>
                         <!-- Chưa đăng nhập -> Nút đăng nhập Google -->
-                        <a href="/login" class="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white transition flex items-center gap-2 shadow-md shadow-blue-600/30">
+                        <a href="/login" class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white transition flex items-center gap-1.5 shadow-md shadow-blue-600/30 whitespace-nowrap">
                             <i class="fab fa-google text-white text-xs"></i>
                             <span>Đăng Nhập</span>
                         </a>
                     <?php endif; ?>
 
                     <!-- NÚT HAMBURGER MOBILE -->
-                    <button @click="moMenuMobile = !moMenuMobile" class="lg:hidden p-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 focus:outline-none transition border border-gray-800" aria-label="Menu">
+                    <button @click="moMenuMobile = !moMenuMobile" class="lg:hidden p-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 focus:outline-none transition border border-gray-800 shrink-0" aria-label="Menu">
                         <i class="fas" :class="moMenuMobile ? 'fa-times' : 'fa-bars'"></i>
                     </button>
                 </div>

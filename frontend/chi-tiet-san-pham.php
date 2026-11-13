@@ -129,7 +129,7 @@ if (strpos($catSlug, 'cursor') !== false || strpos($prodName, 'cursor') !== fals
         ['name' => 'grok-2', 'desc' => 'Grok 2 của xAI xử lý thông tin thông minh và sắc sảo', 'status' => 'Online', 'tag' => 'xAI Core'],
         ['name' => 'grok-2-mini', 'desc' => 'Grok 2 Mini tốc độ cao và tối ưu độ trễ', 'status' => 'Online', 'tag' => 'Fast'],
     ];
-} elseif (strpos($catSlug, 'software') !== false || strpos($prodName, 'tungdv') !== false) {
+} elseif (strpos($catSlug, 'software') !== false || strpos($prodName, 'tungdv') !== false || strpos(strtolower($product['sku'] ?? ''), 'swf') !== false || strpos($prodName, 'studio pro') !== false || strpos($prodName, 'autoflow') !== false) {
     $supportedModels = [
         ['name' => 'Windows 10/11 64-bit', 'desc' => 'Hệ điều hành tương thích tối ưu', 'status' => 'Sẵn sàng', 'tag' => 'OS Support'],
         ['name' => 'AI Engine Offline/Cloud', 'desc' => 'Chạy kết hợp trình duyệt miễn phí, không tốn API', 'status' => 'Hoạt động', 'tag' => 'Engine'],
