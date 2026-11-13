@@ -870,8 +870,8 @@ switch ($hanhDong) {
             return trim($slug, '-');
         }
 
-        // Lấy danh mục hiện tại trong DB
-        $cats = $pdo->query("SELECT id, slug FROM `categories`")->fetchAll(PDO::FETCH_KEY_PAIR); // slug => id
+        // Lấy danh mục hiện tại trong DB: slug => id
+        $cats = $pdo->query("SELECT `slug`, `id` FROM `categories`")->fetchAll(PDO::FETCH_KEY_PAIR);
 
         $demThem = 0;
         $demCapNhat = 0;
@@ -888,9 +888,12 @@ switch ($hanhDong) {
 
             // Nếu danh mục chưa có thì tự động tạo
             if (!isset($cats[$catSlug])) {
-                $stmtC = $pdo->prepare("INSERT INTO `categories` (`name`, `slug`, `icon`, `sort_order`, `is_active`) VALUES (?, ?, ?, 10, 1)");
+                $stmtC = $pdo->prepare("INSERT INTO `categories` (`name`, `slug`, `icon`, `sort_order`, `is_active`) VALUES (?, ?, ?, 10, 1) ON DUPLICATE KEY UPDATE `name`=VALUES(`name`)");
                 $stmtC->execute([$catInfo['ten'], $catSlug, $catInfo['icon']]);
-                $catId = (int)$pdo->lastInsertId();
+                
+                $getCat = $pdo->prepare("SELECT id FROM `categories` WHERE `slug` = ? LIMIT 1");
+                $getCat->execute([$catSlug]);
+                $catId = (int)$getCat->fetchColumn();
                 $cats[$catSlug] = $catId;
             } else {
                 $catId = (int)$cats[$catSlug];
