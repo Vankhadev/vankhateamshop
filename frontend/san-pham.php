@@ -57,26 +57,51 @@ foreach ($products as $p) {
         'is_hot'         => (bool)$p['is_hot']
     ];
 }
+$siteName = layCaiDatHeThong('site_name', SHOP_NAME);
 ?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Danh Sách Sản Phẩm & Bảng Giá API - <?= SHOP_NAME ?></title>
+    <title>Danh Sách Sản Phẩm & Bảng Giá API - <?= htmlspecialchars($siteName) ?></title>
     
     <!-- TỐI ƯU HÓA SEO CHUẨN GOOGLE CHO TRANG SẢN PHẨM -->
-    <meta name="description" content="Bảng giá các gói API AI, Cursor Pro, Claude 3.5 Sonnet, ChatGPT Plus, DeepSeek R1 & V3 giá sỉ đại lý. Tự động cấp key qua VietQR.">
-    <meta name="keywords" content="bảng giá api ai, mua cursor pro, mua api claude, chatgpt plus, api rẻ nhất, shop van kha">
+    <meta name="description" content="Bảng giá các gói API AI, Cursor Pro, Claude 3.5 Sonnet, ChatGPT Plus, DeepSeek R1 & V3, phần mềm MMO tại <?= htmlspecialchars($siteName) ?>. Tự động cấp key 24/7 qua VietQR.">
+    <meta name="keywords" content="bảng giá api ai, mua cursor pro, mua api claude, chatgpt plus, deepseek r1, tungdv, phan mem, api re nhat, <?= htmlspecialchars($siteName) ?>">
     <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://shopvankha.com/san-pham">
+    <link rel="canonical" href="<?= SITE_URL ?>/san-pham">
 
     <meta property="og:locale" content="vi_VN">
     <meta property="og:type" content="product.group">
-    <meta property="og:title" content="Bảng Giá Sản Phẩm API AI - <?= SHOP_NAME ?>">
+    <meta property="og:title" content="Bảng Giá Sản Phẩm API AI - <?= htmlspecialchars($siteName) ?>">
     <meta property="og:description" content="Danh sách đầy đủ các gói API AI lập trình, cấp key tự động sau khi quét VietQR.">
-    <meta property="og:url" content="https://shopvankha.com/san-pham">
-    <meta property="og:site_name" content="<?= SHOP_NAME ?>">
+    <meta property="og:url" content="<?= SITE_URL ?>/san-pham">
+    <meta property="og:site_name" content="<?= htmlspecialchars($siteName) ?>">
+
+    <!-- SCHEMA JSON-LD CHO BẢNG GIÁ SẢN PHẨM -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "name": "Bảng Giá API & Phần Mềm <?= addslashes($siteName) ?>",
+      "numberOfItems": <?= count($sanPhamJs) ?>,
+      "itemListElement": [
+        <?php 
+        $schemaItems = [];
+        foreach (array_slice($sanPhamJs, 0, 10) as $idx => $sp) {
+            $schemaItems[] = json_encode([
+                "@type" => "ListItem",
+                "position" => $idx + 1,
+                "name" => $sp['name'],
+                "url" => SITE_URL . "/san-pham/" . ($sp['slug'] ?: $sp['sku'])
+            ], JSON_UNESCAPED_UNICODE);
+        }
+        echo implode(",\n        ", $schemaItems);
+        ?>
+      ]
+    }
+    </script>
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -559,12 +584,6 @@ foreach ($products as $p) {
                 } finally {
                     this.dangKiemTraNgay = false;
                 }
-            },
-
-            giaLapThanhToan() {
-                this.daThanhToan = true;
-                this.keyDaTraVe = 'sk-vankha-' + Math.random().toString(36).substring(2, 12) + Math.random().toString(36).substring(2, 12);
-                if (this.timerDemNguoc) clearInterval(this.timerDemNguoc);
             },
 
             dongThanhToan() {

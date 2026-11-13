@@ -89,7 +89,7 @@ $products = $pdo->query("SELECT * FROM `products` WHERE `is_active` = 1 ORDER BY
         
         <div class="mb-8">
             <h1 class="text-2xl font-black text-white flex items-center gap-3">
-                <i class="fas fa-code text-blue-500"></i> Tài Liệu Tích Hợp API & Trình Thử Nghiệm
+                <i class="fas fa-code text-blue-500"></i> Tài Liệu Tích Hợp API Gateway & Cursor IDE
             </h1>
             <p class="text-sm text-gray-400 mt-1">Cổng kết nối chuẩn định dạng OpenAI `/v1/chat/completions` tương thích hoàn hảo với Cursor IDE, Cline, NextChat, Python và Node.js.</p>
         </div>
@@ -249,56 +249,6 @@ console.log(completion.choices[0].message.content);</code></pre>
                 </div>
             </div>
 
-            <!-- 3. TRÌNH THỬ NGHIỆM API TRỰC TIẾP (API PLAYGROUND) -->
-            <div class="bg-[#111827] border border-gray-800 rounded-2xl p-6 shadow-xl flex flex-col">
-                <div class="border-b border-gray-800 pb-3 mb-4 flex items-center justify-between">
-                    <div>
-                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
-                            <i class="fas fa-play text-green-400"></i> Trình Thử Nghiệm API Trực Tiếp
-                        </h3>
-                        <p class="text-[11px] text-gray-400">Gửi request kiểm tra Gateway phản hồi ngay trên trình duyệt</p>
-                    </div>
-                    <span class="px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold">
-                        <i class="fas fa-circle text-[8px] mr-1"></i> Live
-                    </span>
-                </div>
-
-                <div class="space-y-4 flex-1 flex flex-col">
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Chọn Model Test</label>
-                        <select x-model="modelChon" class="w-full bg-[#1E293B] border border-gray-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
-                            <option value="cursor-small">cursor-small (Gợi ý code nhanh)</option>
-                            <option value="claude-3-5-sonnet">claude-3-5-sonnet (Claude 3.5 Sonnet)</option>
-                            <option value="deepseek-reasoner">deepseek-reasoner (DeepSeek R1)</option>
-                            <option value="deepseek-chat">deepseek-chat (DeepSeek V3)</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Nội Dung Prompt Thử Nghiệm</label>
-                        <textarea x-model="noiDungPrompt" rows="3" class="w-full bg-[#1E293B] border border-gray-700 rounded-xl p-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500" placeholder="Nhập câu hỏi thử nghiệm..."></textarea>
-                    </div>
-
-                    <button @click="guiThuNghiemApi()" :disabled="dangTestApi" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs transition duration-150 shadow-md shadow-blue-600/30 flex items-center justify-center gap-2">
-                        <span x-show="!dangTestApi"><i class="fas fa-paper-plane"></i> Gửi Thử Nghiệm API</span>
-                        <span x-show="dangTestApi"><i class="fas fa-circle-notch fa-spin"></i> Đang gửi yêu cầu...</span>
-                    </button>
-
-                    <!-- Kết quả trả về từ API -->
-                    <div class="flex-1 flex flex-col mt-2">
-                        <div class="flex items-center justify-between text-xs text-gray-400 mb-1.5">
-                            <span>Phản hồi từ Gateway:</span>
-                            <span x-show="thoiGianTest" class="text-green-400 font-mono text-[10px]" x-text="'Mã: 200 OK | ' + thoiGianTest"></span>
-                        </div>
-                        <div class="flex-1 min-h-[160px] bg-[#0B0F19] border border-gray-800 rounded-xl p-3 font-mono text-xs text-gray-300 overflow-y-auto">
-                            <span x-show="!ketQuaPhanHoi && !dangTestApi" class="text-gray-600 italic">Bấm "Gửi Thử Nghiệm API" để xem dữ liệu phản hồi...</span>
-                            <span x-show="dangTestApi" class="text-blue-400"><i class="fas fa-spinner fa-spin mr-1"></i> Đang chờ máy chủ phản hồi...</span>
-                            <div x-show="ketQuaPhanHoi" class="text-emerald-400 whitespace-pre-wrap" x-text="ketQuaPhanHoi"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
         </div>
 
     </main>
@@ -313,12 +263,6 @@ console.log(completion.choices[0].message.content);</code></pre>
             hienToken: false,
             dangTaoToken: false,
             tabCode: 'cursor',
-
-            modelChon: 'cursor-small',
-            noiDungPrompt: 'Xin chào, kiểm tra kết nối API Gateway của VanKhaShop!',
-            dangTestApi: false,
-            ketQuaPhanHoi: '',
-            thoiGianTest: '',
 
             saoChep(vanBan) {
                 navigator.clipboard.writeText(vanBan);
@@ -342,36 +286,8 @@ console.log(completion.choices[0].message.content);</code></pre>
                 } finally {
                     this.dangTaoToken = false;
                 }
-            },
-
-            async guiThuNghiemApi() {
-                this.dangTestApi = true;
-                this.ketQuaPhanHoi = '';
-                this.thoiGianTest = '';
-
-                const form = new FormData();
-                form.append('model', this.modelChon);
-                form.append('message', this.noiDungPrompt);
-
-                try {
-                    const res = await fetch('/backend/api.php?action=test_chat_proxy', {
-                        method: 'POST',
-                        body: form
-                    });
-                    const data = await res.json();
-                    if (data.thanh_cong) {
-                        this.ketQuaPhanHoi = data.response;
-                        this.thoiGianTest = data.timestamp;
-                    } else {
-                        this.ketQuaPhanHoi = 'Lỗi: ' + (data.thong_bao || 'Không nhận được dữ liệu');
-                    }
-                } catch (e) {
-                    this.ketQuaPhanHoi = 'Lỗi kết nối đến máy chủ Gateway';
-                } finally {
-                    this.dangTestApi = false;
-                }
             }
-        }
+        };
     }
     </script>
 </body>

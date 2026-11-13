@@ -52,6 +52,10 @@ if ((!isset($topUsers) || !is_array($topUsers)) && isset($pdo)) {
         $topUsers = [];
     }
 }
+
+$tenWebsiteHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_name', defined('SHOP_NAME') ? SHOP_NAME : 'TiemAI.io.vn') : (defined('SHOP_NAME') ? SHOP_NAME : 'TiemAI.io.vn');
+$soZaloHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_contact_zalo', defined('SHOP_ZALO') ? SHOP_ZALO : '0904045075') : (defined('SHOP_ZALO') ? SHOP_ZALO : '0904045075');
+$linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_contact_telegram', defined('SHOP_TELEGRAM') ? SHOP_TELEGRAM : 'https://t.me/vankhashop') : (defined('SHOP_TELEGRAM') ? SHOP_TELEGRAM : 'https://t.me/vankhashop');
 ?>
 
 <!-- KHỐI HEADER ĐIỀU HƯỚNG DÙNG CHUNG (KÈM POPUP MODALS) -->
@@ -81,6 +85,10 @@ if ((!isset($topUsers) || !is_array($topUsers)) && isset($pdo)) {
                 <nav class="hidden lg:flex items-center space-x-5 text-sm font-medium">
                     <a href="/" class="text-white hover:text-blue-400 transition font-bold">Trang Chủ</a>
                     <a href="/san-pham" class="text-gray-300 hover:text-white transition">Sản Phẩm</a>
+                    <a href="/phan-mem" class="text-gray-300 hover:text-white transition flex items-center gap-1.5 font-medium">
+                        <i class="fas fa-cubes text-emerald-400 text-xs"></i>
+                        <span>Phần Mềm</span>
+                    </a>
 
                     <!-- DROPDOWN 1: QUẢN LÝ API -->
                     <div class="relative" @click.away="moMenuApi = false">
@@ -106,7 +114,7 @@ if ((!isset($topUsers) || !is_array($topUsers)) && isset($pdo)) {
                                 <i class="fas fa-coins text-amber-400 w-4 text-center"></i>
                                 <span>Nạp Credit API</span>
                             </a>
-                            <a href="javascript:void(0)" @click="moMenuApi = false; moPopupStatusModel = true" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition">
+                            <a href="https://status.gwai.cloud/" target="_blank" rel="noopener noreferrer" @click="moMenuApi = false" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition">
                                 <i class="fas fa-wave-square text-purple-400 w-4 text-center"></i>
                                 <span>Trạng thái Model</span>
                                 <i class="fas fa-arrow-up-right-from-square text-[9px] text-gray-500 ml-auto"></i>
@@ -189,9 +197,75 @@ if ((!isset($topUsers) || !is_array($topUsers)) && isset($pdo)) {
                             <span>Đăng Nhập</span>
                         </a>
                     <?php endif; ?>
+
+                    <!-- NÚT HAMBURGER MOBILE -->
+                    <button @click="moMenuMobile = !moMenuMobile" class="lg:hidden p-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 focus:outline-none transition border border-gray-800" aria-label="Menu">
+                        <i class="fas" :class="moMenuMobile ? 'fa-times' : 'fa-bars'"></i>
+                    </button>
                 </div>
 
             </div>
+        </div>
+
+        <!-- MENU MOBILE DRAWER (RESPONSIVE CHO ĐIỆN THOẠI) -->
+        <div x-show="moMenuMobile" 
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 -translate-y-2"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 translate-y-0"
+             x-transition:leave-end="opacity-0 -translate-y-2"
+             class="lg:hidden bg-[#0F172A] border-b border-gray-800 px-4 py-4 space-y-3 shadow-2xl" style="display: none;">
+            
+            <div class="grid grid-cols-2 gap-2 text-xs font-semibold">
+                <a href="/" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-blue-500 transition">
+                    <i class="fas fa-home text-blue-400"></i> Trang Chủ
+                </a>
+                <a href="/san-pham" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-blue-500 transition">
+                    <i class="fas fa-tag text-purple-400"></i> Sản Phẩm
+                </a>
+                <a href="/phan-mem" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-emerald-500 transition">
+                    <i class="fas fa-cubes text-emerald-400"></i> Phần Mềm
+                </a>
+                <a href="https://status.gwai.cloud/" target="_blank" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-purple-500 transition">
+                    <i class="fas fa-wave-square text-green-400"></i> Status Model
+                </a>
+                <a href="/docs" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-amber-500 transition">
+                    <i class="fas fa-book text-amber-400"></i> Tài Liệu API
+                </a>
+                <a href="javascript:void(0)" @click="moMenuMobile = false; moPopupBangXepHang = true" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-amber-500 transition">
+                    <i class="fas fa-trophy text-amber-400"></i> Xếp Hạng
+                </a>
+            </div>
+
+            <div class="border-t border-gray-800/80 pt-3 flex flex-col gap-2 text-xs">
+                <?php if ($daDangNhap): ?>
+                    <div class="flex items-center justify-between bg-gray-900/90 border border-gray-800 rounded-xl p-2.5">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-wallet text-green-400"></i>
+                            <span class="text-gray-300">Số dư ví:</span>
+                            <strong class="text-green-400"><?= number_format($userHienTai['balance'] ?? 0, 0, ',', '.') ?>đ</strong>
+                        </div>
+                        <a href="/user/nap-tien" @click="moMenuMobile = false" class="px-2.5 py-1 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg text-[11px]">Nạp Ngay</a>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-[11px]">
+                        <a href="/user/don-hang" @click="moMenuMobile = false" class="p-2 rounded-lg bg-gray-900 text-gray-300 hover:text-white flex items-center gap-1.5"><i class="fas fa-box text-blue-400"></i> Đơn hàng</a>
+                        <a href="/user/bien-dong-so-du" @click="moMenuMobile = false" class="p-2 rounded-lg bg-gray-900 text-gray-300 hover:text-white flex items-center gap-1.5"><i class="fas fa-clock-rotate-left text-purple-400"></i> Biến động ví</a>
+                    </div>
+                <?php else: ?>
+                    <a href="/login" @click="moMenuMobile = false" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-center font-bold">
+                        <i class="fab fa-google mr-1.5"></i> Đăng Nhập Tài Khoản
+                    </a>
+                <?php endif; ?>
+
+                <div class="flex items-center justify-between text-[11px] text-gray-400 pt-2 border-t border-gray-800/60">
+                    <span>Hỗ trợ nhanh:</span>
+                    <div class="flex items-center gap-3">
+                        <a href="https://zalo.me/<?= htmlspecialchars($soZaloHeader) ?>" target="_blank" class="text-blue-400 font-bold hover:underline"><i class="fas fa-comment-dots mr-1"></i>Zalo: <?= htmlspecialchars($soZaloHeader) ?></a>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </header>
 
@@ -321,6 +395,7 @@ if ((!isset($topUsers) || !is_array($topUsers)) && isset($pdo)) {
 <script>
 function khoDieuHuongHeader() {
     return {
+        moMenuMobile: false,
         moMenuApi: false,
         moMenuHD: false,
         moPopupKiemTraKey: false,

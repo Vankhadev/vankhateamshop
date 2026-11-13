@@ -70,8 +70,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['luu_cai_dat'])) {
     }
 }
 
-// Đọc toàn bộ cài đặt từ bảng settings (chính xác 2 cột: key và value)
-$rawSettings = $pdo->query("SELECT `key`, `value` FROM `settings`")->fetchAll(PDO::FETCH_KEY_PAIR);
+// Đọc toàn bộ cài đặt từ bảng settings (an toàn, tương thích mọi chế độ PDO)
+$rawSettings = [];
+try {
+    $caiDatRows = $pdo->query("SELECT `key`, `value` FROM `settings`")->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($caiDatRows as $r) {
+        if (!empty($r['key'])) {
+            $rawSettings[$r['key']] = $r['value'] ?? '';
+        }
+    }
+} catch (Exception $e) {
+    // Dự phòng nếu có lỗi truy vấn
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="vi">

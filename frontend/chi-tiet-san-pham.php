@@ -89,23 +89,110 @@ $ptGiam = 0;
 if (!empty($product['original_price']) && $product['original_price'] > $product['price']) {
     $ptGiam = round((($product['original_price'] - $product['price']) / $product['original_price']) * 100);
 }
+
+$siteNameDisplay = layCaiDatHeThong('site_name', SHOP_NAME);
+$soZaloDisplay = layCaiDatHeThong('site_contact_zalo', SHOP_ZALO);
+$teleDisplay = layCaiDatHeThong('site_contact_telegram', SHOP_TELEGRAM);
+
+// Phân loại danh sách Model hỗ trợ theo gói
+$catSlug = strtolower($product['category_slug'] ?? '');
+$prodName = strtolower($product['name'] ?? '');
+
+$supportedModels = [];
+if (strpos($catSlug, 'cursor') !== false || strpos($prodName, 'cursor') !== false) {
+    $supportedModels = [
+        ['name' => 'claude-3-5-sonnet', 'desc' => 'Claude 3.5 Sonnet đỉnh cao lập trình & refactor code', 'status' => 'Online', 'tag' => 'Khuyên dùng'],
+        ['name' => 'gpt-4o', 'desc' => 'GPT-4o đa năng giải quyết logic phức tạp', 'status' => 'Online', 'tag' => 'Max Speed'],
+        ['name' => 'deepseek-reasoner', 'desc' => 'DeepSeek R1 suy luận chuỗi tư duy (Chain of Thought)', 'status' => 'Online', 'tag' => 'R1 Reasoning'],
+        ['name' => 'deepseek-chat', 'desc' => 'DeepSeek V3 phản hồi siêu tốc, độ trễ thấp', 'status' => 'Online', 'tag' => 'V3 Ultra Fast'],
+        ['name' => 'cursor-small', 'desc' => 'Mô hình gợi ý inline tab completion tức thì trong Cursor', 'status' => 'Online', 'tag' => 'Tab Autocomplete'],
+    ];
+} elseif (strpos($catSlug, 'claude') !== false || strpos($prodName, 'claude') !== false) {
+    $supportedModels = [
+        ['name' => 'claude-3-5-sonnet', 'desc' => 'Claude 3.5 Sonnet đỉnh cao trí tuệ lập trình', 'status' => 'Online', 'tag' => 'Flagship'],
+        ['name' => 'claude-3-opus', 'desc' => 'Claude 3 Opus suy luận văn bản và ngữ cảnh lớn', 'status' => 'Online', 'tag' => 'Deep Thinking'],
+        ['name' => 'claude-3-5-haiku', 'desc' => 'Claude 3.5 Haiku tốc độ cực cao, tiết kiệm chi phí', 'status' => 'Online', 'tag' => 'Fastest'],
+    ];
+} elseif (strpos($catSlug, 'deepseek') !== false || strpos($prodName, 'deepseek') !== false) {
+    $supportedModels = [
+        ['name' => 'deepseek-reasoner', 'desc' => 'DeepSeek R1 mô hình suy luận chuỗi bước đột phá', 'status' => 'Online', 'tag' => 'R1 Reasoner'],
+        ['name' => 'deepseek-chat', 'desc' => 'DeepSeek V3 671B phản hồi siêu tốc cho chat & code', 'status' => 'Online', 'tag' => 'V3 Chat'],
+    ];
+} elseif (strpos($catSlug, 'gemini') !== false || strpos($prodName, 'gemini') !== false) {
+    $supportedModels = [
+        ['name' => 'gemini-1.5-pro', 'desc' => 'Gemini 1.5 Pro ngữ cảnh 2 triệu token siêu khổng lồ', 'status' => 'Online', 'tag' => '2M Context'],
+        ['name' => 'gemini-2.0-flash', 'desc' => 'Gemini 2.0 Flash thế hệ mới nhất siêu nhanh', 'status' => 'Online', 'tag' => 'Next Gen'],
+        ['name' => 'gemini-1.5-flash', 'desc' => 'Gemini 1.5 Flash tối ưu tốc độ và độ phản hồi', 'status' => 'Online', 'tag' => 'Ultra Low Latency'],
+    ];
+} elseif (strpos($catSlug, 'grok') !== false || strpos($prodName, 'grok') !== false) {
+    $supportedModels = [
+        ['name' => 'grok-2', 'desc' => 'Grok 2 của xAI xử lý thông tin thông minh và sắc sảo', 'status' => 'Online', 'tag' => 'xAI Core'],
+        ['name' => 'grok-2-mini', 'desc' => 'Grok 2 Mini tốc độ cao và tối ưu độ trễ', 'status' => 'Online', 'tag' => 'Fast'],
+    ];
+} elseif (strpos($catSlug, 'software') !== false || strpos($prodName, 'tungdv') !== false) {
+    $supportedModels = [
+        ['name' => 'Windows 10/11 64-bit', 'desc' => 'Hệ điều hành tương thích tối ưu', 'status' => 'Sẵn sàng', 'tag' => 'OS Support'],
+        ['name' => 'AI Engine Offline/Cloud', 'desc' => 'Chạy kết hợp trình duyệt miễn phí, không tốn API', 'status' => 'Hoạt động', 'tag' => 'Engine'],
+        ['name' => 'Auto Update 24/7', 'desc' => 'Cập nhật bản mới miễn phí trong thời gian sử dụng', 'status' => 'Bảo đảm', 'tag' => 'Lifetime'],
+    ];
+} else {
+    $supportedModels = [
+        ['name' => 'Full AI Model Gateway', 'desc' => 'Hỗ trợ các model tương thích chuẩn OpenAI API', 'status' => 'Online', 'tag' => 'Multi-Model'],
+        ['name' => 'High-Speed Proxy', 'desc' => 'Định tuyến máy chủ Việt Nam tốc độ cao', 'status' => 'Online', 'tag' => 'Low Latency'],
+    ];
+}
+
+$canonicalUrl = (defined('SITE_URL') ? SITE_URL : 'https://tiemai.io.vn') . '/san-pham/' . htmlspecialchars($product['slug'] ?? $product['sku']);
+$seoKeywords = htmlspecialchars($product['name']) . ", mua " . htmlspecialchars($product['name']) . ", api " . htmlspecialchars($product['category_name']) . ", key " . htmlspecialchars($product['name']) . " gia re, dai ly api ai, mua api cursor, mua api claude";
 ?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($product['name']) ?> - <?= SHOP_NAME ?></title>
+    <title><?= htmlspecialchars($product['name']) ?> Giá Rẻ - Tự Động Giao Key 24/7 | <?= htmlspecialchars($siteNameDisplay) ?></title>
     
-    <!-- Meta SEO -->
-    <meta name="description" content="<?= htmlspecialchars($product['name']) ?> - <?= htmlspecialchars($product['description'] ?? 'API AI chính hãng, kích hoạt tự động 24/7 qua VietQR ACB.') ?>">
-    <link rel="canonical" href="<?= (defined('SITE_URL') ? SITE_URL : 'https://tiemai.io.vn') ?>/san-pham/<?= htmlspecialchars($product['slug']) ?>">
+    <!-- Meta SEO Chuyên Nghiệp -->
+    <meta name="description" content="Mua <?= htmlspecialchars($product['name']) ?> chính hãng giá rẻ: <?= htmlspecialchars(mb_substr(strip_tags($product['description'] ?? 'API AI Agent, Cursor Pro, Claude 3.5 Sonnet tự động giao key 24/7 qua VietQR ACB.'), 0, 160)) ?>">
+    <meta name="keywords" content="<?= $seoKeywords ?>">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <link rel="canonical" href="<?= $canonicalUrl ?>">
 
-    <!-- Open Graph -->
-    <meta property="og:title" content="<?= htmlspecialchars($product['name']) ?> - <?= SHOP_NAME ?>">
-    <meta property="og:description" content="<?= htmlspecialchars($product['description'] ?? 'Cung cấp API AI Agent, Cursor Pro, Claude 3.5 Sonnet tự động giao key 24/7.') ?>">
-    <meta property="og:url" content="<?= (defined('SITE_URL') ? SITE_URL : 'https://tiemai.io.vn') ?>/san-pham/<?= htmlspecialchars($product['slug']) ?>">
+    <!-- Open Graph (Facebook, Zalo) -->
     <meta property="og:type" content="product">
+    <meta property="og:url" content="<?= $canonicalUrl ?>">
+    <meta property="og:title" content="<?= htmlspecialchars($product['name']) ?> - <?= htmlspecialchars($siteNameDisplay) ?>">
+    <meta property="og:description" content="<?= htmlspecialchars(mb_substr(strip_tags($product['description'] ?? 'Cung cấp API AI Agent, Cursor Pro, Claude 3.5 Sonnet tự động giao key 24/7.'), 0, 200)) ?>">
+    <meta property="og:image" content="<?= !empty($product['image']) ? $product['image'] : ((defined('SITE_URL') ? SITE_URL : 'https://tiemai.io.vn') . '/assets/images/banner.png') ?>">
+    <meta property="og:site_name" content="<?= htmlspecialchars($siteNameDisplay) ?>">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?= htmlspecialchars($product['name']) ?> - <?= htmlspecialchars($siteNameDisplay) ?>">
+    <meta name="twitter:description" content="<?= htmlspecialchars(mb_substr(strip_tags($product['description'] ?? 'Cung cấp API AI Agent, Cursor Pro, Claude 3.5 Sonnet tự động giao key 24/7.'), 0, 200)) ?>">
+
+    <!-- Schema.org JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org/",
+      "@type": "Product",
+      "name": "<?= htmlspecialchars($product['name']) ?>",
+      "image": "<?= !empty($product['image']) ? $product['image'] : ((defined('SITE_URL') ? SITE_URL : 'https://tiemai.io.vn') . '/assets/images/banner.png') ?>",
+      "description": "<?= htmlspecialchars(strip_tags($product['description'] ?? '')) ?>",
+      "sku": "<?= htmlspecialchars($product['sku']) ?>",
+      "offers": {
+        "@type": "Offer",
+        "url": "<?= $canonicalUrl ?>",
+        "priceCurrency": "VND",
+        "price": "<?= (float)$product['price'] ?>",
+        "availability": "https://schema.org/InStock",
+        "seller": {
+          "@type": "Organization",
+          "name": "<?= htmlspecialchars($siteNameDisplay) ?>"
+        }
+      }
+    }
+    </script>
 
     <!-- CSS & Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -204,8 +291,8 @@ if (!empty($product['original_price']) && $product['original_price'] > $product[
                         <div class="text-[10px] text-gray-400 mt-0.5">Dung Lượng</div>
                     </div>
                     <div class="p-2.5 rounded-xl bg-gray-900/90 border border-gray-800">
-                        <div class="text-emerald-400 font-black text-sm">5+ Model</div>
-                        <div class="text-[10px] text-gray-400 mt-0.5">Hỗ Trợ All</div>
+                        <div class="text-emerald-400 font-black text-sm"><?= count($supportedModels) ?>+ Model</div>
+                        <div class="text-[10px] text-gray-400 mt-0.5">Hỗ Trợ Gói</div>
                     </div>
                     <div class="p-2.5 rounded-xl bg-gray-900/90 border border-gray-800">
                         <div class="text-amber-400 font-black text-sm">99.9%</div>
@@ -351,11 +438,11 @@ if (!empty($product['original_price']) && $product['original_price'] > $product[
                     <div class="flex items-center justify-between text-xs text-gray-400 pt-1">
                         <span>Cần tư vấn hỗ trợ kỹ thuật?</span>
                         <div class="flex items-center gap-3">
-                            <a href="https://zalo.me/<?= defined('SHOP_ZALO') ? SHOP_ZALO : '0847154088' ?>" target="_blank" class="text-blue-400 hover:underline font-semibold flex items-center gap-1">
-                                <i class="fas fa-comment-dots"></i> Zalo CSKH
+                            <a href="https://zalo.me/<?= htmlspecialchars($soZaloDisplay) ?>" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline font-semibold flex items-center gap-1">
+                                <i class="fas fa-comment-dots"></i> Zalo CSKH (<?= htmlspecialchars($soZaloDisplay) ?>)
                             </a>
                             <span>•</span>
-                            <a href="<?= defined('SHOP_TELEGRAM') ? SHOP_TELEGRAM : 'https://t.me/vankhateam' ?>" target="_blank" class="text-blue-400 hover:underline font-semibold flex items-center gap-1">
+                            <a href="<?= htmlspecialchars($teleDisplay) ?>" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline font-semibold flex items-center gap-1">
                                 <i class="fab fa-telegram"></i> Telegram
                             </a>
                         </div>
@@ -395,7 +482,7 @@ if (!empty($product['original_price']) && $product['original_price'] > $product[
                         <span>Giới Thiệu Sản Phẩm</span>
                     </h3>
                     <p>
-                        Sản phẩm <strong><?= htmlspecialchars($product['name']) ?></strong> là giải pháp kết nối AI thế hệ mới được cấu hình và phân phối độc quyền bởi <strong><?= SHOP_NAME ?></strong>, giúp lập trình viên và người dùng khai thác tối đa sức mạnh của các mô hình AI tiên tiến mà không cần phải chi trả mức phí thuê bao hàng tháng đắt đỏ.
+                        Sản phẩm <strong><?= htmlspecialchars($product['name']) ?></strong> là giải pháp kết nối AI thế hệ mới được cấu hình và phân phối bởi <strong><?= htmlspecialchars($siteNameDisplay) ?></strong>, giúp lập trình viên và người dùng khai thác tối đa sức mạnh của các mô hình AI tiên tiến mà không cần phải chi trả mức phí thuê bao hàng tháng đắt đỏ.
                     </p>
                     <p class="mt-2">
                         Sau khi kích hoạt thành công, bạn có thể gọi API trực tiếp từ công cụ lập trình yêu thích (như Cursor IDE, VS Code, Next.js, Python hoặc Bot tự động) để thực hiện các tác vụ sinh mã nguồn, tối ưu hóa thuật toán, giải thích code và xử lý logic phức tạp.
@@ -405,7 +492,7 @@ if (!empty($product['original_price']) && $product['original_price'] > $product[
                 <div>
                     <h3 class="text-base sm:text-lg font-bold text-white mb-2 flex items-center gap-2">
                         <span class="w-7 h-7 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center text-xs">2</span>
-                        <span>Tính Năng Nổi Bật</span>
+                        <span>Tính Năng Nổi Bật & Model Hỗ Trợ Theo Gói</span>
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                         <div class="p-4 rounded-2xl bg-gray-900/60 border border-gray-800">
@@ -416,9 +503,48 @@ if (!empty($product['original_price']) && $product['original_price'] > $product[
                         </div>
                         <div class="p-4 rounded-2xl bg-gray-900/60 border border-gray-800">
                             <h4 class="font-bold text-white text-xs mb-1 flex items-center gap-1.5 text-emerald-400">
-                                <i class="fas fa-layer-group"></i> Linh hoạt lựa chọn Model
+                                <i class="fas fa-layer-group"></i> Danh sách Model định tuyến của gói
                             </h4>
-                            <p class="text-xs text-gray-400">Truy cập mượt mà vào các mô hình hàng đầu hiện nay như Claude 3.5 Sonnet, GPT-4o, DeepSeek R1 & V3, Gemini 1.5 Pro với độ trễ thấp tối ưu về máy chủ Việt Nam.</p>
+                            <p class="text-xs text-gray-400">Được cấu hình sẵn hạ tầng định tuyến chịu tải cao, kiểm tra trạng thái live tại <a href="https://status.gwai.cloud/" target="_blank" class="text-blue-400 hover:underline">status.gwai.cloud</a>.</p>
+                        </div>
+                    </div>
+
+                    <!-- BẢNG MODEL HỖ TRỢ THEO TỪNG GÓI -->
+                    <div class="mt-4 bg-gray-950 border border-gray-800 rounded-2xl p-4 overflow-hidden">
+                        <div class="flex items-center justify-between mb-3 border-b border-gray-800/80 pb-2.5">
+                            <span class="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fas fa-list-check text-emerald-400"></i> Bảng Danh Sách Model / Tính Năng Của Gói Này:
+                            </span>
+                            <span class="text-[10px] text-gray-400 font-mono">Đồng bộ tự động</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="text-gray-400 border-b border-gray-800 text-[11px] uppercase">
+                                    <tr>
+                                        <th class="py-2 px-2.5">Tên Model / Công Nghệ</th>
+                                        <th class="py-2 px-2.5">Đặc Điểm & Ứng Dụng</th>
+                                        <th class="py-2 px-2.5 text-center">Trạng Thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-800/60 font-medium">
+                                    <?php foreach ($supportedModels as $sm): ?>
+                                        <tr class="hover:bg-gray-900/40 transition">
+                                            <td class="py-2.5 px-2.5">
+                                                <div class="font-mono font-bold text-blue-400"><?= htmlspecialchars($sm['name']) ?></div>
+                                                <span class="inline-block mt-0.5 px-2 py-0.5 rounded text-[9px] font-bold bg-gray-800 text-amber-300"><?= htmlspecialchars($sm['tag']) ?></span>
+                                            </td>
+                                            <td class="py-2.5 px-2.5 text-gray-300 text-[11px]">
+                                                <?= htmlspecialchars($sm['desc']) ?>
+                                            </td>
+                                            <td class="py-2.5 px-2.5 text-center">
+                                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-950 text-green-400 border border-green-800/60">
+                                                    <?= htmlspecialchars($sm['status']) ?>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -891,23 +1017,6 @@ if (!empty($product['original_price']) && $product['original_price'] > $product[
                     })
                     .catch(() => {
                         this.dangKiemTraNgay = false;
-                    });
-            },
-
-            giaLapThanhToan() {
-                if (!this.maDonHang) return;
-                const fd = new FormData();
-                fd.append('action', 'test_chat_proxy');
-                fd.append('order_code', this.maDonHang);
-
-                fetch('/backend/api.php', { method: 'POST', body: fd })
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.thanh_cong) {
-                            this.kiemTraThanhToanNgay(false);
-                        } else {
-                            alert(data.thong_bao || 'Không thể mô phỏng');
-                        }
                     });
             },
 

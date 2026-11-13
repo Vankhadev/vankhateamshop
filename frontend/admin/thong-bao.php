@@ -167,10 +167,10 @@ $allIds = array_map(fn($t) => (int)$t['id'], $thongBaos);
                                             </td>
                                             <td class="py-3 px-4 font-mono text-gray-400 whitespace-nowrap"><?= $tb['created_at'] ?></td>
                                             <td class="py-3 px-4 text-right space-x-2">
-                                                <button @click="suaThongBao(<?= htmlspecialchars(json_encode($tb)) ?>)" class="text-blue-400 hover:text-blue-300 font-semibold text-xs transition">
+                                                <button type="button" @click="suaThongBao(<?= (int)$tb['id'] ?>)" class="text-blue-400 hover:text-blue-300 font-semibold text-xs transition">
                                                     <i class="fas fa-pen-to-square mr-0.5"></i> Sửa
                                                 </button>
-                                                <button @click="xoaThongBao(<?= $tb['id'] ?>)" class="text-red-400 hover:text-red-300 font-semibold text-xs transition">
+                                                <button type="button" @click="xoaThongBao(<?= (int)$tb['id'] ?>)" class="text-red-400 hover:text-red-300 font-semibold text-xs transition">
                                                     <i class="fas fa-trash mr-0.5"></i> Xóa
                                                 </button>
                                             </td>
@@ -253,6 +253,7 @@ $allIds = array_map(fn($t) => (int)$t['id'], $thongBaos);
             dangLuu: false,
             danhSachChon: [],
             tatCaIds: <?= json_encode($allIds) ?>,
+            tatCaThongBao: <?= json_encode($thongBaos, JSON_UNESCAPED_UNICODE) ?>,
             form: { id: 0, title: '', content: '', type: 'INFO', is_active: 1 },
 
             chonTatCa(e) {
@@ -268,8 +269,19 @@ $allIds = array_map(fn($t) => (int)$t['id'], $thongBaos);
                 this.moModal = true;
             },
 
-            suaThongBao(tb) {
-                this.form = { id: tb.id, title: tb.title, content: tb.content, type: tb.type, is_active: parseInt(tb.is_active) };
+            suaThongBao(id) {
+                const tb = this.tatCaThongBao.find(t => parseInt(t.id) === parseInt(id));
+                if (!tb) {
+                    alert('Không tìm thấy thông tin thông báo #' + id);
+                    return;
+                }
+                this.form = { 
+                    id: parseInt(tb.id), 
+                    title: tb.title || '', 
+                    content: tb.content || '', 
+                    type: tb.type || 'INFO', 
+                    is_active: parseInt(tb.is_active) 
+                };
                 this.moModal = true;
             },
 

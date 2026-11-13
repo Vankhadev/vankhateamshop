@@ -36,20 +36,22 @@ $stmtTx->execute([$user['id']]);
 $transactions = $stmtTx->fetchAll();
 
 // Thống kê tổng tiền nạp và tổng tiền tiêu
-$tongNap = (float)$pdo->prepare("SELECT SUM(amount) FROM `transactions` WHERE `user_id` = ? AND `type` = 'DEPOSIT'");
-$tongNap->execute([$user['id']]);
-$tongTienNap = (float)$tongNap->fetchColumn();
+$stmtTongNap = $pdo->prepare("SELECT SUM(amount) FROM `transactions` WHERE `user_id` = ? AND `type` = 'DEPOSIT'");
+$stmtTongNap->execute([$user['id']]);
+$tongTienNap = (float)$stmtTongNap->fetchColumn();
 
-$tongTieu = (float)$pdo->prepare("SELECT SUM(amount) FROM `transactions` WHERE `user_id` = ? AND `type` = 'PURCHASE'");
-$tongTieu->execute([$user['id']]);
-$tongTienTieu = (float)$tongTieu->fetchColumn();
+$stmtTongTieu = $pdo->prepare("SELECT SUM(amount) FROM `transactions` WHERE `user_id` = ? AND `type` = 'PURCHASE'");
+$stmtTongTieu->execute([$user['id']]);
+$tongTienTieu = (float)$stmtTongTieu->fetchColumn();
+
+$siteNameDisplay = layCaiDatHeThong('site_name', SHOP_NAME);
 ?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biến Động Số Dư Ví - <?= SHOP_NAME ?></title>
+    <title>Biến Động Số Dư Ví - <?= htmlspecialchars($siteNameDisplay) ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>

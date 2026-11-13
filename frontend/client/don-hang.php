@@ -36,13 +36,16 @@ $sql = "
 $stmtOrders = $pdo->prepare($sql);
 $stmtOrders->execute([$user['id'], $user['email']]);
 $orders = $stmtOrders->fetchAll();
+
+$siteNameDisplay = layCaiDatHeThong('site_name', SHOP_NAME);
+$soZaloDisplay = layCaiDatHeThong('site_contact_zalo', SHOP_ZALO);
 ?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đơn Hàng Của Tôi - <?= SHOP_NAME ?></title>
+    <title>Đơn Hàng Của Tôi - <?= htmlspecialchars($siteNameDisplay) ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -164,18 +167,31 @@ $orders = $stmtOrders->fetchAll();
                                 </td>
 
                                 <td class="py-3.5 px-4 text-center">
-                                    <?php if (!empty($keyText)): ?>
-                                        <div class="flex items-center justify-center gap-1.5">
-                                            <button onclick="saoChep('<?= addslashes($keyText) ?>')" class="px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-semibold transition border border-gray-700" title="Sao chép Key">
-                                                <i class="fas fa-copy text-blue-400"></i> Copy
+                                    <div class="flex items-center justify-center gap-1.5 flex-wrap">
+                                        <?php
+                                        $orderPayload = [
+                                            'order_code'     => $order['order_code'],
+                                            'created_at'     => date('H:i - d/m/Y', strtotime($order['created_at'])),
+                                            'product_name'   => $order['product_name'] ?? 'Gói cước',
+                                            'total_amount'   => number_format($order['total_amount'], 0, ',', '.') . 'đ',
+                                            'status'         => $order['status'],
+                                            'customer_email' => $order['customer_email'],
+                                            'key'            => $keyText,
+                                            'error_log'      => $order['error_log'] ?? ''
+                                        ];
+                                        ?>
+                                        <button onclick='moModalChiTiet(<?= json_encode($orderPayload, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>)' class="px-2.5 py-1 rounded bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 text-xs font-semibold transition border border-blue-500/30 flex items-center gap-1" title="Xem Chi Tiết Đơn Hàng">
+                                            <i class="fas fa-eye text-amber-400"></i> Xem Chi Tiết
+                                        </button>
+                                        <?php if (!empty($keyText)): ?>
+                                            <button onclick="saoChep('<?= addslashes($keyText) ?>')" class="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-semibold transition border border-gray-700" title="Sao chép Key">
+                                                <i class="fas fa-copy text-blue-400"></i>
                                             </button>
-                                            <button onclick="taiFileTxt('<?= $order['order_code'] ?>', '<?= addslashes($keyText) ?>')" class="px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-semibold transition border border-gray-700" title="Tải file .txt">
-                                                <i class="fas fa-download text-green-400"></i> .TXT
+                                            <button onclick="taiFileTxt('<?= $order['order_code'] ?>', '<?= addslashes($keyText) ?>')" class="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-semibold transition border border-gray-700" title="Tải file .txt">
+                                                <i class="fas fa-download text-green-400"></i>
                                             </button>
-                                        </div>
-                                    <?php else: ?>
-                                        <span class="text-gray-600">-</span>
-                                    <?php endif; ?>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -185,10 +201,130 @@ $orders = $stmtOrders->fetchAll();
         </div>
     </main>
 
+    <!-- MODAL XEM CHI TIẾT ĐƠN HÀNG -->
+    <div id="modalChiTietDon" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+        <div class="bg-[#111827] border border-gray-800 rounded-3xl max-w-lg w-full p-6 relative shadow-2xl space-y-4">
+            <button onclick="dongModalChiTiet()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="flex items-center gap-2 border-b border-gray-800 pb-3">
+                <i class="fas fa-receipt text-amber-400 text-lg"></i>
+                <h3 class="text-base font-bold text-white">Chi Tiết Đơn Hàng #<span id="dtMaDon"></span></h3>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-xs">
+                <div class="p-3 bg-gray-950 rounded-xl border border-gray-800/80">
+                    <span class="text-gray-400 block text-[11px]">Sản phẩm:</span>
+                    <strong class="text-white text-xs" id="dtTenGoi"></strong>
+                </div>
+                <div class="p-3 bg-gray-950 rounded-xl border border-gray-800/80">
+                    <span class="text-gray-400 block text-[11px]">Số tiền thanh toán:</span>
+                    <strong class="text-green-400 text-xs" id="dtSoTien"></strong>
+                </div>
+                <div class="p-3 bg-gray-950 rounded-xl border border-gray-800/80">
+                    <span class="text-gray-400 block text-[11px]">Thời gian đặt hàng:</span>
+                    <span class="text-gray-300" id="dtThoiGian"></span>
+                </div>
+                <div class="p-3 bg-gray-950 rounded-xl border border-gray-800/80">
+                    <span class="text-gray-400 block text-[11px]">Trạng thái:</span>
+                    <span id="dtTrangThai" class="font-bold"></span>
+                </div>
+                <div class="col-span-2 p-3 bg-gray-950 rounded-xl border border-gray-800/80">
+                    <span class="text-gray-400 block text-[11px]">Email nhận hàng:</span>
+                    <span class="text-blue-300 font-mono" id="dtEmail"></span>
+                </div>
+            </div>
+
+            <!-- Khu vực Key / Tài khoản -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-white uppercase flex items-center gap-1.5">
+                        <i class="fas fa-key text-amber-400"></i> Key / Tài Khoản Đã Nhận:
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="saoChepTuModal()" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                        <button onclick="taiFileTuModal()" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1">
+                            <i class="fas fa-download"></i> .TXT
+                        </button>
+                    </div>
+                </div>
+                <textarea id="dtKey" readonly class="w-full h-28 bg-gray-950 border border-gray-800 rounded-xl p-3 text-xs font-mono text-emerald-300 resize-none select-all focus:outline-none"></textarea>
+            </div>
+
+            <div id="dtBoxLoi" class="hidden p-3 rounded-xl bg-red-950/40 border border-red-800/60 text-xs text-red-300">
+                <strong><i class="fas fa-circle-exclamation mr-1"></i> Ghi chú lỗi:</strong>
+                <p id="dtLoiLog" class="mt-1 text-[11px] text-red-400"></p>
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-gray-800">
+                <a href="https://zalo.me/<?= htmlspecialchars($soZaloDisplay) ?>" target="_blank" class="text-xs text-blue-400 hover:underline flex items-center gap-1">
+                    <i class="fas fa-headset"></i> Cần hỗ trợ về đơn này?
+                </a>
+                <button onclick="dongModalChiTiet()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold rounded-xl transition">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- FOOTER CHÂN TRANG ĐỒNG BỘ TOÀN BỘ WEBSITE -->
     <?php require_once __DIR__ . '/../includes/footer.php'; ?>
 
     <script>
+        let donHangDangXem = null;
+
+        function moModalChiTiet(don) {
+            donHangDangXem = don;
+            document.getElementById('dtMaDon').innerText = don.order_code;
+            document.getElementById('dtTenGoi').innerText = don.product_name;
+            document.getElementById('dtSoTien').innerText = don.total_amount;
+            document.getElementById('dtThoiGian').innerText = don.created_at;
+            document.getElementById('dtEmail').innerText = don.customer_email;
+            document.getElementById('dtKey').value = don.key || '(Chưa có thông tin key)';
+
+            const elStatus = document.getElementById('dtTrangThai');
+            if (don.status === 'COMPLETED') {
+                elStatus.className = 'text-green-400 font-bold';
+                elStatus.innerText = 'Hoàn thành / Đã giao';
+            } else if (don.status === 'REFUNDED') {
+                elStatus.className = 'text-purple-400 font-bold';
+                elStatus.innerText = 'Đã hoàn tiền vào ví';
+            } else if (don.status === 'PENDING') {
+                elStatus.className = 'text-amber-400 font-bold';
+                elStatus.innerText = 'Chờ thanh toán';
+            } else {
+                elStatus.className = 'text-red-400 font-bold';
+                elStatus.innerText = don.status;
+            }
+
+            const boxLoi = document.getElementById('dtBoxLoi');
+            if (don.error_log && don.error_log.trim() !== '') {
+                boxLoi.classList.remove('hidden');
+                document.getElementById('dtLoiLog').innerText = don.error_log;
+            } else {
+                boxLoi.classList.add('hidden');
+            }
+
+            document.getElementById('modalChiTietDon').classList.remove('hidden');
+        }
+
+        function dongModalChiTiet() {
+            document.getElementById('modalChiTietDon').classList.add('hidden');
+        }
+
+        function saoChepTuModal() {
+            const val = document.getElementById('dtKey').value;
+            if (val) saoChep(val);
+        }
+
+        function taiFileTuModal() {
+            if (donHangDangXem && donHangDangXem.key) {
+                taiFileTxt(donHangDangXem.order_code, donHangDangXem.key);
+            }
+        }
+
         function saoChep(noiDung) {
             navigator.clipboard.writeText(noiDung).then(() => {
                 alert('Đã sao chép vào bộ nhớ tạm!');

@@ -47,32 +47,34 @@ $topUsers = $pdo->query("
     ORDER BY tong_chi_tieu DESC
     LIMIT 10
 ")->fetchAll();
+$siteName = layCaiDatHeThong('site_name', SHOP_NAME);
+$siteZalo = layCaiDatHeThong('site_contact_zalo', SHOP_ZALO);
 ?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= SHOP_NAME ?> - Cổng Cung Cấp API AI & Công Cụ Lập Trình Tự Động</title>
+    <title><?= htmlspecialchars($siteName) ?> - Cổng Cung Cấp API AI & Công Cụ Lập Trình Tự Động</title>
     
     <!-- TỐI ƯU HÓA SEO CHUẨN GOOGLE (SEARCH ENGINE OPTIMIZATION) -->
-    <meta name="description" content="<?= SHOP_NAME ?> - Đại lý cung cấp API Key AI Agent, Cursor Pro, Claude 3.5 Sonnet, ChatGPT Plus, DeepSeek R1 & V3 tự động giao key 24/7 qua VietQR ACB.">
-    <meta name="keywords" content="api ai, cursor pro, claude 3.5 sonnet, chatgpt plus, deepseek, api proxy, van kha team, mua api ai, vietqr acb">
-    <meta name="author" content="VanKhaTeam">
+    <meta name="description" content="<?= htmlspecialchars($siteName) ?> - Đại lý cung cấp API Key AI Agent, Cursor Pro, Claude 3.5 Sonnet, ChatGPT Plus, DeepSeek R1 & V3, phần mềm tự động hóa giao key 24/7 qua VietQR ACB.">
+    <meta name="keywords" content="api ai, cursor pro, claude 3.5 sonnet, chatgpt plus, deepseek r1, tungdv, phan mem mmo, api proxy, van kha team, mua api ai, vietqr acb">
+    <meta name="author" content="<?= htmlspecialchars($siteName) ?>">
     <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://shopvankha.com/">
+    <link rel="canonical" href="<?= SITE_URL ?>/">
 
     <!-- THẺ OPEN GRAPH (FACEBOOK, ZALO, TELEGRAM) -->
     <meta property="og:locale" content="vi_VN">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="<?= SHOP_NAME ?> - Cổng Cung Cấp API AI Tự Động 24/7">
+    <meta property="og:title" content="<?= htmlspecialchars($siteName) ?> - Cổng Cung Cấp API AI Tự Động 24/7">
     <meta property="og:description" content="Hệ thống bán API AI lập trình tốc độ cao, độ trễ thấp, kết nối Cursor, Claude, OpenAI với giá đại lý tốt nhất.">
-    <meta property="og:url" content="https://shopvankha.com/">
-    <meta property="og:site_name" content="<?= SHOP_NAME ?>">
+    <meta property="og:url" content="<?= SITE_URL ?>/">
+    <meta property="og:site_name" content="<?= htmlspecialchars($siteName) ?>">
 
     <!-- THẺ TWITTER CARDS -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="<?= SHOP_NAME ?> - Đại Lý API AI Uy Tín Hàng Đầu">
+    <meta name="twitter:title" content="<?= htmlspecialchars($siteName) ?> - Đại Lý API AI Uy Tín Hàng Đầu">
     <meta name="twitter:description" content="Quét mã VietQR nhận Key tự động sau 2 giây. Hỗ trợ 24/7.">
 
     <!-- DỮ LIỆU CẤU TRÚC JSON-LD (SCHEMA.ORG) -->
@@ -80,11 +82,11 @@ $topUsers = $pdo->query("
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "<?= SHOP_NAME ?>",
-      "url": "https://shopvankha.com/",
+      "name": "<?= addslashes($siteName) ?>",
+      "url": "<?= SITE_URL ?>/",
       "potentialAction": {
         "@type": "SearchAction",
-        "target": "https://shopvankha.com/san-pham?q={search_term_string}",
+        "target": "<?= SITE_URL ?>/san-pham?q={search_term_string}",
         "query-input": "required name=search_term_string"
       }
     }
@@ -93,12 +95,12 @@ $topUsers = $pdo->query("
     {
       "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "<?= SHOP_NAME ?>",
-      "url": "https://shopvankha.com/",
-      "logo": "https://shopvankha.com/assets/logo.png",
+      "name": "<?= addslashes($siteName) ?>",
+      "url": "<?= SITE_URL ?>/",
+      "logo": "<?= SITE_URL ?>/assets/logo.png",
       "contactPoint": {
         "@type": "ContactPoint",
-        "telephone": "+84847154088",
+        "telephone": "+84<?= ltrim(preg_replace('/[^0-9]/', '', $siteZalo), '0') ?>",
         "contactType": "customer service",
         "availableLanguage": "Vietnamese"
       }
@@ -746,13 +748,6 @@ $topUsers = $pdo->query("
                     } finally {
                         this.dangKiemTraNgay = false;
                     }
-                },
-
-                // Nút test thử nghiệm
-                giaLapThanhToan() {
-                    this.daThanhToan = true;
-                    this.keyDaTraVe = 'sk-vankha-' + Math.random().toString(36).substring(2, 12) + Math.random().toString(36).substring(2, 12);
-                    if (this.timerDemNguoc) clearInterval(this.timerDemNguoc);
                 },
 
                 dongThanhToan() {
