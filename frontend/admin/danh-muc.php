@@ -65,12 +65,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = (int)($_POST['id'] ?? 0);
         if ($id > 0) {
             try {
-                $pdo->prepare("DELETE FROM `supplier_product_mappings` WHERE `product_id` IN (SELECT id FROM `products` WHERE `category_id` = ?)")->execute([$id]);
-                $pdo->prepare("DELETE FROM `products` WHERE `category_id` = ?")->execute([$id]);
-                $pdo->prepare("DELETE FROM `categories` WHERE `id` = ?")->execute([$id]);
-                $thongBao = 'Đã xóa danh mục và sản phẩm liên quan thành công!';
+                $pdo->beginTransaction();
+                // 1. Xóa transactions liên quan đến đơn hàng của các sản phẩm thuộc danh mục này
+                $pdo->exec("DELETE FROM `transactions` WHERE `order_id` IN (SELECT id FROM `orders` WHERE `product_id` IN (SELECT id FROM `products` WHERE `category_id` = $id))");
+                // 2. Xóa đơn hàng thuộc sản phẩm trong danh mục này
+                $pdo->exec("DELETE FROM `orders` WHERE `product_id` IN (SELECT id FROM `products` WHERE `category_id` = $id)");
+                // 3. Xóa mapping nhà cung cấp
+                $pdo->exec("DELETE FROM `supplier_product_mappings` WHERE `product_id` IN (SELECT id FROM `products` WHERE `category_id` = $id)");
+                // 4. Xóa sản phẩm
+                $pdo->exec("DELETE FROM `products` WHERE `category_id` = $id");
+                // 5. Xóa danh mục
+                $pdo->exec("DELETE FROM `categories` WHERE `id` = $id");
+                $pdo->commit();
+                $thongBao = 'Đã xóa danh mục và toàn bộ dữ liệu liên quan thành công!';
                 $loaiThongBao = 'success';
             } catch (Exception $e) {
+                if ($pdo->inTransaction()) $pdo->rollBack();
                 $thongBao = 'Lỗi khi xóa: ' . $e->getMessage();
                 $loaiThongBao = 'error';
             }
@@ -83,12 +93,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!empty($idsSanitized)) {
                 $inClause = implode(',', $idsSanitized);
                 try {
+                    $pdo->beginTransaction();
+                    $pdo->exec("DELETE FROM `transactions` WHERE `order_id` IN (SELECT id FROM `orders` WHERE `product_id` IN (SELECT id FROM `products` WHERE `category_id` IN ($inClause)))");
+                    $pdo->exec("DELETE FROM `orders` WHERE `product_id` IN (SELECT id FROM `products` WHERE `category_id` IN ($inClause))");
                     $pdo->exec("DELETE FROM `supplier_product_mappings` WHERE `product_id` IN (SELECT id FROM `products` WHERE `category_id` IN ($inClause))");
                     $pdo->exec("DELETE FROM `products` WHERE `category_id` IN ($inClause)");
                     $pdo->exec("DELETE FROM `categories` WHERE `id` IN ($inClause)");
+                    $pdo->commit();
                     $thongBao = 'Đã xóa thành công ' . count($idsSanitized) . ' danh mục được chọn!';
                     $loaiThongBao = 'success';
                 } catch (Exception $e) {
+                    if ($pdo->inTransaction()) $pdo->rollBack();
                     $thongBao = 'Lỗi khi xóa hàng loạt: ' . $e->getMessage();
                     $loaiThongBao = 'error';
                 }
