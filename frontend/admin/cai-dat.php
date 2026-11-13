@@ -53,8 +53,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['luu_cai_dat'])) {
     }
 }
 
-// Đọc toàn bộ cài đặt từ bảng settings
-$rawSettings = $pdo->query("SELECT * FROM `settings`")->fetchAll(PDO::FETCH_KEY_PAIR);
+// Đọc toàn bộ cài đặt từ bảng settings (chính xác 2 cột: key và value)
+$rawSettings = $pdo->query("SELECT `key`, `value` FROM `settings`")->fetchAll(PDO::FETCH_KEY_PAIR);
 ?>
 <!DOCTYPE html>
 <html lang="vi">

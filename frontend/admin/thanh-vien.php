@@ -1,7 +1,7 @@
 <?php
 // ========================================================
 // TRANG QUẢN LÝ THÀNH VIÊN (ADMIN USERS MANAGEMENT)
-// vankhateamshop - Danh sách người dùng, xem số dư, cộng/trừ tiền ví thủ công, khóa tài khoản
+// vankhateamshop - Danh sách người dùng, xem số dư, cộng/trừ tiền ví thủ công, khóa/xóa tài khoản
 // Ghi chú code 100% bằng Tiếng Việt dễ hiểu
 // ========================================================
 
@@ -15,6 +15,66 @@ thietLapBaoMatHeaders();
 if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     header('Location: /login');
     exit;
+}
+
+$thongBao = '';
+$loaiThongBao = '';
+$currentAdminId = (int)($_SESSION['user_id'] ?? 0);
+
+// Xử lý các thao tác POST của Admin
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    $action = $_POST['action'];
+
+    // 1. Xóa đơn lẻ 1 người dùng
+    if ($action === 'xoa_user') {
+        $userId = (int)$_POST['user_id'];
+        if ($userId === $currentAdminId) {
+            $thongBao = 'Không thể tự xóa tài khoản Admin đang đăng nhập!';
+            $loaiThongBao = 'error';
+        } else {
+            try {
+                $pdo->beginTransaction();
+                $pdo->exec("DELETE FROM `transactions` WHERE `user_id` = $userId");
+                $pdo->exec("UPDATE `orders` SET `user_id` = NULL WHERE `user_id` = $userId");
+                $pdo->exec("DELETE FROM `users` WHERE `id` = $userId");
+                $pdo->commit();
+
+                $thongBao = 'Đã xóa vĩnh viễn tài khoản thành viên thành công!';
+                $loaiThongBao = 'success';
+            } catch (Exception $e) {
+                if ($pdo->inTransaction()) $pdo->rollBack();
+                $thongBao = 'Lỗi khi xóa người dùng: ' . $e->getMessage();
+                $loaiThongBao = 'error';
+            }
+        }
+    }
+
+    // 2. Xóa hàng loạt nhiều người dùng
+    if ($action === 'xoa_hang_loat') {
+        $ids = $_POST['ids'] ?? [];
+        if (!empty($ids) && is_array($ids)) {
+            $idsSanitized = array_map('intval', $ids);
+            // Loại trừ tài khoản của admin đang đăng nhập
+            $idsSanitized = array_filter($idsSanitized, fn($i) => $i > 0 && $i !== $currentAdminId);
+            if (!empty($idsSanitized)) {
+                $inClause = implode(',', $idsSanitized);
+                try {
+                    $pdo->beginTransaction();
+                    $pdo->exec("DELETE FROM `transactions` WHERE `user_id` IN ($inClause)");
+                    $pdo->exec("UPDATE `orders` SET `user_id` = NULL WHERE `user_id` IN ($inClause)");
+                    $pdo->exec("DELETE FROM `users` WHERE `id` IN ($inClause)");
+                    $pdo->commit();
+
+                    $thongBao = 'Đã xóa thành công ' . count($idsSanitized) . ' tài khoản được chọn!';
+                    $loaiThongBao = 'success';
+                } catch (Exception $e) {
+                    if ($pdo->inTransaction()) $pdo->rollBack();
+                    $thongBao = 'Lỗi khi xóa hàng loạt: ' . $e->getMessage();
+                    $loaiThongBao = 'error';
+                }
+            }
+        }
+    }
 }
 
 $search = trim($_GET['q'] ?? '');
@@ -33,6 +93,14 @@ $sql .= " ORDER BY `id` DESC LIMIT 50";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $users = $stmt->fetchAll();
+
+// Lấy danh sách ID cho phép xóa (loại trừ chính admin đang đăng nhập)
+$deletableUserIds = [];
+foreach ($users as $u) {
+    if ((int)$u['id'] !== $currentAdminId) {
+        $deletableUserIds[] = (int)$u['id'];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -82,7 +150,7 @@ $users = $stmt->fetchAll();
                 <h1 class="text-xl font-bold text-white flex items-center gap-2">
                     <i class="fas fa-users text-amber-500"></i> Quản Lý Danh Sách Thành Viên
                 </h1>
-                <p class="text-xs text-gray-400 mt-1">Xem thông tin khách hàng, số dư ví hiện tại, cộng/trừ tiền thủ công và phân quyền</p>
+                <p class="text-xs text-gray-400 mt-1">Xem thông tin khách hàng, số dư ví hiện tại, nạp/trừ tiền thủ công và xóa tài khoản</p>
             </div>
             
             <form method="GET" action="" class="flex items-center gap-2 w-full sm:w-auto">
@@ -93,12 +161,39 @@ $users = $stmt->fetchAll();
             </form>
         </div>
 
+        <?php if (!empty($thongBao)): ?>
+            <div class="p-4 rounded-xl mb-6 flex items-center gap-3 text-xs font-bold <?= $loaiThongBao === 'success' ? 'bg-green-950/70 border border-green-700 text-green-300' : 'bg-red-950/70 border border-red-700 text-red-300' ?>">
+                <i class="fas <?= $loaiThongBao === 'success' ? 'fa-circle-check text-green-400' : 'fa-circle-exclamation text-red-400' ?> text-base"></i>
+                <span><?= htmlspecialchars($thongBao) ?></span>
+            </div>
+        <?php endif; ?>
+
+        <!-- THANH CÔNG CỤ XÓA HÀNG LOẠT (BULK ACTION BAR) -->
+        <div x-show="danhSachChon.length > 0" class="mb-4 p-3.5 rounded-2xl bg-red-950/70 border border-red-800 flex items-center justify-between shadow-lg" style="display: none;" x-transition>
+            <div class="text-xs text-red-200 font-bold flex items-center gap-2">
+                <i class="fas fa-trash-can text-red-400"></i>
+                <span>Đã tích chọn <strong class="text-white text-sm" x-text="danhSachChon.length"></strong> thành viên</span>
+            </div>
+            <form method="POST" action="" onsubmit="return confirm('CẢNH BÁO: Bạn có chắc chắn muốn XÓA HÀNG LOẠT tất cả ' + danhSachChon.length + ' tài khoản đã chọn? Thao tác không thể hoàn tác!');">
+                <input type="hidden" name="action" value="xoa_hang_loat">
+                <template x-for="id in danhSachChon" :key="id">
+                    <input type="hidden" name="ids[]" :value="id">
+                </template>
+                <button type="submit" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs transition shadow-md flex items-center gap-2">
+                    <i class="fas fa-trash-can"></i> Xóa Đã Chọn
+                </button>
+            </form>
+        </div>
+
         <!-- BẢNG DANH SÁCH THÀNH VIÊN -->
         <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
                     <thead class="bg-gray-800/80 text-gray-400 font-bold uppercase tracking-wider border-b border-gray-700">
                         <tr>
+                            <th class="py-3.5 px-3 w-10 text-center">
+                                <input type="checkbox" @change="chonTatCa($event)" class="w-4 h-4 rounded bg-gray-800 border-gray-700 text-amber-500 focus:ring-0 cursor-pointer">
+                            </th>
                             <th class="py-3.5 px-4">ID / Thành Viên</th>
                             <th class="py-3.5 px-4">Email</th>
                             <th class="py-3.5 px-4">Số Dư Ví</th>
@@ -111,12 +206,22 @@ $users = $stmt->fetchAll();
                     <tbody class="divide-y divide-gray-800/60 font-medium">
                         <?php if (empty($users)): ?>
                             <tr>
-                                <td colspan="7" class="py-8 text-center text-gray-500">Không tìm thấy thành viên nào.</td>
+                                <td colspan="8" class="py-8 text-center text-gray-500">Không tìm thấy thành viên nào.</td>
                             </tr>
                         <?php endif; ?>
 
-                        <?php foreach ($users as $u): ?>
+                        <?php foreach ($users as $u): 
+                            $isCurrentAdmin = ((int)$u['id'] === $currentAdminId);
+                        ?>
                             <tr class="hover:bg-gray-800/30 transition">
+                                <td class="py-3.5 px-3 text-center">
+                                    <?php if (!$isCurrentAdmin): ?>
+                                        <input type="checkbox" :value="<?= $u['id'] ?>" x-model="danhSachChon" class="w-4 h-4 rounded bg-gray-800 border-gray-700 text-amber-500 focus:ring-0 cursor-pointer">
+                                    <?php else: ?>
+                                        <i class="fas fa-shield-halved text-amber-500/60 text-xs" title="Tài khoản Admin hiện tại"></i>
+                                    <?php endif; ?>
+                                </td>
+
                                 <td class="py-3.5 px-4">
                                     <div class="flex items-center gap-3">
                                         <?php if (!empty($u['avatar'])): ?>
@@ -160,10 +265,14 @@ $users = $stmt->fetchAll();
                                 </td>
 
                                 <td class="py-3.5 px-4 text-center">
-                                    <button @click="doiTrangThaiUser(<?= $u['id'] ?>, <?= $u['is_active'] ? 0 : 1 ?>)" 
-                                            class="px-2 py-0.5 rounded-full text-[10px] font-bold transition <?= $u['is_active'] ? 'bg-green-950 text-green-400 border border-green-800 hover:bg-red-950' : 'bg-red-950 text-red-400 border border-red-800 hover:bg-green-950' ?>">
-                                        <?= $u['is_active'] ? 'Đang hoạt động' : 'Đã khóa' ?>
-                                    </button>
+                                    <?php if (!$isCurrentAdmin): ?>
+                                        <button @click="doiTrangThaiUser(<?= $u['id'] ?>, <?= $u['is_active'] ? 0 : 1 ?>)" 
+                                                class="px-2 py-0.5 rounded-full text-[10px] font-bold transition <?= $u['is_active'] ? 'bg-green-950 text-green-400 border border-green-800 hover:bg-red-950' : 'bg-red-950 text-red-400 border border-red-800 hover:bg-green-950' ?>">
+                                            <?= $u['is_active'] ? 'Đang hoạt động' : 'Đã khóa' ?>
+                                        </button>
+                                    <?php else: ?>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-950 text-green-400 border border-green-800">Đang hoạt động</span>
+                                    <?php endif; ?>
                                 </td>
 
                                 <td class="py-3.5 px-4 text-gray-500 text-[11px]">
@@ -171,10 +280,22 @@ $users = $stmt->fetchAll();
                                 </td>
 
                                 <td class="py-3.5 px-4 text-center">
-                                    <button @click="moModalDieuChinh(<?= $u['id'] ?>, '<?= addslashes($u['name']) ?>', <?= $u['balance'] ?>)" 
-                                            class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition shadow-md shadow-amber-600/30 flex items-center gap-1 mx-auto">
-                                        <i class="fas fa-coins"></i> Cộng/Trừ Tiền
-                                    </button>
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <button @click="moModalDieuChinh(<?= $u['id'] ?>, '<?= addslashes($u['name']) ?>', <?= $u['balance'] ?>)" 
+                                                class="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition shadow-md shadow-amber-600/30 flex items-center gap-1" title="Cộng / Trừ tiền">
+                                            <i class="fas fa-coins"></i>
+                                        </button>
+
+                                        <?php if (!$isCurrentAdmin): ?>
+                                            <form method="POST" action="" onsubmit="return confirm('Bạn có chắc muốn xóa vĩnh viễn tài khoản \'<?= addslashes($u['name']) ?>\'? Tất cả dữ liệu liên quan sẽ bị xóa!');" class="inline">
+                                                <input type="hidden" name="action" value="xoa_user">
+                                                <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
+                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg bg-red-950/60 hover:bg-red-600 text-red-400 hover:text-white font-bold text-xs transition border border-red-800/80" title="Xóa tài khoản này">
+                                                    <i class="fas fa-trash-can"></i>
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -226,7 +347,7 @@ $users = $stmt->fetchAll();
             </div>
         </div>
 
-                </main>
+            </main>
 
             <footer class="bg-gray-950 border-t border-gray-900 py-4 text-center text-xs text-gray-500 mt-auto">
                 &copy; 2026 <?= SHOP_NAME ?> - Trang Quản Trị Hệ Thống Tự Động
@@ -236,6 +357,8 @@ $users = $stmt->fetchAll();
     <script>
         function ungDungThanhVien() {
             return {
+                danhSachChon: [],
+                tatCaIds: <?= json_encode($deletableUserIds) ?>,
                 moModal: false,
                 userDangChonId: 0,
                 tenUserDangChon: '',
@@ -243,6 +366,14 @@ $users = $stmt->fetchAll();
                 soTienDieuChinh: '',
                 lyDoDieuChinh: '',
                 dangXuLy: false,
+
+                chonTatCa(e) {
+                    if (e.target.checked) {
+                        this.danhSachChon = [...this.tatCaIds];
+                    } else {
+                        this.danhSachChon = [];
+                    }
+                },
 
                 moModalDieuChinh(id, name, balance) {
                     this.userDangChonId = id;

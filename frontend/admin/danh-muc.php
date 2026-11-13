@@ -61,6 +61,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $thongBao = 'Lỗi cập nhật: ' . $e->getMessage();
             $loaiThongBao = 'error';
         }
+    } elseif ($action === 'xoa_danh_muc') {
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id > 0) {
+            try {
+                $pdo->prepare("DELETE FROM `supplier_product_mappings` WHERE `product_id` IN (SELECT id FROM `products` WHERE `category_id` = ?)")->execute([$id]);
+                $pdo->prepare("DELETE FROM `products` WHERE `category_id` = ?")->execute([$id]);
+                $pdo->prepare("DELETE FROM `categories` WHERE `id` = ?")->execute([$id]);
+                $thongBao = 'Đã xóa danh mục và sản phẩm liên quan thành công!';
+                $loaiThongBao = 'success';
+            } catch (Exception $e) {
+                $thongBao = 'Lỗi khi xóa: ' . $e->getMessage();
+                $loaiThongBao = 'error';
+            }
+        }
+    } elseif ($action === 'xoa_hang_loat') {
+        $ids = $_POST['ids'] ?? [];
+        if (!empty($ids) && is_array($ids)) {
+            $idsSanitized = array_map('intval', $ids);
+            $idsSanitized = array_filter($idsSanitized, fn($i) => $i > 0);
+            if (!empty($idsSanitized)) {
+                $inClause = implode(',', $idsSanitized);
+                try {
+                    $pdo->exec("DELETE FROM `supplier_product_mappings` WHERE `product_id` IN (SELECT id FROM `products` WHERE `category_id` IN ($inClause))");
+                    $pdo->exec("DELETE FROM `products` WHERE `category_id` IN ($inClause)");
+                    $pdo->exec("DELETE FROM `categories` WHERE `id` IN ($inClause)");
+                    $thongBao = 'Đã xóa thành công ' . count($idsSanitized) . ' danh mục được chọn!';
+                    $loaiThongBao = 'success';
+                } catch (Exception $e) {
+                    $thongBao = 'Lỗi khi xóa hàng loạt: ' . $e->getMessage();
+                    $loaiThongBao = 'error';
+                }
+            }
+        }
     }
 }
 
@@ -137,12 +170,32 @@ $categories = $pdo->query($sql)->fetchAll();
             </div>
         <?php endif; ?>
 
+        <!-- THANH CÔNG CỤ XÓA HÀNG LOẠT (BULK ACTION BAR) -->
+        <div x-show="danhSachChon.length > 0" class="mb-4 p-3.5 rounded-2xl bg-red-950/70 border border-red-800 flex items-center justify-between shadow-lg" style="display: none;" x-transition>
+            <div class="text-xs text-red-200 font-bold flex items-center gap-2">
+                <i class="fas fa-trash-can text-red-400"></i>
+                <span>Đã tích chọn <strong class="text-white text-sm" x-text="danhSachChon.length"></strong> danh mục</span>
+            </div>
+            <form method="POST" action="" onsubmit="return confirm('CẢNH BÁO: Bạn có chắc chắn muốn XÓA HÀNG LOẠT tất cả ' + danhSachChon.length + ' danh mục đã chọn? Các sản phẩm thuộc danh mục này cũng sẽ bị xóa!');">
+                <input type="hidden" name="action" value="xoa_hang_loat">
+                <template x-for="id in danhSachChon" :key="id">
+                    <input type="hidden" name="ids[]" :value="id">
+                </template>
+                <button type="submit" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs transition shadow-md flex items-center gap-2">
+                    <i class="fas fa-trash-can"></i> Xóa Đã Chọn
+                </button>
+            </form>
+        </div>
+
         <!-- BẢNG DANH MỤC -->
         <div class="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden shadow-xl">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
                     <thead class="bg-gray-800/80 text-gray-400 font-bold uppercase tracking-wider border-b border-gray-700">
                         <tr>
+                            <th class="py-3.5 px-4 w-10 text-center">
+                                <input type="checkbox" @change="chonTatCa($event)" class="w-4 h-4 rounded bg-gray-800 border-gray-700 text-amber-500 focus:ring-0 cursor-pointer">
+                            </th>
                             <th class="py-3.5 px-4">Thứ Tự</th>
                             <th class="py-3.5 px-4">Icon / Tên Danh Mục</th>
                             <th class="py-3.5 px-4">Slug (Đường Dẫn)</th>
@@ -154,6 +207,10 @@ $categories = $pdo->query($sql)->fetchAll();
                     <tbody class="divide-y divide-gray-800/60 font-medium">
                         <?php foreach ($categories as $cat): ?>
                             <tr class="hover:bg-gray-800/30 transition">
+                                <td class="py-3.5 px-4 text-center">
+                                    <input type="checkbox" :value="<?= $cat['id'] ?>" x-model="danhSachChon" class="w-4 h-4 rounded bg-gray-800 border-gray-700 text-amber-500 focus:ring-0 cursor-pointer">
+                                </td>
+
                                 <td class="py-3.5 px-4 font-mono text-amber-400 font-bold">
                                     #<?= $cat['sort_order'] ?>
                                 </td>
@@ -184,9 +241,18 @@ $categories = $pdo->query($sql)->fetchAll();
                                 </td>
 
                                 <td class="py-3.5 px-4 text-center">
-                                    <button @click="moSua(<?= htmlspecialchars(json_encode($cat)) ?>)" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs transition border border-gray-700">
-                                        <i class="fas fa-pen-to-square mr-1"></i> Sửa
-                                    </button>
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <button @click="moSua(<?= htmlspecialchars(json_encode($cat)) ?>)" class="px-2.5 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs transition border border-gray-700" title="Chỉnh sửa">
+                                            <i class="fas fa-pen-to-square"></i>
+                                        </button>
+                                        <form method="POST" action="" onsubmit="return confirm('Bạn có chắc chắn muốn xóa danh mục \'<?= addslashes($cat['name']) ?>\'? Tất cả sản phẩm thuộc danh mục này cũng sẽ bị xóa!');" class="inline">
+                                            <input type="hidden" name="action" value="xoa_danh_muc">
+                                            <input type="hidden" name="id" value="<?= $cat['id'] ?>">
+                                            <button type="submit" class="px-2.5 py-1.5 rounded-lg bg-red-950/60 hover:bg-red-600 text-red-400 hover:text-white font-bold text-xs transition border border-red-800/80" title="Xóa danh mục">
+                                                <i class="fas fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -291,6 +357,12 @@ $categories = $pdo->query($sql)->fetchAll();
                 moModalThem: false,
                 moModalSua: false,
                 suaData: {},
+                danhSachChon: [],
+                tatCaIds: [<?= implode(',', array_column($categories, 'id')) ?>],
+
+                chonTatCa(e) {
+                    this.danhSachChon = e.target.checked ? [...this.tatCaIds] : [];
+                },
 
                 moSua(cat) {
                     this.suaData = cat;

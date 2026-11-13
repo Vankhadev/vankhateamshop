@@ -53,10 +53,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->prepare("DELETE FROM `coupons` WHERE `id` = ?")->execute([$id]);
         $thongBao = 'Đã xóa mã giảm giá thành công!';
         $loaiThongBao = 'success';
+    } elseif ($action === 'xoa_hang_loat') {
+        $ids = $_POST['ids'] ?? [];
+        if (!empty($ids) && is_array($ids)) {
+            $idsSanitized = array_map('intval', $ids);
+            $idsSanitized = array_filter($idsSanitized, fn($i) => $i > 0);
+            if (!empty($idsSanitized)) {
+                $inClause = implode(',', $idsSanitized);
+                try {
+                    $pdo->exec("DELETE FROM `coupons` WHERE `id` IN ($inClause)");
+                    $thongBao = 'Đã xóa thành công ' . count($idsSanitized) . ' mã giảm giá được chọn!';
+                    $loaiThongBao = 'success';
+                } catch (Exception $e) {
+                    $thongBao = 'Lỗi khi xóa hàng loạt: ' . $e->getMessage();
+                    $loaiThongBao = 'error';
+                }
+            }
+        }
     }
 }
 
 $coupons = $pdo->query("SELECT * FROM `coupons` ORDER BY `id` DESC")->fetchAll();
+$allCouponIds = array_map(fn($c) => (int)$c['id'], $coupons);
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -71,7 +89,7 @@ $coupons = $pdo->query("SELECT * FROM `coupons` ORDER BY `id` DESC")->fetchAll()
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0B0F19; color: #E5E7EB; }
     </style>
 </head>
-<body x-data="{ moModalThem: false }" class="min-h-screen bg-[#0B0F19] text-[#E5E7EB] antialiased">
+<body x-data="ungDungMaGiamGia()" class="min-h-screen bg-[#0B0F19] text-[#E5E7EB] antialiased">
 
     <div class="flex min-h-screen">
         <!-- SIDEBAR MENU QUẢN TRỊ BÊN TRÁI -->
@@ -104,9 +122,9 @@ $coupons = $pdo->query("SELECT * FROM `coupons` ORDER BY `id` DESC")->fetchAll()
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div>
                 <h1 class="text-xl font-bold text-white flex items-center gap-2">
-                    <i class="fas fa-ticket text-amber-500"></i> Quản Lý Mã Giảm Giá (Coupons)
+                    <i class="fas fa-ticket text-amber-500"></i> Danh Sách Mã Giảm Giá (Voucher)
                 </h1>
-                <p class="text-xs text-gray-400 mt-1">Tạo mã ưu đãi cho khách hàng, kích cầu mua các gói Cursor và Claude</p>
+                <p class="text-xs text-gray-400 mt-1">Cài đặt khuyến mãi kích cầu người dùng mua gói API với mã giảm cố định hoặc %</p>
             </div>
             
             <button @click="moModalThem = true" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-blue-600/30">
@@ -115,11 +133,28 @@ $coupons = $pdo->query("SELECT * FROM `coupons` ORDER BY `id` DESC")->fetchAll()
         </div>
 
         <?php if (!empty($thongBao)): ?>
-            <div class="p-4 rounded-xl mb-6 text-xs font-bold <?= $loaiThongBao === 'success' ? 'bg-green-950/70 border border-green-700 text-green-300' : 'bg-red-950/70 border border-red-700 text-red-300' ?>">
-                <i class="fas <?= $loaiThongBao === 'success' ? 'fa-circle-check text-green-400' : 'fa-circle-exclamation text-red-400' ?> mr-1.5"></i>
+            <div class="p-4 rounded-xl mb-6 flex items-center gap-3 text-xs font-bold <?= $loaiThongBao === 'success' ? 'bg-green-950/70 border border-green-700 text-green-300' : 'bg-red-950/70 border border-red-700 text-red-300' ?>">
+                <i class="fas <?= $loaiThongBao === 'success' ? 'fa-circle-check text-green-400' : 'fa-circle-exclamation text-red-400' ?> text-base"></i>
                 <?= htmlspecialchars($thongBao) ?>
             </div>
         <?php endif; ?>
+
+        <!-- THANH CÔNG CỤ XÓA HÀNG LOẠT (BULK ACTION BAR) -->
+        <div x-show="danhSachChon.length > 0" class="mb-4 p-3.5 rounded-2xl bg-red-950/70 border border-red-800 flex items-center justify-between shadow-lg" style="display: none;" x-transition>
+            <div class="text-xs text-red-200 font-bold flex items-center gap-2">
+                <i class="fas fa-trash-can text-red-400"></i>
+                <span>Đã tích chọn <strong class="text-white text-sm" x-text="danhSachChon.length"></strong> mã giảm giá</span>
+            </div>
+            <form method="POST" action="" onsubmit="return confirm('CẢNH BÁO: Bạn có chắc chắn muốn XÓA HÀNG LOẠT tất cả ' + danhSachChon.length + ' mã giảm giá đã chọn? Thao tác không thể hoàn tác!');">
+                <input type="hidden" name="action" value="xoa_hang_loat">
+                <template x-for="id in danhSachChon" :key="id">
+                    <input type="hidden" name="ids[]" :value="id">
+                </template>
+                <button type="submit" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs transition shadow-md flex items-center gap-2">
+                    <i class="fas fa-trash-can"></i> Xóa Đã Chọn
+                </button>
+            </form>
+        </div>
 
         <!-- BẢNG MÃ GIẢM GIÁ -->
         <div class="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden shadow-xl">
@@ -127,6 +162,9 @@ $coupons = $pdo->query("SELECT * FROM `coupons` ORDER BY `id` DESC")->fetchAll()
                 <table class="w-full text-left text-xs">
                     <thead class="bg-gray-800/80 text-gray-400 font-bold uppercase tracking-wider border-b border-gray-700">
                         <tr>
+                            <th class="py-3.5 px-4 w-10 text-center">
+                                <input type="checkbox" @change="chonTatCa($event)" class="w-4 h-4 rounded bg-gray-800 border-gray-700 text-amber-500 focus:ring-0 cursor-pointer">
+                            </th>
                             <th class="py-3.5 px-4">Mã Voucher</th>
                             <th class="py-3.5 px-4">Mức Giảm</th>
                             <th class="py-3.5 px-4">Đơn Tối Thiểu</th>
@@ -138,12 +176,16 @@ $coupons = $pdo->query("SELECT * FROM `coupons` ORDER BY `id` DESC")->fetchAll()
                     <tbody class="divide-y divide-gray-800/60 font-medium">
                         <?php if (empty($coupons)): ?>
                             <tr>
-                                <td colspan="6" class="py-12 text-center text-gray-500">Chưa có mã giảm giá nào. Hãy tạo mã đầu tiên!</td>
+                                <td colspan="7" class="py-12 text-center text-gray-500">Chưa có mã giảm giá nào. Hãy tạo mã đầu tiên!</td>
                             </tr>
                         <?php endif; ?>
 
                         <?php foreach ($coupons as $c): ?>
                             <tr class="hover:bg-gray-800/30 transition">
+                                <td class="py-3.5 px-4 text-center">
+                                    <input type="checkbox" :value="<?= $c['id'] ?>" x-model="danhSachChon" class="w-4 h-4 rounded bg-gray-800 border-gray-700 text-amber-500 focus:ring-0 cursor-pointer">
+                                </td>
+
                                 <td class="py-3.5 px-4 font-mono font-bold text-amber-400 text-sm">
                                     <?= htmlspecialchars($c['code']) ?>
                                 </td>
@@ -171,7 +213,7 @@ $coupons = $pdo->query("SELECT * FROM `coupons` ORDER BY `id` DESC")->fetchAll()
                                 </td>
 
                                 <td class="py-3.5 px-4 text-center">
-                                    <form method="POST" action="" onsubmit="return confirm('Bạn có chắc muốn xóa mã giảm giá này?');">
+                                    <form method="POST" action="" onsubmit="return confirm('Bạn có chắc muốn xóa mã giảm giá này?');" class="inline">
                                         <input type="hidden" name="action" value="xoa_ma">
                                         <input type="hidden" name="id" value="<?= $c['id'] ?>">
                                         <button type="submit" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-red-600 text-gray-300 hover:text-white text-xs font-bold transition">
@@ -235,12 +277,30 @@ $coupons = $pdo->query("SELECT * FROM `coupons` ORDER BY `id` DESC")->fetchAll()
             </div>
         </div>
 
-                </main>
+            </main>
 
             <footer class="bg-gray-950 border-t border-gray-900 py-4 text-center text-xs text-gray-500 mt-auto">
                 &copy; 2026 <?= SHOP_NAME ?> - Trang Quản Trị Hệ Thống Tự Động
             </footer>
         </div>
     </div>
-    </body>
+
+    <script>
+        function ungDungMaGiamGia() {
+            return {
+                moModalThem: false,
+                danhSachChon: [],
+                tatCaIds: <?= json_encode($allCouponIds) ?>,
+
+                chonTatCa(e) {
+                    if (e.target.checked) {
+                        this.danhSachChon = [...this.tatCaIds];
+                    } else {
+                        this.danhSachChon = [];
+                    }
+                }
+            };
+        }
+    </script>
+</body>
 </html>

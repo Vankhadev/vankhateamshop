@@ -22,9 +22,12 @@ if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
 $thongBao = '';
 $loaiThongBao = '';
 
-// Xử lý khi Admin bấm Thử Giao Lại (Retry Delivery) đối với đơn bị lỗi
+// Xử lý các thao tác POST của Admin
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    if ($_POST['action'] === 'thu_giao_lai') {
+    $action = $_POST['action'];
+
+    // 1. Giao lại đơn hàng
+    if ($action === 'thu_giao_lai') {
         $orderId = (int)$_POST['order_id'];
         $dispatcher = new BoDieuPhoiDonHang($pdo);
         $ketQua = $dispatcher->xuLyDonHang($orderId);
@@ -35,6 +38,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         } else {
             $thongBao = "Thử giao lại thất bại: " . ($ketQua['error'] ?? 'Lỗi không xác định');
             $loaiThongBao = "error";
+        }
+    }
+
+    // 2. Xóa đơn hàng đơn lẻ
+    if ($action === 'xoa_don_hang') {
+        $orderId = (int)$_POST['order_id'];
+        try {
+            $pdo->beginTransaction();
+            $pdo->exec("DELETE FROM `transactions` WHERE `order_id` = $orderId");
+            $pdo->exec("DELETE FROM `orders` WHERE `id` = $orderId");
+            $pdo->commit();
+
+            $thongBao = "Đã xóa vĩnh viễn đơn hàng #{$orderId} thành công!";
+            $loaiThongBao = "success";
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            $thongBao = "Lỗi khi xóa đơn hàng: " . $e->getMessage();
+            $loaiThongBao = "error";
+        }
+    }
+
+    // 3. Xóa hàng loạt nhiều đơn hàng
+    if ($action === 'xoa_hang_loat') {
+        $ids = $_POST['ids'] ?? [];
+        if (!empty($ids) && is_array($ids)) {
+            $idsSanitized = array_map('intval', $ids);
+            $idsSanitized = array_filter($idsSanitized, fn($i) => $i > 0);
+            if (!empty($idsSanitized)) {
+                $inClause = implode(',', $idsSanitized);
+                try {
+                    $pdo->beginTransaction();
+                    $pdo->exec("DELETE FROM `transactions` WHERE `order_id` IN ($inClause)");
+                    $pdo->exec("DELETE FROM `orders` WHERE `id` IN ($inClause)");
+                    $pdo->commit();
+
+                    $thongBao = "Đã xóa thành công " . count($idsSanitized) . " đơn hàng được chọn!";
+                    $loaiThongBao = "success";
+                } catch (Exception $e) {
+                    if ($pdo->inTransaction()) $pdo->rollBack();
+                    $thongBao = "Lỗi khi xóa hàng loạt: " . $e->getMessage();
+                    $loaiThongBao = "error";
+                }
+            }
         }
     }
 }
@@ -72,6 +118,7 @@ $sql .= " ORDER BY o.id DESC LIMIT 50";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $orders = $stmt->fetchAll();
+$allOrderIds = array_map(fn($o) => (int)$o['id'], $orders);
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -81,11 +128,12 @@ $orders = $stmt->fetchAll();
     <title>Quản Lý Đơn Hàng - <?= SHOP_NAME ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0B0F19; color: #E5E7EB; }
     </style>
 </head>
-<body class="min-h-screen bg-[#0B0F19] text-[#E5E7EB] antialiased">
+<body x-data="ungDungDonHang()" class="min-h-screen bg-[#0B0F19] text-[#E5E7EB] antialiased">
 
     <div class="flex min-h-screen">
         <!-- SIDEBAR MENU QUẢN TRỊ BÊN TRÁI -->
@@ -120,7 +168,7 @@ $orders = $stmt->fetchAll();
                 <h1 class="text-xl font-bold text-white flex items-center gap-2">
                     <i class="fas fa-list-check text-amber-500"></i> Quản Lý Tất Cả Đơn Hàng
                 </h1>
-                <p class="text-xs text-gray-400 mt-1">Theo dõi mã đơn, tài khoản API đã giao tự động, nguồn nhập và xử lý lỗi fallback</p>
+                <p class="text-xs text-gray-400 mt-1">Theo dõi mã đơn, tài khoản API đã giao tự động, nguồn nhập, xử lý lỗi hoặc xóa đơn rác</p>
             </div>
             <a href="/admin/dashboard" class="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-bold transition flex items-center gap-2">
                 <i class="fas fa-arrow-left"></i> Bảng Thống Kê
@@ -133,6 +181,23 @@ $orders = $stmt->fetchAll();
                 <span><?= htmlspecialchars($thongBao) ?></span>
             </div>
         <?php endif; ?>
+
+        <!-- THANH CÔNG CỤ XÓA HÀNG LOẠT (BULK ACTION BAR) -->
+        <div x-show="danhSachChon.length > 0" class="mb-4 p-3.5 rounded-2xl bg-red-950/70 border border-red-800 flex items-center justify-between shadow-lg" style="display: none;" x-transition>
+            <div class="text-xs text-red-200 font-bold flex items-center gap-2">
+                <i class="fas fa-trash-can text-red-400"></i>
+                <span>Đã tích chọn <strong class="text-white text-sm" x-text="danhSachChon.length"></strong> đơn hàng</span>
+            </div>
+            <form method="POST" action="" onsubmit="return confirm('CẢNH BÁO: Bạn có chắc chắn muốn XÓA HÀNG LOẠT ' + danhSachChon.length + ' đơn hàng đã chọn? Thao tác không thể hoàn tác!');">
+                <input type="hidden" name="action" value="xoa_hang_loat">
+                <template x-for="id in danhSachChon" :key="id">
+                    <input type="hidden" name="ids[]" :value="id">
+                </template>
+                <button type="submit" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs transition shadow-md flex items-center gap-2">
+                    <i class="fas fa-trash-can"></i> Xóa Đã Chọn
+                </button>
+            </form>
+        </div>
 
         <!-- THANH TÌM KIẾM & BỘ LỌC -->
         <div class="bg-[#111827] border border-gray-800 rounded-2xl p-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -162,6 +227,9 @@ $orders = $stmt->fetchAll();
                 <table class="w-full text-left text-xs">
                     <thead class="bg-gray-800/80 text-gray-400 font-bold uppercase tracking-wider border-b border-gray-700">
                         <tr>
+                            <th class="py-3.5 px-3 w-10 text-center">
+                                <input type="checkbox" @change="chonTatCa($event)" class="w-4 h-4 rounded bg-gray-800 border-gray-700 text-amber-500 focus:ring-0 cursor-pointer">
+                            </th>
                             <th class="py-3.5 px-4">Mã Đơn / Thời Gian</th>
                             <th class="py-3.5 px-4">Sản Phẩm</th>
                             <th class="py-3.5 px-4">Khách Hàng (Email)</th>
@@ -175,12 +243,16 @@ $orders = $stmt->fetchAll();
                     <tbody class="divide-y divide-gray-800/60 font-medium">
                         <?php if (empty($orders)): ?>
                             <tr>
-                                <td colspan="8" class="py-8 text-center text-gray-500">Chưa có đơn hàng nào thỏa mãn điều kiện lọc.</td>
+                                <td colspan="9" class="py-12 text-center text-gray-500">Chưa có đơn hàng nào thỏa mãn điều kiện lọc.</td>
                             </tr>
                         <?php endif; ?>
 
                         <?php foreach ($orders as $order): ?>
                             <tr class="hover:bg-gray-800/30 transition">
+                                <td class="py-3.5 px-3 text-center">
+                                    <input type="checkbox" :value="<?= $order['id'] ?>" x-model="danhSachChon" class="w-4 h-4 rounded bg-gray-800 border-gray-700 text-amber-500 focus:ring-0 cursor-pointer">
+                                </td>
+
                                 <td class="py-3.5 px-4">
                                     <div class="font-mono font-bold text-amber-400"><?= htmlspecialchars($order['order_code']) ?></div>
                                     <div class="text-[11px] text-gray-500 mt-0.5"><?= date('d/m/Y H:i', strtotime($order['created_at'])) ?></div>
@@ -244,17 +316,25 @@ $orders = $stmt->fetchAll();
                                 </td>
 
                                 <td class="py-3.5 px-4 text-center">
-                                    <?php if ($order['status'] === 'FAILED' || $order['status'] === 'PAID'): ?>
-                                        <form method="POST" action="" onsubmit="return confirm('Bạn có chắc muốn thử gọi nhà cung cấp để giao lại đơn này?');">
-                                            <input type="hidden" name="action" value="thu_giao_lai">
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <?php if ($order['status'] === 'FAILED' || $order['status'] === 'PAID'): ?>
+                                            <form method="POST" action="" onsubmit="return confirm('Bạn có chắc muốn thử gọi nhà cung cấp để giao lại đơn này?');" class="inline">
+                                                <input type="hidden" name="action" value="thu_giao_lai">
+                                                <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
+                                                <button type="submit" class="px-2.5 py-1 rounded bg-amber-600 hover:bg-amber-500 text-white font-bold text-[10px] transition shadow-md" title="Giao lại">
+                                                    <i class="fas fa-rotate"></i>
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
+
+                                        <form method="POST" action="" onsubmit="return confirm('Bạn có chắc chắn muốn xóa đơn hàng <?= addslashes($order['order_code']) ?>? Thao tác không thể hoàn tác!');" class="inline">
+                                            <input type="hidden" name="action" value="xoa_don_hang">
                                             <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
-                                            <button type="submit" class="px-2.5 py-1 rounded bg-amber-600 hover:bg-amber-500 text-white font-bold text-[10px] transition shadow-md flex items-center gap-1 mx-auto">
-                                                <i class="fas fa-rotate"></i> Giao Lại
+                                            <button type="submit" class="px-2.5 py-1 rounded bg-red-950/60 hover:bg-red-600 text-red-400 hover:text-white font-bold text-[10px] transition border border-red-800/80" title="Xóa đơn hàng">
+                                                <i class="fas fa-trash-can"></i>
                                             </button>
                                         </form>
-                                    <?php else: ?>
-                                        <span class="text-gray-600 text-xs">-</span>
-                                    <?php endif; ?>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -263,12 +343,29 @@ $orders = $stmt->fetchAll();
             </div>
         </div>
 
-                </main>
+            </main>
 
             <footer class="bg-gray-950 border-t border-gray-900 py-4 text-center text-xs text-gray-500 mt-auto">
                 &copy; 2026 <?= SHOP_NAME ?> - Trang Quản Trị Hệ Thống Tự Động
             </footer>
         </div>
     </div>
-    </body>
+
+    <script>
+        function ungDungDonHang() {
+            return {
+                danhSachChon: [],
+                tatCaIds: <?= json_encode($allOrderIds) ?>,
+
+                chonTatCa(e) {
+                    if (e.target.checked) {
+                        this.danhSachChon = [...this.tatCaIds];
+                    } else {
+                        this.danhSachChon = [];
+                    }
+                }
+            };
+        }
+    </script>
+</body>
 </html>
