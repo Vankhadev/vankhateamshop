@@ -1,7 +1,6 @@
 # ========================================================
 # TỆP ĐIỀU KHIỂN CÔNG CỤ TÌM KIẾM (ROBOTS.TXT)
-# vankhateamshop - Tối ưu hóa SEO Google, Bing, Yahoo
-# Cho phép lập chỉ mục các trang công khai & bảo mật trang quản trị
+# Tự động đồng bộ theo tên miền máy chủ: http://shopvankha.com
 # ========================================================
 
 User-agent: *
@@ -22,4 +21,4 @@ Disallow: /*.sql$
 Disallow: /*.env$
 
 # Đường dẫn tệp Sơ đồ trang web (Sitemap)
-Sitemap: https://shopvankha.com/sitemap.xml
+Sitemap: http://shopvankha.com/sitemap.xml

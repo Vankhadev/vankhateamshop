@@ -78,6 +78,10 @@ $routes = [
     '/logout'                => __DIR__ . '/backend/logout.php',
     '/dang-xuat'             => __DIR__ . '/backend/logout.php',
 
+    // Sơ đồ trang web & Tệp chỉ mục SEO động theo Domain VPS
+    '/sitemap.xml'           => __DIR__ . '/sitemap.php',
+    '/robots.txt'            => __DIR__ . '/robots.php',
+
     // Webhooks SePay VietQR (Tự động nhận tiền 24/7)
     '/webhook/sepay'         => __DIR__ . '/backend/webhook_sepay.php',
     '/webhook.php'           => __DIR__ . '/backend/webhook_sepay.php',

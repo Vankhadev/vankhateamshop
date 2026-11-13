@@ -1,23 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- ========================================================
-     SƠ ĐỒ TRANG WEB CHUẨN XML (SITEMAP.XML)
-     vankhateamshop - Khai báo các trang công khai cho Google & Bing
-     ======================================================== -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
 
     <!-- Trang chủ -->
     <url>
-        <loc>https://shopvankha.com/</loc>
+        <loc>http://shopvankha.com/</loc>
         <lastmod>2026-11-13</lastmod>
         <changefreq>daily</changefreq>
         <priority>1.0</priority>
     </url>
 
-    <!-- Danh mục sản phẩm & Bảng giá Model -->
+    <!-- Danh mục sản phẩm & Bảng giá Model API -->
     <url>
-        <loc>https://shopvankha.com/san-pham</loc>
+        <loc>http://shopvankha.com/san-pham</loc>
         <lastmod>2026-11-13</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.9</priority>
@@ -25,7 +21,7 @@
 
     <!-- Tài liệu kết nối Buyer API -->
     <url>
-        <loc>https://shopvankha.com/docs</loc>
+        <loc>http://shopvankha.com/docs</loc>
         <lastmod>2026-11-13</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
@@ -33,7 +29,7 @@
 
     <!-- Chính sách bảo hành & Hoàn tiền -->
     <url>
-        <loc>https://shopvankha.com/chinh-sach</loc>
+        <loc>http://shopvankha.com/chinh-sach</loc>
         <lastmod>2026-11-13</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
@@ -41,7 +37,7 @@
 
     <!-- Trang Đăng nhập -->
     <url>
-        <loc>https://shopvankha.com/login</loc>
+        <loc>http://shopvankha.com/login</loc>
         <lastmod>2026-11-13</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.5</priority>
@@ -49,10 +45,18 @@
 
     <!-- Trang Đăng ký -->
     <url>
-        <loc>https://shopvankha.com/register</loc>
+        <loc>http://shopvankha.com/register</loc>
         <lastmod>2026-11-13</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.5</priority>
+    </url>
+
+    <!-- Trang Quên mật khẩu -->
+    <url>
+        <loc>http://shopvankha.com/quen-mat-khau</loc>
+        <lastmod>2026-11-13</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.4</priority>
     </url>
 
 </urlset>

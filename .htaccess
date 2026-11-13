@@ -50,6 +50,10 @@
     RewriteRule ^user/lich-su-dang-nhap/?$ frontend/client/lich-su-dang-nhap.php [QSA,L]
     RewriteRule ^user/?$ frontend/client/dashboard.php [QSA,L]
 
+    # Sơ đồ trang web & Tệp chỉ mục SEO động theo Domain VPS
+    RewriteRule ^sitemap\.xml$ sitemap.php [L]
+    RewriteRule ^robots\.txt$ robots.php [L]
+
     # Webhooks SePay VietQR (Tự động nhận tiền 24/7)
     RewriteRule ^webhook/sepay/?$ backend/webhook_sepay.php [QSA,L]
     RewriteRule ^webhook\.php$ backend/webhook_sepay.php [QSA,L]
