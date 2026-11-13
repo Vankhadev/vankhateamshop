@@ -45,6 +45,15 @@ class BoDieuPhoiDonHang {
             ];
         }
 
+        // Nếu đơn đã được hoàn tiền rồi thì tuyệt đối không xử lý lại để tránh hoàn trùng tiền
+        if ($donHang['status'] === 'REFUNDED') {
+            return [
+                'success' => false,
+                'thanh_cong' => false,
+                'error' => 'Đơn hàng này đã được hoàn tiền vào ví khách hàng trước đó, không thể giao lại!'
+            ];
+        }
+
         // Cập nhật trạng thái đơn thành: ĐANG XỬ LÝ (PROCESSING)
         $this->db->prepare("UPDATE `orders` SET `status` = 'PROCESSING' WHERE `id` = ?")->execute([$donHang['id']]);
 
@@ -116,13 +125,24 @@ class BoDieuPhoiDonHang {
         }
 
         // 4. NẾU TẤT CẢ CÁC NGUỒN ĐỀU THẤT BẠI:
-        // Đánh dấu đơn là FAILED và tự động hoàn lại tiền vào ví cho khách
+        // Đánh dấu đơn và tự động hoàn lại tiền vào ví cho khách (CHỐNG HOÀN TIỀN TRÙNG LẶP)
         $chuoiLoi = implode(" || ", $nhatKyLoi);
-        $this->danhDauThatBai($donHang['id'], $chuoiLoi);
 
-        // Hoàn tiền nếu khách mua bằng tài khoản thành viên
+        // Hoàn tiền nếu khách mua bằng tài khoản thành viên VÀ đơn này chưa từng được hoàn tiền
         if (!empty($donHang['user_id'])) {
-            $this->hoanTienViKhach((int)$donHang['user_id'], (float)$donHang['total_amount'], "Hoàn tiền đơn #{$donHang['order_code']}: Toàn bộ nguồn cung cấp tạm hết hàng");
+            $checkRefund = $this->db->prepare("SELECT id FROM `transactions` WHERE `order_id` = ? AND `type` = 'REFUND' LIMIT 1");
+            $checkRefund->execute([$donHang['id']]);
+            $daHoanTien = $checkRefund->fetch();
+
+            if (!$daHoanTien) {
+                // Chỉ hoàn tiền khi chưa từng hoàn
+                $this->hoanTienViKhach((int)$donHang['user_id'], (int)$donHang['id'], (float)$donHang['total_amount'], "Hoàn tiền đơn #{$donHang['order_code']}: Toàn bộ nguồn cung cấp tạm hết hàng");
+                $this->db->prepare("UPDATE `orders` SET `status` = 'REFUNDED', `error_log` = ? WHERE `id` = ?")->execute([$chuoiLoi, $donHang['id']]);
+            } else {
+                $this->danhDauThatBai($donHang['id'], $chuoiLoi);
+            }
+        } else {
+            $this->danhDauThatBai($donHang['id'], $chuoiLoi);
         }
 
         return [
@@ -142,9 +162,9 @@ class BoDieuPhoiDonHang {
     }
 
     /**
-     * Hoàn tiền lại vào ví khách hàng trên website
+     * Hoàn tiền lại vào ví khách hàng trên website (Kèm order_id để chống hoàn lặp)
      */
-    private function hoanTienViKhach(int $userId, float $soTien, string $ghiChu): void {
+    private function hoanTienViKhach(int $userId, int $orderId, float $soTien, string $ghiChu): void {
         $stmtUser = $this->db->prepare("SELECT `balance` FROM `users` WHERE `id` = ? FOR UPDATE");
         $stmtUser->execute([$userId]);
         $user = $stmtUser->fetch();
@@ -156,12 +176,12 @@ class BoDieuPhoiDonHang {
             // Cộng tiền vào tài khoản
             $this->db->prepare("UPDATE `users` SET `balance` = ? WHERE `id` = ?")->execute([$soDuMoi, $userId]);
 
-            // Ghi nhật ký giao dịch
+            // Ghi nhật ký giao dịch kèm order_id chính xác
             $logStmt = $this->db->prepare("
-                INSERT INTO `transactions` (`user_id`, `type`, `amount`, `balance_before`, `balance_after`, `note`)
-                VALUES (?, 'REFUND', ?, ?, ?, ?)
+                INSERT INTO `transactions` (`user_id`, `order_id`, `type`, `amount`, `balance_before`, `balance_after`, `note`)
+                VALUES (?, ?, 'REFUND', ?, ?, ?, ?)
             ");
-            $logStmt->execute([$userId, $soTien, $soDuCu, $soDuMoi, $ghiChu]);
+            $logStmt->execute([$userId, $orderId, $soTien, $soDuCu, $soDuMoi, $ghiChu]);
         }
     }
 }

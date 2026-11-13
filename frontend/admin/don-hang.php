@@ -317,7 +317,7 @@ $allOrderIds = array_map(fn($o) => (int)$o['id'], $orders);
 
                                 <td class="py-3.5 px-4 text-center">
                                     <div class="flex items-center justify-center gap-1.5">
-                                        <?php if ($order['status'] === 'FAILED' || $order['status'] === 'PAID'): ?>
+                                        <?php if ($order['status'] === 'PAID' || ($order['status'] === 'FAILED' && empty($order['user_id']))): ?>
                                             <form method="POST" action="" onsubmit="return confirm('Bạn có chắc muốn thử gọi nhà cung cấp để giao lại đơn này?');" class="inline">
                                                 <input type="hidden" name="action" value="thu_giao_lai">
                                                 <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
