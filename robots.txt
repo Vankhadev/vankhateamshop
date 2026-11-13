@@ -1,0 +1,25 @@
+# ========================================================
+# TỆP ĐIỀU KHIỂN CÔNG CỤ TÌM KIẾM (ROBOTS.TXT)
+# vankhateamshop - Tối ưu hóa SEO Google, Bing, Yahoo
+# Cho phép lập chỉ mục các trang công khai & bảo mật trang quản trị
+# ========================================================
+
+User-agent: *
+Allow: /
+Allow: /san-pham
+Allow: /docs
+Allow: /chinh-sach
+Allow: /login
+Allow: /register
+Allow: /quen-mat-khau
+
+# Chặn thu thập dữ liệu các khu vực quản trị & API nhạy cảm
+Disallow: /admin/
+Disallow: /user/
+Disallow: /backend/
+Disallow: /api/
+Disallow: /*.sql$
+Disallow: /*.env$
+
+# Đường dẫn tệp Sơ đồ trang web (Sitemap)
+Sitemap: https://shopvankha.com/sitemap.xml

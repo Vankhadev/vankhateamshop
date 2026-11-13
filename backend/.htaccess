@@ -1,0 +1,12 @@
+# ========================================================
+# BẢO VỆ THƯ MỤC BACKEND
+# Chỉ cho phép gọi các endpoint công khai: api.php, webhook_sepay.php, auth_google.php, logout.php
+# Chặn hoàn toàn không cho truy cập config.php, db.php, supplier_api.php, dispatcher.php, security.php từ trình duyệt
+# ========================================================
+
+<FilesMatch "^(config|db|supplier_api|dispatcher|security)\.php$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+Options -Indexes

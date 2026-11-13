@@ -1,0 +1,212 @@
+<?php
+// ========================================================
+// TRANG ĐĂNG NHẬP THÀNH VIÊN & QUẢN TRỊ VIÊN
+// vankhateamshop - Hỗ trợ đăng nhập Google OAuth 2.0 & reCAPTCHA / Cloudflare Turnstile
+// Ghi chú code 100% bằng Tiếng Việt dễ hiểu
+// ========================================================
+
+require_once __DIR__ . '/../backend/config.php';
+require_once __DIR__ . '/../backend/db.php';
+require_once __DIR__ . '/../backend/security.php';
+
+// Áp dụng các tiêu đề bảo mật HTTP
+thietLapBaoMatHeaders();
+
+$thongBaoLoi = '';
+
+// Nếu đã đăng nhập rồi thì tự động chuyển hướng vào Dashboard
+if (!empty($_SESSION['user_id'])) {
+    if (($_SESSION['role'] ?? 'user') === 'admin') {
+        header('Location: /admin/dashboard');
+    } else {
+        header('Location: /user/dashboard');
+    }
+    exit;
+}
+
+// Xử lý thông báo lỗi từ callback Google
+if (isset($_GET['error'])) {
+    if ($_GET['error'] === 'khong_lay_duoc_token') {
+        $thongBaoLoi = 'Không thể xác thực với máy chủ Google. Vui lòng thử lại!';
+    } elseif ($_GET['error'] === 'khong_lay_duoc_thong_tin') {
+        $thongBaoLoi = 'Google không trả về thông tin email. Vui lòng cấp quyền truy cập email!';
+    } else {
+        $thongBaoLoi = 'Đã xảy ra lỗi khi đăng nhập bằng Google!';
+    }
+}
+
+// Xử lý khi đăng nhập bằng Email & Mật khẩu thông thường
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // 1. Kiểm tra chống Brute-Force mật khẩu (Giới hạn 10 lần/phút)
+    if (!kiemTraRateLimit('login_attempt', 10, 60)) {
+        $thongBaoLoi = 'Bạn đã thử đăng nhập quá nhiều lần. Vui lòng đợi 1 phút!';
+    } else {
+        // 2. Xác thực CAPTCHA
+        $captchaToken = $_POST['captcha_token'] ?? $_POST['cf-turnstile-response'] ?? $_POST['g-recaptcha-response'] ?? '';
+        $ketQuaCaptcha = xacThucCaptcha($captchaToken);
+
+        if (!$ketQuaCaptcha['success']) {
+            $thongBaoLoi = $ketQuaCaptcha['message'];
+        } else {
+            $email = strtolower(trim($_POST['email'] ?? ''));
+            $matKhau = $_POST['password'] ?? '';
+
+            if (empty($email) || empty($matKhau)) {
+                $thongBaoLoi = 'Vui lòng điền đầy đủ Email và Mật khẩu!';
+            } else {
+                $stmt = $pdo->prepare("SELECT * FROM `users` WHERE `email` = ? AND `is_active` = 1 LIMIT 1");
+                $stmt->execute([$email]);
+                $user = $stmt->fetch();
+
+                if ($user && !empty($user['password']) && password_verify($matKhau, $user['password'])) {
+                    // Đăng nhập thành công
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['user_name'] = $user['name'];
+                    $_SESSION['user_email'] = $user['email'];
+                    $_SESSION['user_avatar'] = $user['avatar'];
+                    $_SESSION['role'] = $user['role'];
+
+                    if ($user['role'] === 'admin') {
+                        header('Location: /admin/dashboard');
+                    } else {
+                        header('Location: /user/dashboard');
+                    }
+                    exit;
+                } else {
+                    $thongBaoLoi = 'Email hoặc mật khẩu không chính xác!';
+                }
+            }
+        }
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng Nhập Tài Khoản - <?= SHOP_NAME ?></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Nạp thư viện CAPTCHA tương ứng theo cấu hình -->
+    <?php if (CAPTCHA_PROVIDER === 'turnstile'): ?>
+        <!-- Cloudflare Turnstile API -->
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <?php else: ?>
+        <!-- Google reCAPTCHA v2 API -->
+        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <?php endif; ?>
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0B0F19; color: #E5E7EB; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+
+    <!-- HEADER DÙNG CHUNG ĐỒNG BỘ TOÀN BỘ WEBSITE -->
+    <?php require_once __DIR__ . '/includes/header.php'; ?>
+
+    <main class="flex-1 flex items-center justify-center px-4 py-12">
+        <div class="max-w-md w-full bg-[#111827] border border-gray-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+        
+        <!-- Hiệu ứng nền nhẹ -->
+        <div class="absolute -top-16 -right-16 w-36 h-36 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <!-- Logo & Tiêu đề -->
+        <div class="text-center mb-8">
+            <a href="/" class="inline-flex items-center space-x-2 mb-3">
+                <div class="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-blue-600/30">VK</div>
+                <span class="text-xl font-black text-white">VanKha<span class="text-blue-500">Shop</span></span>
+            </a>
+            <h1 class="text-xl font-bold text-white">Đăng Nhập Hệ Thống</h1>
+            <p class="text-xs text-gray-400 mt-1">Quản lý các gói API, số dư ví và đơn hàng của bạn</p>
+        </div>
+
+        <?php if (!empty($thongBaoLoi)): ?>
+            <div class="p-3.5 rounded-xl mb-6 bg-red-950/70 border border-red-800 text-red-300 text-xs font-semibold flex items-center gap-2">
+                <i class="fas fa-triangle-exclamation text-red-400"></i>
+                <span><?= htmlspecialchars($thongBaoLoi) ?></span>
+            </div>
+        <?php endif; ?>
+
+        <!-- NÚT 1: ĐĂNG NHẬP BẰNG GOOGLE (TIỆN LỢI & BẢO MẬT) -->
+        <div class="mb-6">
+            <a href="/backend/auth_google.php" class="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-white hover:bg-gray-100 text-gray-800 font-bold text-xs transition duration-200 shadow-md">
+                <svg class="w-4 h-4" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                </svg>
+                <span>Đăng nhập nhanh bằng Google</span>
+            </a>
+        </div>
+
+        <div class="relative flex items-center justify-center my-6">
+            <div class="border-t border-gray-800 w-full"></div>
+            <span class="bg-[#111827] px-3 text-[11px] text-gray-500 uppercase font-semibold absolute">hoặc tài khoản mật khẩu</span>
+        </div>
+
+        <!-- FORM ĐĂNG NHẬP TRUYỀN THỐNG -->
+        <form method="POST" action="" class="space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-gray-300 mb-1.5">Địa chỉ Email:</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                        <i class="fas fa-envelope text-xs"></i>
+                    </span>
+                    <input type="email" name="email" required placeholder="name@example.com" class="w-full pl-9 pr-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white text-xs focus:border-blue-500 focus:outline-none transition">
+                </div>
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-semibold text-gray-300">Mật khẩu:</label>
+                    <a href="/quen-mat-khau" class="text-[11px] font-semibold text-blue-400 hover:text-blue-300 transition">Quên mật khẩu?</a>
+                </div>
+                <div class="relative" x-data="{ hienPass: false }">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                        <i class="fas fa-lock text-xs"></i>
+                    </span>
+                    <input :type="hienPass ? 'text' : 'password'" name="password" required placeholder="••••••••" class="w-full pl-9 pr-10 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white text-xs focus:border-blue-500 focus:outline-none transition">
+                    <button type="button" @click="hienPass = !hienPass" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-white transition focus:outline-none" title="Hiện/ẩn mật khẩu">
+                        <i class="fas" :class="hienPass ? 'fa-eye-slash' : 'fa-eye'"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- XÁC THỰC BẢO MẬT CAPTCHA -->
+            <div class="pt-2 flex justify-center">
+                <?php if (CAPTCHA_PROVIDER === 'turnstile'): ?>
+                    <!-- Widget Cloudflare Turnstile -->
+                    <div class="cf-turnstile" data-sitekey="<?= CAPTCHA_SITE_KEY ?>" data-theme="dark"></div>
+                <?php else: ?>
+                    <!-- Widget Google reCAPTCHA v2 -->
+                    <div class="g-recaptcha" data-sitekey="<?= CAPTCHA_SITE_KEY ?>" data-theme="dark"></div>
+                <?php endif; ?>
+            </div>
+
+            <button type="submit" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition duration-200 shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2">
+                <i class="fas fa-right-to-bracket"></i> Đăng Nhập
+            </button>
+
+            <!-- NÚT CHUYỂN SANG ĐĂNG KÝ -->
+            <div class="pt-2 text-center text-xs text-gray-400">
+                Chưa có tài khoản? <a href="/register" class="text-blue-400 hover:text-blue-300 font-bold transition">Đăng ký ngay tại đây</a>
+            </div>
+        </form>
+
+        <div class="mt-6 text-center text-xs text-gray-500">
+            <a href="/" class="text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1">
+                <i class="fas fa-arrow-left"></i> Quay lại trang chủ mua sắm
+            </a>
+        </div>
+    </main>
+
+    <!-- FOOTER CHÂN TRANG ĐỒNG BỘ TOÀN BỘ WEBSITE -->
+    <?php require_once __DIR__ . '/includes/footer.php'; ?>
+
+</body>
+</html>

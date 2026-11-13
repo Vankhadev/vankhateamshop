@@ -1,0 +1,98 @@
+# ========================================================
+# CẤU HÌNH BẢO MẬT MÁY CHỦ & CLOUDFLARE (.HTACCESS)
+# vankhateamshop - Chặn tải trộm file nhạy cảm & bắt buộc HTTPS & URL Đẹp
+# Ghi chú code 100% bằng Tiếng Việt dễ hiểu
+# ========================================================
+
+# 1. Bật xử lý ghi lại đường dẫn (RewriteEngine)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Đường dẫn chuẩn OpenAI Gateway: Chuyển tiếp /v1/chat/completions và /v1/models vào backend/proxy_api.php
+    RewriteRule ^v1/(.*)$ backend/proxy_api.php [QSA,L]
+
+    # Tự động chuyển hướng từ HTTP sang HTTPS (Khi dùng SSL Cloudflare trên Production)
+    RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)(:\d+)?$ [NC]
+    RewriteCond %{HTTP:CF-Visitor} '"scheme":"http"' [OR]
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Chuyển hướng 301 các link thô / cũ sang URL chuẩn đẹp
+    RewriteRule ^frontend/index\.php$ / [R=301,L]
+    RewriteRule ^frontend/?$ / [R=301,L]
+    RewriteRule ^frontend/san-pham\.php$ /san-pham [R=301,L]
+    RewriteRule ^frontend/login\.php$ /login [R=301,L]
+    RewriteRule ^frontend/register\.php$ /register [R=301,L]
+    RewriteRule ^frontend/docs\.php$ /docs [R=301,L]
+    RewriteRule ^frontend/chinh-sach\.php$ /chinh-sach [R=301,L]
+    RewriteRule ^frontend/quen-mat-khau\.php$ /quen-mat-khau [R=301,L]
+    RewriteRule ^frontend/client/dashboard\.php$ /user/dashboard [R=301,L]
+    RewriteRule ^frontend/client/nap-tien\.php$ /user/nap-tien [R=301,L]
+    RewriteRule ^frontend/client/don-hang\.php$ /user/don-hang [R=301,L]
+    RewriteRule ^frontend/client/api-docs\.php$ /user/api-docs [R=301,L]
+    RewriteRule ^frontend/client/bien-dong-so-du\.php$ /user/bien-dong-so-du [R=301,L]
+    RewriteRule ^frontend/client/ho-tro\.php$ /user/ho-tro [R=301,L]
+    RewriteRule ^frontend/client/tai-khoan\.php$ /user/tai-khoan [R=301,L]
+    RewriteRule ^frontend/client/lich-su-dang-nhap\.php$ /user/lich-su-dang-nhap [R=301,L]
+    RewriteRule ^frontend/admin/dashboard\.php$ /admin/dashboard [R=301,L]
+    RewriteRule ^frontend/admin/san-pham\.php$ /admin/san-pham [R=301,L]
+    RewriteRule ^frontend/admin/dai-ly\.php$ /admin/dai-ly [R=301,L]
+
+    # URL Đẹp (Clean URLs) theo chuẩn shopvankha.com/user/dashboard
+    RewriteRule ^user/dashboard/?$ frontend/client/dashboard.php [QSA,L]
+    RewriteRule ^user/nap-tien/?$ frontend/client/nap-tien.php [QSA,L]
+    RewriteRule ^user/don-hang/?$ frontend/client/don-hang.php [QSA,L]
+    RewriteRule ^user/api-docs/?$ frontend/client/api-docs.php [QSA,L]
+    RewriteRule ^user/api/?$ frontend/client/api-docs.php [QSA,L]
+    RewriteRule ^user/bien-dong-so-du/?$ frontend/client/bien-dong-so-du.php [QSA,L]
+    RewriteRule ^user/ho-tro/?$ frontend/client/ho-tro.php [QSA,L]
+    RewriteRule ^user/tai-khoan/?$ frontend/client/tai-khoan.php [QSA,L]
+    RewriteRule ^user/lich-su-dang-nhap/?$ frontend/client/lich-su-dang-nhap.php [QSA,L]
+    RewriteRule ^user/?$ frontend/client/dashboard.php [QSA,L]
+
+    # Các trang công khai
+    RewriteRule ^san-pham/?$ frontend/san-pham.php [QSA,L]
+    RewriteRule ^products/?$ frontend/san-pham.php [QSA,L]
+    RewriteRule ^docs/?$ frontend/docs.php [QSA,L]
+    RewriteRule ^buyer-api/?$ frontend/docs.php [QSA,L]
+    RewriteRule ^chinh-sach/?$ frontend/chinh-sach.php [QSA,L]
+    RewriteRule ^login/?$ frontend/login.php [QSA,L]
+    RewriteRule ^dang-nhap/?$ frontend/login.php [QSA,L]
+    RewriteRule ^register/?$ frontend/register.php [QSA,L]
+    RewriteRule ^dang-ky/?$ frontend/register.php [QSA,L]
+    RewriteRule ^quen-mat-khau/?$ frontend/quen-mat-khau.php [QSA,L]
+    RewriteRule ^forgot-password/?$ frontend/quen-mat-khau.php [QSA,L]
+    RewriteRule ^logout/?$ backend/logout.php [QSA,L]
+    RewriteRule ^dang-xuat/?$ backend/logout.php [QSA,L]
+
+    # Trang quản trị Admin
+    RewriteRule ^admin/?$ frontend/admin/dashboard.php [QSA,L]
+    RewriteRule ^admin/dashboard/?$ frontend/admin/dashboard.php [QSA,L]
+    RewriteRule ^admin/san-pham/?$ frontend/admin/san-pham.php [QSA,L]
+    RewriteRule ^admin/dai-ly/?$ frontend/admin/dai-ly.php [QSA,L]
+    RewriteRule ^admin/api-logs/?$ frontend/admin/api-logs.php [QSA,L]
+    RewriteRule ^admin/don-hang/?$ frontend/admin/don-hang.php [QSA,L]
+    RewriteRule ^admin/thanh-vien/?$ frontend/admin/thanh-vien.php [QSA,L]
+
+    # Nếu không phải file hoặc thư mục thực tế -> chuyển tiếp vào index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# 2. CHẶN TUYỆT ĐỐI KHÔNG CHO TRÌNH DUYỆT TẢI FILE CƠ SỞ DỮ LIỆU .SQL HOẶC .LOG
+<FilesMatch "\.(sql|log|env|git|ini|md)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# 3. TẮT TÍNH NĂNG LIỆT KÊ THƯ MỤC (DIRECTORY BROWSING)
+Options -Indexes
+
+# 4. THIẾT LẬP CÁC TIÊU ĐỀ BẢO MẬT (SECURITY HEADERS)
+<IfModule mod_headers.c>
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

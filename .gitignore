@@ -1,0 +1,38 @@
+# ========================================================
+# CẤU HÌNH LOẠI TRỪ TỆP CHO GIT (.GITIGNORE)
+# vankhateamshop - Bảo vệ tuyệt đối thông tin bí mật và tệp rác
+# Ghi chú tiếng Việt dễ hiểu
+# ========================================================
+
+# 1. Bảo vệ các tệp biến môi trường chứa thông tin máy chủ / mật khẩu
+.env
+.env.local
+.env.*.local
+*.env
+
+# 2. Tệp nhật ký hệ thống & báo cáo lỗi
+*.log
+logs/
+.system_generated/
+error_log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 3. Tệp tạm của hệ điều hành và trình soạn thảo
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sublime-workspace
+*.sublime-project
+
+# 4. Thư mục tạm & bộ nhớ đệm
+temp/
+tmp/
+cache/
+.cache/
