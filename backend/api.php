@@ -31,13 +31,15 @@ switch ($hanhDong) {
         }
 
         $captchaToken = trim($_POST['captcha_token'] ?? '');
-        $ketQuaCaptcha = xacThucCaptcha($captchaToken);
-        if (!$ketQuaCaptcha['success']) {
-            echo json_encode([
-                'thanh_cong' => false,
-                'thong_bao' => $ketQuaCaptcha['message']
-            ]);
-            exit;
+        if (!empty($captchaToken)) {
+            $ketQuaCaptcha = xacThucCaptcha($captchaToken);
+            if (!$ketQuaCaptcha['success']) {
+                echo json_encode([
+                    'thanh_cong' => false,
+                    'thong_bao' => $ketQuaCaptcha['message']
+                ]);
+                exit;
+            }
         }
 
         $sanPhamId = (int)($_POST['product_id'] ?? 0);

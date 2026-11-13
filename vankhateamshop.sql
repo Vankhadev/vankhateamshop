@@ -261,9 +261,8 @@ CREATE TABLE IF NOT EXISTS `sepay_transactions` (
 -- DỮ LIỆU KHỞI TẠO HỆ THỐNG
 -- ========================================================
 
--- 1. Tài khoản Quản trị viên mặc định (Mật khẩu: Admin@123456)
-INSERT INTO `users` (`name`, `email`, `password`, `phone`, `balance`, `role`) VALUES 
-('Admin VanKha', 'admin@vankhateamshop.vn', '$2y$10$lXm/W78DmA658z82aSv4PuKrghKPrlGHJWGSd70T0aNGfQAG.zTAi', '0987654321', 0.00, 'admin');
+-- 1. Tài khoản: Bắt đầu trống, người dùng đầu tiên đăng ký trên hệ thống sẽ tự động được gán quyền Admin (role = 'admin')
+-- INSERT INTO `users` ... (Đã bỏ dữ liệu mẫu theo yêu cầu)
 
 -- 2. Cấu hình nhà cung cấp API đối tác
 INSERT INTO `suppliers` (`code`, `name`, `api_url`, `api_key`, `balance`, `min_balance_alert`, `is_active`) VALUES

@@ -119,15 +119,17 @@ try {
         $userId = $user['id'];
         $userRole = $user['role'];
     } else {
-        // Khách mới lần đầu đăng nhập: Tự động đăng ký tài khoản
+        // Khách mới lần đầu đăng nhập: Tự động đăng ký tài khoản (User đầu tiên là Admin)
+        $soLuongUser = (int)$pdo->query("SELECT COUNT(*) FROM `users`")->fetchColumn();
+        $userRole = ($soLuongUser === 0) ? 'admin' : 'user';
+
         $apiToken = bin2hex(random_bytes(32));
         $insertStmt = $pdo->prepare("
             INSERT INTO `users` (`name`, `email`, `password`, `google_id`, `avatar`, `balance`, `role`, `api_token`, `is_active`)
-            VALUES (?, ?, NULL, ?, ?, 0.00, 'user', ?, 1)
+            VALUES (?, ?, NULL, ?, ?, 0.00, ?, ?, 1)
         ");
-        $insertStmt->execute([$hoTen, $email, $googleId, $avatar, $apiToken]);
+        $insertStmt->execute([$hoTen, $email, $googleId, $avatar, $userRole, $apiToken]);
         $userId = $pdo->lastInsertId();
-        $userRole = 'user';
     }
 
     // 4. Lưu thông tin đăng nhập vào Session
@@ -137,8 +139,12 @@ try {
     $_SESSION['user_avatar'] = $avatar;
     $_SESSION['role'] = $userRole;
 
-    // Chuyển hướng người dùng vào trang thành viên
-    header('Location: /user/dashboard');
+    // Chuyển hướng người dùng tương ứng theo quyền
+    if ($userRole === 'admin') {
+        header('Location: /admin/dashboard');
+    } else {
+        header('Location: /user/dashboard');
+    }
     exit;
 
 } catch (Exception $e) {

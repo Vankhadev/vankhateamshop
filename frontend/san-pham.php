@@ -34,7 +34,7 @@ foreach ($products as $p) {
         'category_id'    => (int)$p['category_id'],
         'name'           => $p['name'],
         'sku'            => $p['sku'],
-        'image'          => $p['image'],
+        'image'          => $p['image'] ?? '',
         'price'          => (float)$p['price'],
         'original_price' => (float)$p['original_price'],
         'badge'          => $p['badge'],

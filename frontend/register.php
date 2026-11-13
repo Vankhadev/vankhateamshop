@@ -54,11 +54,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $hash = password_hash($password, PASSWORD_DEFAULT);
                     $apiToken = 'vk_' . bin2hex(random_bytes(24));
 
+                    // Tự động gán quyền Admin cho tài khoản đầu tiên tạo trên hệ thống
+                    $soLuongUserHienTai = (int)$pdo->query("SELECT COUNT(*) FROM `users`")->fetchColumn();
+                    $roleKhoiTao = ($soLuongUserHienTai === 0) ? 'admin' : 'user';
+
                     $insertStmt = $pdo->prepare("
                         INSERT INTO `users` (`name`, `email`, `password`, `balance`, `role`, `api_token`, `is_active`)
-                        VALUES (?, ?, ?, 0.00, 'user', ?, 1)
+                        VALUES (?, ?, ?, 0.00, ?, ?, 1)
                     ");
-                    $insertStmt->execute([$name, $email, $hash, $apiToken]);
+                    $insertStmt->execute([$name, $email, $hash, $roleKhoiTao, $apiToken]);
                     $newId = $pdo->lastInsertId();
 
                     // Đăng nhập luôn cho người dùng
@@ -66,9 +70,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['user_name'] = $name;
                     $_SESSION['user_email'] = $email;
                     $_SESSION['user_avatar'] = null;
-                    $_SESSION['role'] = 'user';
+                    $_SESSION['role'] = $roleKhoiTao;
 
-                    header('Location: /user/dashboard');
+                    if ($roleKhoiTao === 'admin') {
+                        header('Location: /admin/dashboard');
+                    } else {
+                        header('Location: /user/dashboard');
+                    }
                     exit;
                 }
             }
