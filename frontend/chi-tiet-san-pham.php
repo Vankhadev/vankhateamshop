@@ -22,10 +22,10 @@ if (!empty($slug)) {
         SELECT p.*, c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon, c.color AS category_color 
         FROM `products` p 
         JOIN `categories` c ON p.category_id = c.id 
-        WHERE p.slug = ? AND p.is_active = 1 
+        WHERE (p.slug = ? OR p.sku = ?) AND p.is_active = 1 
         LIMIT 1
     ");
-    $stmt->execute([$slug]);
+    $stmt->execute([$slug, $slug]);
     $product = $stmt->fetch();
 }
 
@@ -731,11 +731,6 @@ if (!empty($product['original_price']) && $product['original_price'] > $product[
                         <span x-text="dangKiemTraNgay ? 'Đang kiểm tra với ngân hàng...' : 'Kiểm Tra Ngay'">Kiểm Tra Ngay</span>
                     </button>
                 </div>
-
-                <!-- Nút test thử nghiệm dành cho dev -->
-                <button @click="giaLapThanhToan()" class="w-full py-1.5 rounded-lg border border-dashed border-gray-700 text-[10px] text-gray-500 hover:text-white transition">
-                    (Dành cho Lập trình viên: Bấm để test nhận Key thử nghiệm)
-                </button>
             </div>
 
             <!-- BƯỚC 3: ĐÃ NHẬN TIỀN -> TRẢ VỀ KEY NGAY LẬP TỨC -->

@@ -29,7 +29,7 @@ if (defined('SITE_URL') && !empty(SITE_URL) && strpos(SITE_URL, '127.0.0.1') ===
 $danhSachSanPham = [];
 if (isset($pdo)) {
     try {
-        $stmt = $pdo->query("SELECT id, name, updated_at, created_at FROM `products` WHERE `is_active` = 1 ORDER BY id DESC");
+        $stmt = $pdo->query("SELECT id, name, slug, updated_at, created_at FROM `products` WHERE `is_active` = 1 ORDER BY id DESC");
         $danhSachSanPham = $stmt->fetchAll();
     } catch (Exception $e) {
         $danhSachSanPham = [];
@@ -61,6 +61,16 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
         <changefreq>daily</changefreq>
         <priority>0.9</priority>
     </url>
+
+    <!-- Chi tiết từng sản phẩm API -->
+    <?php foreach ($danhSachSanPham as $sp): ?>
+        <url>
+            <loc><?= $baseUrl ?>/san-pham/<?= htmlspecialchars($sp['slug']) ?></loc>
+            <lastmod><?= !empty($sp['updated_at']) ? date('Y-m-d', strtotime($sp['updated_at'])) : $ngayHomNay ?></lastmod>
+            <changefreq>weekly</changefreq>
+            <priority>0.8</priority>
+        </url>
+    <?php endforeach; ?>
 
     <!-- Tài liệu kết nối Buyer API -->
     <url>

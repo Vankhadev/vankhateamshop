@@ -33,6 +33,7 @@ foreach ($products as $p) {
         'id'             => (int)$p['id'],
         'category_id'    => (int)$p['category_id'],
         'name'           => $p['name'],
+        'slug'           => $p['slug'],
         'sku'            => $p['sku'],
         'image'          => $p['image'] ?? '',
         'price'          => (float)$p['price'],
@@ -368,11 +369,6 @@ foreach ($products as $p) {
                         <span x-text="dangKiemTraNgay ? 'Đang kiểm tra với ngân hàng...' : 'Kiểm Tra Ngay'">Kiểm Tra Ngay</span>
                     </button>
                 </div>
-
-                <!-- Nút test thử nghiệm -->
-                <button @click="giaLapThanhToan()" class="w-full py-1.5 rounded-lg border border-dashed border-gray-700 text-[10px] text-gray-500 hover:text-white transition">
-                    (Dành cho Lập trình viên: Bấm để test thử nghiệm nhận Key)
-                </button>
             </div>
 
             <!-- BƯỚC 3: ĐÃ NHẬN TIỀN -> TRẢ VỀ KEY NGAY LẬP TỨC -->
