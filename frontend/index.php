@@ -266,9 +266,11 @@ $topUsers = $pdo->query("
                                 <div class="text-[10px] font-bold text-blue-400 uppercase tracking-wider">
                                     <?= htmlspecialchars($p['category_name']) ?>
                                 </div>
-                                <h3 class="text-sm font-bold text-white group-hover:text-blue-400 transition leading-tight truncate" title="<?= htmlspecialchars($p['name']) ?>">
-                                    <?= htmlspecialchars($p['name']) ?>
-                                </h3>
+                                <a href="/san-pham/<?= htmlspecialchars($p['slug']) ?>" class="block">
+                                    <h3 class="text-sm font-bold text-white group-hover:text-blue-400 transition leading-tight truncate" title="<?= htmlspecialchars($p['name']) ?>">
+                                        <?= htmlspecialchars($p['name']) ?>
+                                    </h3>
+                                </a>
                             </div>
                         </div>
 
@@ -302,11 +304,16 @@ $topUsers = $pdo->query("
                         </ul>
                     </div>
 
-                    <!-- Nút Mua Hàng -->
-                    <button @click="moThanhToan(<?= $p['id'] ?>, '<?= addslashes($p['name']) ?>', '<?= addslashes($p['request_count'] ?? '') ?>', <?= $p['price'] ?>)" 
-                            class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition duration-200 shadow-md shadow-blue-600/30 flex items-center justify-center gap-2">
-                        <i class="fas fa-cart-shopping"></i> Mua Ngay Tự Động
-                    </button>
+                    <!-- Nút Chi Tiết & Mua Hàng -->
+                    <div class="grid grid-cols-2 gap-2 mt-auto">
+                        <a href="/san-pham/<?= htmlspecialchars($p['slug']) ?>" class="py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs transition flex items-center justify-center gap-1.5 border border-gray-700">
+                            <i class="fas fa-eye text-blue-400"></i> Chi Tiết
+                        </a>
+                        <button @click="moThanhToan(<?= $p['id'] ?>, '<?= addslashes($p['name']) ?>', '<?= addslashes($p['request_count'] ?? '') ?>', <?= $p['price'] ?>)" 
+                                class="py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition duration-200 shadow-md shadow-blue-600/30 flex items-center justify-center gap-1.5">
+                            <i class="fas fa-bolt"></i> Mua Ngay
+                        </button>
+                    </div>
                 </div>
             <?php endforeach; ?>
         </div>

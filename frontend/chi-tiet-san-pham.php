@@ -1,0 +1,947 @@
+<?php
+// ========================================================
+// TRANG CHI TIẾT SẢN PHẨM (PRODUCT DETAIL PAGE)
+// vankhateamshop - Đầy đủ Breadcrumb, Nhãn dán tùy chỉnh, 4 Thẻ cam kết,
+// 3 Tab thông tin (Chi tiết, Bảo hành, FAQ), Sản phẩm liên quan & Popup VietQR ACB
+// Ghi chú code 100% bằng Tiếng Việt dễ hiểu
+// ========================================================
+
+require_once __DIR__ . '/../backend/config.php';
+require_once __DIR__ . '/../backend/db.php';
+require_once __DIR__ . '/../backend/security.php';
+
+thietLapBaoMatHeaders();
+
+// Lấy slug hoặc id sản phẩm từ URL
+$slug = trim($_GET['slug'] ?? '');
+$id = (int)($_GET['id'] ?? 0);
+
+$product = null;
+if (!empty($slug)) {
+    $stmt = $pdo->prepare("
+        SELECT p.*, c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon, c.color AS category_color 
+        FROM `products` p 
+        JOIN `categories` c ON p.category_id = c.id 
+        WHERE p.slug = ? AND p.is_active = 1 
+        LIMIT 1
+    ");
+    $stmt->execute([$slug]);
+    $product = $stmt->fetch();
+}
+
+if (!$product && $id > 0) {
+    $stmt = $pdo->prepare("
+        SELECT p.*, c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon, c.color AS category_color 
+        FROM `products` p 
+        JOIN `categories` c ON p.category_id = c.id 
+        WHERE p.id = ? AND p.is_active = 1 
+        LIMIT 1
+    ");
+    $stmt->execute([$id]);
+    $product = $stmt->fetch();
+}
+
+// Nếu không tìm thấy sản phẩm, chuyển về trang danh sách sản phẩm
+if (!$product) {
+    header('Location: /san-pham');
+    exit;
+}
+
+// Giải mã mảng tính năng JSON
+$features = [];
+if (!empty($product['features'])) {
+    $decoded = json_decode($product['features'], true);
+    if (is_array($decoded)) {
+        $features = $decoded;
+    }
+}
+if (empty($features)) {
+    $features = [
+        'Tốc độ cao, đường truyền riêng biệt',
+        'Sử dụng All model và Max',
+        'Có giới hạn request: ' . ($product['request_count'] ?? 'Tiêu chuẩn'),
+        'Bảo hành trong thời gian sử dụng ' . ($product['duration_days'] ?? 30) . ' ngày'
+    ];
+}
+
+// Lấy danh sách các sản phẩm liên quan cùng danh mục hoặc hot
+$stmtRelated = $pdo->prepare("
+    SELECT p.*, c.name AS category_name, c.slug AS category_slug 
+    FROM `products` p 
+    JOIN `categories` c ON p.category_id = c.id 
+    WHERE p.id != ? AND p.is_active = 1 AND (p.category_id = ? OR p.is_hot = 1)
+    ORDER BY p.price ASC 
+    LIMIT 6
+");
+$stmtRelated->execute([$product['id'], $product['category_id']]);
+$relatedProducts = $stmtRelated->fetchAll();
+
+// Thông tin người dùng hiện tại (nếu có đăng nhập)
+$userHienTai = null;
+if (!empty($_SESSION['user_id'])) {
+    $stmtUser = $pdo->prepare("SELECT id, name, email, balance, role FROM `users` WHERE `id` = ?");
+    $stmtUser->execute([$_SESSION['user_id']]);
+    $userHienTai = $stmtUser->fetch();
+}
+
+// Tính % giảm giá nếu có
+$ptGiam = 0;
+if (!empty($product['original_price']) && $product['original_price'] > $product['price']) {
+    $ptGiam = round((($product['original_price'] - $product['price']) / $product['original_price']) * 100);
+}
+?>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= htmlspecialchars($product['name']) ?> - <?= SHOP_NAME ?></title>
+    
+    <!-- Meta SEO -->
+    <meta name="description" content="<?= htmlspecialchars($product['name']) ?> - <?= htmlspecialchars($product['description'] ?? 'API AI chính hãng, kích hoạt tự động 24/7 qua VietQR ACB.') ?>">
+    <link rel="canonical" href="<?= (defined('SITE_URL') ? SITE_URL : 'https://tiemai.io.vn') ?>/san-pham/<?= htmlspecialchars($product['slug']) ?>">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="<?= htmlspecialchars($product['name']) ?> - <?= SHOP_NAME ?>">
+    <meta property="og:description" content="<?= htmlspecialchars($product['description'] ?? 'Cung cấp API AI Agent, Cursor Pro, Claude 3.5 Sonnet tự động giao key 24/7.') ?>">
+    <meta property="og:url" content="<?= (defined('SITE_URL') ? SITE_URL : 'https://tiemai.io.vn') ?>/san-pham/<?= htmlspecialchars($product['slug']) ?>">
+    <meta property="og:type" content="product">
+
+    <!-- CSS & Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0B0F19; color: #E5E7EB; }
+        .gradient-border {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%);
+        }
+    </style>
+</head>
+<body x-data="chiTietSanPhamApp()" class="min-h-screen flex flex-col antialiased">
+
+    <!-- HEADER DÙNG CHUNG ĐỒNG BỘ TOÀN BỘ WEBSITE -->
+    <?php require_once __DIR__ . '/includes/header.php'; ?>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1">
+        
+        <!-- 1. BREADCRUMB ĐIỀU HƯỚNG CHUẨN SEO -->
+        <nav class="flex items-center space-x-2 text-xs text-gray-400 mb-6 overflow-x-auto whitespace-nowrap pb-2">
+            <a href="/" class="hover:text-white transition flex items-center gap-1.5">
+                <i class="fas fa-house"></i>
+                <span>Trang Chủ</span>
+            </a>
+            <span class="text-gray-600">›</span>
+            <a href="/san-pham" class="hover:text-white transition">Sản Phẩm</a>
+            <span class="text-gray-600">›</span>
+            <a href="/san-pham?category=<?= htmlspecialchars($product['category_slug']) ?>" class="hover:text-blue-400 transition font-medium">
+                <?= htmlspecialchars($product['category_name']) ?>
+            </a>
+            <span class="text-gray-600">›</span>
+            <span class="text-gray-200 font-bold truncate max-w-[200px] sm:max-w-none">
+                <?= htmlspecialchars($product['name']) ?>
+            </span>
+        </nav>
+
+        <!-- 2. KHỐI TRÌNH BÀY CHÍNH CỦA SẢN PHẨM (HERO PRODUCT SECTION) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
+            
+            <!-- CỘT TRÁI: ẢNH MINH HỌA / CARD THƯƠNG HIỆU (4 CỘT) -->
+            <div class="lg:col-span-5 space-y-4">
+                <div class="gradient-border rounded-3xl p-6 sm:p-8 flex flex-col items-center justify-center text-center relative overflow-hidden shadow-2xl min-h-[380px]">
+                    <!-- Hiệu ứng vầng sáng phía sau -->
+                    <div class="absolute -top-20 -left-20 w-48 h-48 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="absolute -bottom-20 -right-20 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+                    <!-- Badge Trạng thái & Giảm giá -->
+                    <div class="absolute top-4 left-4 flex flex-wrap gap-2">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Hoạt động
+                        </span>
+                        <?php if ($ptGiam > 0): ?>
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-black bg-rose-600 text-white shadow-md">
+                                -<?= $ptGiam ?>%
+                            </span>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="absolute top-4 right-4">
+                        <span class="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/30">
+                            SKU: <?= htmlspecialchars($product['sku']) ?>
+                        </span>
+                    </div>
+
+                    <!-- Biểu tượng chính hoặc ảnh gói -->
+                    <div class="my-6 relative">
+                        <?php if (!empty($product['image'])): ?>
+                            <img src="<?= htmlspecialchars($product['image']) ?>" alt="<?= htmlspecialchars($product['name']) ?>" class="w-36 h-36 object-contain rounded-2xl shadow-xl">
+                        <?php else: ?>
+                            <div class="w-28 h-28 rounded-3xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center text-white text-5xl shadow-2xl shadow-blue-600/30">
+                                <i class="fas <?= !empty($product['category_icon']) ? htmlspecialchars($product['category_icon']) : 'fa-robot' ?>"></i>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Tên danh mục & Nhãn bảo đảm -->
+                    <h3 class="text-sm font-bold text-gray-300 mb-1"><?= htmlspecialchars($product['category_name']) ?></h3>
+                    <div class="flex items-center justify-center gap-2 text-xs text-gray-400">
+                        <span class="flex items-center gap-1 text-emerald-400 font-semibold">
+                            <i class="fas fa-shield-check"></i> API Chính Hãng
+                        </span>
+                        <span>•</span>
+                        <span class="flex items-center gap-1 text-amber-400 font-semibold">
+                            <i class="fas fa-bolt"></i> Giao Tự Động
+                        </span>
+                    </div>
+                </div>
+
+                <!-- 8 NHÃN DÁN ĐẶC TRƯNG CỦA GÓI SẢN PHẨM (CUSTOM BADGES) -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                    <div class="p-2.5 rounded-xl bg-gray-900/90 border border-gray-800">
+                        <div class="text-blue-400 font-black text-sm"><?= htmlspecialchars($product['request_count'] ?? 'Chuẩn') ?></div>
+                        <div class="text-[10px] text-gray-400 mt-0.5">Dung Lượng</div>
+                    </div>
+                    <div class="p-2.5 rounded-xl bg-gray-900/90 border border-gray-800">
+                        <div class="text-emerald-400 font-black text-sm">5+ Model</div>
+                        <div class="text-[10px] text-gray-400 mt-0.5">Hỗ Trợ All</div>
+                    </div>
+                    <div class="p-2.5 rounded-xl bg-gray-900/90 border border-gray-800">
+                        <div class="text-amber-400 font-black text-sm">99.9%</div>
+                        <div class="text-[10px] text-gray-400 mt-0.5">Uptime Máy Chủ</div>
+                    </div>
+                    <div class="p-2.5 rounded-xl bg-gray-900/90 border border-gray-800">
+                        <div class="text-purple-400 font-black text-sm">24/7</div>
+                        <div class="text-[10px] text-gray-400 mt-0.5">Hỗ Trợ Zalo</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CỘT PHẢI: THÔNG TIN CHI TIẾT, GIÁ BÁN & HÀNH ĐỘNG (7 CỘT) -->
+            <div class="lg:col-span-7 flex flex-col justify-between space-y-6">
+                
+                <div>
+                    <!-- Nhãn tag sản phẩm -->
+                    <div class="flex flex-wrap items-center gap-2 mb-3">
+                        <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                            API AI
+                        </span>
+                        <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            API Chính Hãng
+                        </span>
+                        <?php if (!empty($product['badge'])): ?>
+                            <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                <?= htmlspecialchars($product['badge']) ?>
+                            </span>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Tên sản phẩm chính -->
+                    <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight leading-snug">
+                        <?= htmlspecialchars($product['name']) ?>
+                    </h1>
+
+                    <p class="text-xs sm:text-sm text-gray-400 mt-2 leading-relaxed">
+                        <?= htmlspecialchars($product['description'] ?? 'Giải pháp tích hợp API AI cao cấp cho lập trình viên, sinh viên và doanh nghiệp với tốc độ phản hồi cao và độ trễ thấp.') ?>
+                    </p>
+
+                    <!-- Khung Giá Bán -->
+                    <div class="my-5 p-4 sm:p-5 rounded-2xl bg-gray-900/90 border border-gray-800 flex flex-wrap items-baseline gap-3 sm:gap-4">
+                        <div class="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">
+                            <?= number_format($product['price'], 0, ',', '.') ?> VNĐ
+                        </div>
+
+                        <?php if (!empty($product['original_price']) && $product['original_price'] > $product['price']): ?>
+                            <div class="text-sm sm:text-base text-gray-500 line-through font-mono">
+                                <?= number_format($product['original_price'], 0, ',', '.') ?> VNĐ
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-xs font-bold bg-rose-600 text-white">
+                                -<?= $ptGiam ?>%
+                            </span>
+                        <?php endif; ?>
+
+                        <span class="ml-auto inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-900/40 text-blue-300 border border-blue-700/50">
+                            <i class="fas fa-tag"></i> Giá Đại Lý
+                        </span>
+                    </div>
+
+                    <!-- Checklist tính năng của gói -->
+                    <div class="space-y-2 mb-6">
+                        <span class="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-2">Đặc điểm nổi bật của gói:</span>
+                        <?php foreach ($features as $f): ?>
+                            <div class="flex items-center gap-2.5 text-xs sm:text-sm text-gray-300">
+                                <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fas fa-check"></i>
+                                </span>
+                                <span><?= htmlspecialchars($f) ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <!-- 4 THẺ CAM KẾT DỊCH VỤ (SERVICE HIGHLIGHTS) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                        <div class="p-3.5 rounded-xl bg-gray-900/70 border border-gray-800/80 flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center text-sm shrink-0">
+                                <i class="fas fa-shield-halved"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-bold text-white">Bảo hành 100%</div>
+                                <div class="text-[11px] text-gray-400">Khi lỗi từ nhà cung cấp</div>
+                            </div>
+                        </div>
+
+                        <div class="p-3.5 rounded-xl bg-gray-900/70 border border-gray-800/80 flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-emerald-600/20 text-emerald-400 flex items-center justify-center text-sm shrink-0">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-bold text-white">Giao ngay lập tức</div>
+                                <div class="text-[11px] text-gray-400">Tự động sau thanh toán</div>
+                            </div>
+                        </div>
+
+                        <div class="p-3.5 rounded-xl bg-gray-900/70 border border-gray-800/80 flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-amber-600/20 text-amber-400 flex items-center justify-center text-sm shrink-0">
+                                <i class="fas fa-headset"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-bold text-white">Hỗ trợ 24/7</div>
+                                <div class="text-[11px] text-gray-400">Zalo & Telegram chuyên viên</div>
+                            </div>
+                        </div>
+
+                        <div class="p-3.5 rounded-xl bg-gray-900/70 border border-gray-800/80 flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center text-sm shrink-0">
+                                <i class="fas fa-rotate"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-bold text-white">Đổi mới nếu lỗi</div>
+                                <div class="text-[11px] text-gray-400">Thuộc phạm vi bảo hành</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- NÚT MUA HÀNG & HÀNH ĐỘNG CHÍNH -->
+                <div class="pt-2 border-t border-gray-800/80 space-y-3">
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <!-- Nút Mua ngay (Mở popup VietQR ACB) -->
+                        <button @click="moThanhToan(<?= $product['id'] ?>, '<?= addslashes($product['name']) ?>', <?= $product['price'] ?>)" class="flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-sm transition shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2">
+                            <i class="fas fa-qrcode text-base"></i>
+                            <span>Mua Ngay (VietQR ACB Tự Động)</span>
+                        </button>
+
+                        <!-- Nút Mua bằng số dư ví (nếu có tài khoản) -->
+                        <?php if (!empty($userHienTai)): ?>
+                            <button @click="muaBangVi(<?= $product['id'] ?>)" :disabled="dangXuLyVi" class="py-3.5 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow-md shadow-green-600/30 flex items-center justify-center gap-2">
+                                <i class="fas fa-wallet" :class="dangXuLyVi ? 'fa-spin' : ''"></i>
+                                <span>Mua Bằng Ví (<?= number_format($userHienTai['balance'], 0, ',', '.') ?>đ)</span>
+                            </button>
+                        <?php else: ?>
+                            <a href="/login" class="py-3.5 px-5 rounded-2xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs transition border border-gray-700 flex items-center justify-center gap-2">
+                                <i class="fas fa-user"></i>
+                                <span>Đăng Nhập Ví</span>
+                            </a>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Hotline hỗ trợ -->
+                    <div class="flex items-center justify-between text-xs text-gray-400 pt-1">
+                        <span>Cần tư vấn hỗ trợ kỹ thuật?</span>
+                        <div class="flex items-center gap-3">
+                            <a href="https://zalo.me/<?= defined('SHOP_ZALO') ? SHOP_ZALO : '0847154088' ?>" target="_blank" class="text-blue-400 hover:underline font-semibold flex items-center gap-1">
+                                <i class="fas fa-comment-dots"></i> Zalo CSKH
+                            </a>
+                            <span>•</span>
+                            <a href="<?= defined('SHOP_TELEGRAM') ? SHOP_TELEGRAM : 'https://t.me/vankhateam' ?>" target="_blank" class="text-blue-400 hover:underline font-semibold flex items-center gap-1">
+                                <i class="fab fa-telegram"></i> Telegram
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- 3. KHỐI CÁC TABS NỘI DUNG (THÔNG TIN SẢN PHẨM / BẢO HÀNH / FAQ) -->
+        <div class="gradient-border rounded-3xl p-6 sm:p-8 mb-12 shadow-xl" x-data="{ tabHienTai: 'thong_tin' }">
+            
+            <!-- Điều hướng chuyển tab -->
+            <div class="flex items-center gap-2 border-b border-gray-800 pb-4 mb-6 overflow-x-auto whitespace-nowrap">
+                <button @click="tabHienTai = 'thong_tin'" :class="tabHienTai === 'thong_tin' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'bg-gray-900/80 text-gray-400 hover:text-white'" class="px-5 py-2.5 rounded-xl font-bold text-xs transition flex items-center gap-2">
+                    <i class="fas fa-circle-info"></i>
+                    <span>Thông Tin Sản Phẩm & Hướng Dẫn</span>
+                </button>
+
+                <button @click="tabHienTai = 'bao_hanh'" :class="tabHienTai === 'bao_hanh' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'bg-gray-900/80 text-gray-400 hover:text-white'" class="px-5 py-2.5 rounded-xl font-bold text-xs transition flex items-center gap-2">
+                    <i class="fas fa-shield-halved"></i>
+                    <span>Chính Sách Bảo Hành</span>
+                </button>
+
+                <button @click="tabHienTai = 'faq'" :class="tabHienTai === 'faq' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'bg-gray-900/80 text-gray-400 hover:text-white'" class="px-5 py-2.5 rounded-xl font-bold text-xs transition flex items-center gap-2">
+                    <i class="fas fa-circle-question"></i>
+                    <span>Câu Hỏi Thường Gặp (FAQ)</span>
+                </button>
+            </div>
+
+            <!-- NỘI DUNG TAB 1: THÔNG TIN SẢN PHẨM & TÍNH NĂNG -->
+            <div x-show="tabHienTai === 'thong_tin'" class="space-y-6 text-xs sm:text-sm text-gray-300 leading-relaxed">
+                <div>
+                    <h3 class="text-base sm:text-lg font-bold text-white mb-2 flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center text-xs">1</span>
+                        <span>Giới Thiệu Sản Phẩm</span>
+                    </h3>
+                    <p>
+                        Sản phẩm <strong><?= htmlspecialchars($product['name']) ?></strong> là giải pháp kết nối AI thế hệ mới được cấu hình và phân phối độc quyền bởi <strong><?= SHOP_NAME ?></strong>, giúp lập trình viên và người dùng khai thác tối đa sức mạnh của các mô hình AI tiên tiến mà không cần phải chi trả mức phí thuê bao hàng tháng đắt đỏ.
+                    </p>
+                    <p class="mt-2">
+                        Sau khi kích hoạt thành công, bạn có thể gọi API trực tiếp từ công cụ lập trình yêu thích (như Cursor IDE, VS Code, Next.js, Python hoặc Bot tự động) để thực hiện các tác vụ sinh mã nguồn, tối ưu hóa thuật toán, giải thích code và xử lý logic phức tạp.
+                    </p>
+                </div>
+
+                <div>
+                    <h3 class="text-base sm:text-lg font-bold text-white mb-2 flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center text-xs">2</span>
+                        <span>Tính Năng Nổi Bật</span>
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                        <div class="p-4 rounded-2xl bg-gray-900/60 border border-gray-800">
+                            <h4 class="font-bold text-white text-xs mb-1 flex items-center gap-1.5 text-blue-400">
+                                <i class="fas fa-code"></i> Hỗ trợ lập trình toàn diện
+                            </h4>
+                            <p class="text-xs text-gray-400">Viết mã nguồn từ yêu cầu ngôn ngữ tự nhiên tiếng Việt và tiếng Anh. Tự động phát hiện lỗi cú pháp, gợi ý refactor code và nâng cao cấu trúc dự án.</p>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-gray-900/60 border border-gray-800">
+                            <h4 class="font-bold text-white text-xs mb-1 flex items-center gap-1.5 text-emerald-400">
+                                <i class="fas fa-layer-group"></i> Linh hoạt lựa chọn Model
+                            </h4>
+                            <p class="text-xs text-gray-400">Truy cập mượt mà vào các mô hình hàng đầu hiện nay như Claude 3.5 Sonnet, GPT-4o, DeepSeek R1 & V3, Gemini 1.5 Pro với độ trễ thấp tối ưu về máy chủ Việt Nam.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-base sm:text-lg font-bold text-white mb-2 flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center text-xs">3</span>
+                        <span>Hình Thức Kích Hoạt & Sử Dụng</span>
+                    </h3>
+                    <ol class="list-decimal pl-5 space-y-1.5 text-xs sm:text-sm text-gray-300">
+                        <li>Sau khi chuyển khoản VietQR thành công, hệ thống sẽ cấp ngay cho bạn mã <strong>API Key</strong> hoặc thông tin tài khoản trên màn hình và gửi qua Email.</li>
+                        <li>Dán thông tin API Key vào mục Cài đặt (Settings) của Cursor IDE hoặc ứng dụng lập trình của bạn.</li>
+                        <li>Kiểm tra trạng thái kết nối và bắt đầu trải nghiệm hỗ trợ AI coding không giới hạn.</li>
+                    </ol>
+                </div>
+
+                <div>
+                    <h3 class="text-base sm:text-lg font-bold text-white mb-2 flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center text-xs">4</span>
+                        <span>Cơ Chế Tính Lượt & Thời Hạn Sử Dụng</span>
+                    </h3>
+                    <p class="text-xs sm:text-sm text-gray-300">
+                        Định mức của gói: <strong><?= htmlspecialchars($product['request_count'] ?? 'Theo gói tiêu chuẩn') ?></strong>, thời hạn sử dụng là <strong><?= (int)$product['duration_days'] ?> ngày</strong> kể từ thời điểm kích hoạt. Bạn có thể tra cứu số lượt sử dụng còn lại bất kỳ lúc nào tại mục <strong>Quản lý API › Kiểm tra usage</strong> trên thanh Menu.
+                    </p>
+                </div>
+
+                <div>
+                    <h3 class="text-base sm:text-lg font-bold text-white mb-2 flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center text-xs">5</span>
+                        <span>Sản Phẩm Phù Hợp Với Ai?</span>
+                    </h3>
+                    <p class="text-xs sm:text-sm text-gray-300">
+                        Gói sản phẩm đặc biệt phù hợp cho các lập trình viên Full-stack, Frontend, Backend, sinh viên ngành Công nghệ Thông tin, các team phát triển phần mềm và các nhà sáng tạo nội dung muốn đẩy nhanh tiến độ hoàn thiện dự án với chi phí tiết kiệm nhất.
+                    </p>
+                </div>
+            </div>
+
+            <!-- NỘI DUNG TAB 2: CHÍNH SÁCH BẢO HÀNH -->
+            <div x-show="tabHienTai === 'bao_hanh'" class="space-y-6 text-xs sm:text-sm text-gray-300 leading-relaxed" style="display: none;">
+                
+                <!-- Nhóm Được bảo hành -->
+                <div class="p-5 rounded-2xl bg-emerald-950/30 border border-emerald-800/60">
+                    <h3 class="text-sm sm:text-base font-bold text-emerald-400 mb-3 flex items-center gap-2">
+                        <i class="fas fa-circle-check text-emerald-400"></i>
+                        <span>Phạm Vi Được Bảo Hành & Đổi Mới</span>
+                    </h3>
+                    <ul class="space-y-2 text-xs sm:text-sm text-gray-300">
+                        <li class="flex items-start gap-2">
+                            <span class="text-emerald-400 font-bold">•</span>
+                            <span>Mã Key lỗi ngay từ đầu khi kích hoạt sẽ được đổi mã mới hoặc hoàn tiền ngay 100%.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-emerald-400 font-bold">•</span>
+                            <span>Giao nhầm loại gói, ngân hàng trừ tiền 2 lần hoặc lỗi nghẽn đơn: Shop hỗ trợ xử lý tức thời 24/7.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-emerald-400 font-bold">•</span>
+                            <span>Đổi ý trong 24 giờ đầu tiên nếu chưa xem mã và chưa phát sinh request sử dụng.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-emerald-400 font-bold">•</span>
+                            <span>Bảo hành xuyên suốt thời hạn sử dụng <strong><?= (int)$product['duration_days'] ?> ngày</strong> đối với các lỗi kỹ thuật từ hệ thống nhà cung cấp.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Nhóm Từ chối bảo hành -->
+                <div class="p-5 rounded-2xl bg-rose-950/30 border border-rose-800/60">
+                    <h3 class="text-sm sm:text-base font-bold text-rose-400 mb-3 flex items-center gap-2">
+                        <i class="fas fa-triangle-exclamation text-rose-400"></i>
+                        <span>Trường Hợp Từ Chối Bảo Hành</span>
+                    </h3>
+                    <ul class="space-y-2 text-xs sm:text-sm text-gray-300">
+                        <li class="flex items-start gap-2">
+                            <span class="text-rose-400 font-bold">•</span>
+                            <span>Mã Key đã xem và đã kích hoạt tiêu hao lượt request thì không hỗ trợ hoàn tiền vì lý do cá nhân.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-rose-400 font-bold">•</span>
+                            <span>Mã bị khóa do người dùng chia sẻ công khai lên mạng xã hội, spam bot hoặc vi phạm điều khoản nhà cung cấp AI.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-rose-400 font-bold">•</span>
+                            <span>Các đơn hàng áp dụng mã khuyến mãi giảm sâu trên 50% hoặc đơn hàng tặng 0đ.</span>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+
+            <!-- NỘI DUNG TAB 3: CÂU HỎI THƯỜNG GẶP (FAQ) -->
+            <div x-show="tabHienTai === 'faq'" class="space-y-3" style="display: none;" x-data="{ faqMo: null }">
+                
+                <div class="border border-gray-800 rounded-2xl overflow-hidden bg-gray-900/60">
+                    <button @click="faqMo = (faqMo === 1 ? null : 1)" class="w-full p-4 text-left font-bold text-xs sm:text-sm text-white flex items-center justify-between">
+                        <span>Sau khi quét mã VietQR bao lâu thì nhận được Key?</span>
+                        <i class="fas fa-chevron-down text-xs transition-transform" :class="faqMo === 1 ? 'rotate-180' : ''"></i>
+                    </button>
+                    <div x-show="faqMo === 1" class="px-4 pb-4 text-xs text-gray-400 border-t border-gray-800 pt-3" style="display: none;">
+                        Hệ thống hoạt động tự động 24/7 qua cổng VietQR ACB. Ngay khi ngân hàng báo nhận tiền thành công (thường chỉ mất 1-3 giây), màn hình sẽ tự động hiển thị Key và đồng thời gửi thông tin vào Email bạn đã nhập.
+                    </div>
+                </div>
+
+                <div class="border border-gray-800 rounded-2xl overflow-hidden bg-gray-900/60">
+                    <button @click="faqMo = (faqMo === 2 ? null : 2)" class="w-full p-4 text-left font-bold text-xs sm:text-sm text-white flex items-center justify-between">
+                        <span>Làm sao để kiểm tra số request còn lại và hạn dùng?</span>
+                        <i class="fas fa-chevron-down text-xs transition-transform" :class="faqMo === 2 ? 'rotate-180' : ''"></i>
+                    </button>
+                    <div x-show="faqMo === 2" class="px-4 pb-4 text-xs text-gray-400 border-t border-gray-800 pt-3" style="display: none;">
+                        Bạn chỉ cần bấm vào nút <strong>"Tra Cứu Key"</strong> trên thanh Header trên cùng hoặc truy cập menu <strong>Quản lý API › Kiểm tra usage</strong>, dán mã Key vào để xem chi tiết số lượt request đã dùng và ngày hết hạn.
+                    </div>
+                </div>
+
+                <div class="border border-gray-800 rounded-2xl overflow-hidden bg-gray-900/60">
+                    <button @click="faqMo = (faqMo === 3 ? null : 3)" class="w-full p-4 text-left font-bold text-xs sm:text-sm text-white flex items-center justify-between">
+                        <span>Tôi có thể nâng cấp thành đại lý để có giá sỉ không?</span>
+                        <i class="fas fa-chevron-down text-xs transition-transform" :class="faqMo === 3 ? 'rotate-180' : ''"></i>
+                    </button>
+                    <div x-show="faqMo === 3" class="px-4 pb-4 text-xs text-gray-400 border-t border-gray-800 pt-3" style="display: none;">
+                        Có! Nếu bạn là chủ website, chủ bot hoặc lập trình viên muốn tích hợp Buyer API bán lại cho khách, hãy liên hệ ngay Admin qua Zalo/Telegram để được cấp quyền Đại lý và nhận chiết khấu tốt nhất.
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- 4. KHÁM PHÁ CÁC SẢN PHẨM KHÁC (RELATED PRODUCTS) -->
+        <?php if (!empty($relatedProducts)): ?>
+            <div class="mb-12">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                            <i class="fas fa-cubes text-blue-500"></i>
+                            <span>Sản Phẩm Khác Bạn Có Thể Thích</span>
+                        </h2>
+                        <p class="text-xs text-gray-400 mt-0.5">Khám phá thêm các gói API AI cao cấp khác tại <?= SHOP_NAME ?></p>
+                    </div>
+                    <a href="/san-pham" class="text-xs font-bold text-blue-400 hover:text-blue-300 transition flex items-center gap-1">
+                        <span>Xem Tất Cả</span>
+                        <i class="fas fa-arrow-right text-[10px]"></i>
+                    </a>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <?php foreach ($relatedProducts as $rp): ?>
+                        <div class="gradient-border rounded-2xl p-5 flex flex-col justify-between hover:border-blue-500/50 transition group shadow-lg">
+                            <div>
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                        <?= htmlspecialchars($rp['category_name']) ?>
+                                    </span>
+                                    <span class="text-xs font-semibold text-gray-400">
+                                        <?= htmlspecialchars($rp['request_count'] ?? '30 Ngày') ?>
+                                    </span>
+                                </div>
+
+                                <a href="/san-pham/<?= htmlspecialchars($rp['slug']) ?>" class="block font-bold text-white group-hover:text-blue-400 transition text-sm mb-1.5">
+                                    <?= htmlspecialchars($rp['name']) ?>
+                                </a>
+
+                                <p class="text-xs text-gray-400 line-clamp-2 mb-4">
+                                    <?= htmlspecialchars($rp['description'] ?? 'Tốc độ cao, hỗ trợ All model, bảo hành trong thời gian sử dụng.') ?>
+                                </p>
+                            </div>
+
+                            <div class="pt-3 border-t border-gray-800 flex items-center justify-between">
+                                <div>
+                                    <span class="text-xs text-gray-400 block text-[10px]">Giá bán:</span>
+                                    <span class="text-base font-black text-emerald-400 font-mono">
+                                        <?= number_format($rp['price'], 0, ',', '.') ?>đ
+                                    </span>
+                                </div>
+                                <a href="/san-pham/<?= htmlspecialchars($rp['slug']) ?>" class="px-3.5 py-1.5 rounded-xl bg-gray-800 hover:bg-blue-600 text-gray-200 hover:text-white text-xs font-bold transition flex items-center gap-1">
+                                    <span>Xem Chi Tiết</span>
+                                    <i class="fas fa-arrow-right text-[10px]"></i>
+                                </a>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endif; ?>
+
+    </main>
+
+    <!-- POPUP THANH TOÁN VIETQR ACB CHUẨN MẪU (MODAL) -->
+    <div x-show="moPopupThanhToan" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" style="display: none;" x-transition>
+        <div class="bg-[#111827] border border-gray-800 rounded-3xl max-w-md w-full p-5 sm:p-6 relative shadow-2xl overflow-y-auto max-h-[92vh]">
+            
+            <button @click="dongThanhToan()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+
+            <!-- BƯỚC 1: ĐIỀN EMAIL & XÁC NHẬN ĐẶT HÀNG -->
+            <div x-show="!daTaoDon">
+                <div class="text-center mb-5">
+                    <span class="text-xs font-bold text-blue-400 uppercase tracking-wider">Xác Nhận Đơn Hàng</span>
+                    <h3 class="text-lg font-bold text-white mt-1" x-text="tenGoiMua"></h3>
+                    <div class="text-xl font-black text-amber-400 font-mono mt-1" x-text="dinhDangTien(giaGoiMua)"></div>
+                </div>
+
+                <div x-show="thongBaoLoiPopup" class="p-3 rounded-xl mb-4 bg-red-950/70 border border-red-800 text-red-300 text-xs font-semibold" x-text="thongBaoLoiPopup"></div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">Email nhận mã Key / Tài khoản:</label>
+                        <input type="email" x-model="emailKhachHang" placeholder="emailcuaban@gmail.com" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-1">Mã giảm giá (nếu có):</label>
+                        <input type="text" x-model="maGiamGia" placeholder="Nhập mã ưu đãi..." class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3.5 py-2.5 text-xs text-white uppercase focus:outline-none focus:border-blue-500 font-mono">
+                    </div>
+
+                    <button @click="taoDonHang()" :disabled="dangTaoDon" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition duration-200 shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2">
+                        <span x-show="dangTaoDon"><i class="fas fa-circle-notch fa-spin"></i> Đang khởi tạo đơn hàng...</span>
+                        <span x-show="!dangTaoDon"><i class="fas fa-qrcode mr-1"></i> Tạo Mã VietQR ACB Thanh Toán</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- BƯỚC 2: QUÉT MÃ VIETQR ĐỂ CHUYỂN KHOẢN (CHUẨN THEO ẢNH ACB) -->
+            <div x-show="daTaoDon && !daThanhToan" class="space-y-3">
+                
+                <!-- Khung Thẻ VietQR nền trắng sang trọng chuẩn mẫu ảnh -->
+                <div class="bg-white text-gray-900 rounded-2xl p-4 sm:p-5 shadow-xl border border-gray-100">
+                    
+                    <!-- Dòng tiêu đề Ngân hàng ACB + Huy hiệu Tự động 24/7 -->
+                    <div class="flex items-center justify-between pb-3 mb-3 border-b border-gray-100">
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-xl font-black text-[#005ba6] tracking-tight">ACB</span>
+                            <span class="text-xs font-semibold text-gray-700"><?= defined('BANK_FULL_NAME') ? BANK_FULL_NAME : 'Ngân hàng TMCP Á Châu' ?></span>
+                        </div>
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
+                            <i class="fas fa-bolt text-[10px]"></i> Tự động 24/7
+                        </span>
+                    </div>
+
+                    <!-- Khung ảnh QR code VietQR -->
+                    <div class="border border-gray-200 rounded-2xl p-4 bg-white flex flex-col items-center justify-center mb-3.5 shadow-sm">
+                        <div class="flex items-center gap-1 mb-2 font-black text-sm tracking-wider">
+                            <span class="text-rose-600">VIET</span><span class="text-blue-600">QR</span>
+                        </div>
+                        <img :src="linkVietQr" alt="Mã VietQR" class="w-56 h-auto object-contain mx-auto rounded-lg">
+                        <div class="flex items-center justify-center gap-2 text-[11px] text-gray-500 font-semibold mt-2.5">
+                            <span class="text-blue-600 font-bold">napas<span class="text-red-500 font-normal">247</span></span>
+                            <span>|</span>
+                            <span class="text-[#005ba6] font-bold">ACB</span>
+                        </div>
+                        <p class="text-[11px] text-gray-500 mt-1">Quét mã VietQR để chuyển tiền nhanh</p>
+                    </div>
+
+                    <!-- Thông tin tài khoản & nội dung chuyển khoản -->
+                    <div class="space-y-2.5 text-left">
+                        
+                        <!-- TÊN SẢN PHẨM -->
+                        <div class="border border-blue-200 rounded-xl px-3.5 py-2.5 bg-blue-50/50">
+                            <span class="block text-[10px] font-bold text-blue-600 uppercase tracking-wider">TÊN SẢN PHẨM</span>
+                            <span class="block text-sm font-black text-gray-900 mt-0.5" x-text="tenGoiMua"></span>
+                        </div>
+
+                        <!-- CHỦ TÀI KHOẢN -->
+                        <div class="border border-gray-200 rounded-xl px-3.5 py-2.5 bg-gray-50/50">
+                            <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">CHỦ TÀI KHOẢN</span>
+                            <span class="block text-sm font-black text-gray-900 mt-0.5"><?= BANK_ACCOUNT_NAME ?></span>
+                        </div>
+
+                        <!-- SỐ TÀI KHOẢN + NÚT SAO CHÉP -->
+                        <div class="border border-gray-200 rounded-xl px-3.5 py-2.5 bg-gray-50/50 flex items-center justify-between">
+                            <div>
+                                <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">SỐ TÀI KHOẢN</span>
+                                <span class="block text-base font-black text-[#0284c7] mt-0.5 font-mono"><?= BANK_ACCOUNT_NO ?></span>
+                            </div>
+                            <button @click="saoChep('<?= BANK_ACCOUNT_NO ?>')" class="px-3 py-1.5 rounded-lg bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                                <i class="fas fa-copy"></i> Sao chép
+                            </button>
+                        </div>
+
+                        <!-- NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC) - VIỀN NÉT ĐỨT XANH DƯƠNG -->
+                        <div class="border-2 border-dashed border-[#0284c7] bg-[#f0f9ff] rounded-xl px-3.5 py-2.5 flex items-center justify-between">
+                            <div>
+                                <span class="block text-[10px] font-extrabold text-rose-500 uppercase tracking-wider">NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC)</span>
+                                <span class="block text-base font-black text-rose-600 mt-0.5 font-mono tracking-wide" x-text="maDonHang"></span>
+                            </div>
+                            <button @click="saoChep(maDonHang)" class="px-3 py-1.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                                <i class="fas fa-copy"></i> Sao chép
+                            </button>
+                        </div>
+
+                        <!-- SỐ TIỀN THANH TOÁN -->
+                        <div class="flex justify-between items-center px-1 pt-1 text-xs">
+                            <span class="text-gray-500 font-semibold">Số tiền thanh toán:</span>
+                            <span class="text-base font-black text-emerald-600 font-mono" x-text="dinhDangTien(giaGoiMua)"></span>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- DÒNG TRẠNG THÁI TỰ ĐỘNG KIỂM TRA SAU 5S & NÚT KIỂM TRA NGAY -->
+                <div class="pt-1 space-y-2">
+                    <div class="flex items-center justify-center gap-2 text-xs text-blue-400 font-semibold bg-gray-900/90 border border-gray-800 rounded-xl py-2 px-3">
+                        <i class="fas fa-circle-notch fa-spin text-blue-400"></i>
+                        <span>Tự động kiểm tra sau: <strong class="text-amber-400 font-mono text-sm" x-text="demNguoc5s + 's'">5s</strong></span>
+                    </div>
+
+                    <!-- NÚT KIỂM TRA NGAY -->
+                    <button @click="kiemTraThanhToanNgay(false)" :disabled="dangKiemTraNgay" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-bold text-xs transition shadow-lg shadow-green-600/30 flex items-center justify-center gap-2">
+                        <i class="fas fa-magnifying-glass" :class="dangKiemTraNgay ? 'fa-spin' : ''"></i>
+                        <span x-text="dangKiemTraNgay ? 'Đang kiểm tra với ngân hàng...' : 'Kiểm Tra Ngay'">Kiểm Tra Ngay</span>
+                    </button>
+                </div>
+
+                <!-- Nút test thử nghiệm dành cho dev -->
+                <button @click="giaLapThanhToan()" class="w-full py-1.5 rounded-lg border border-dashed border-gray-700 text-[10px] text-gray-500 hover:text-white transition">
+                    (Dành cho Lập trình viên: Bấm để test nhận Key thử nghiệm)
+                </button>
+            </div>
+
+            <!-- BƯỚC 3: ĐÃ NHẬN TIỀN -> TRẢ VỀ KEY NGAY LẬP TỨC -->
+            <div x-show="daThanhToan" class="text-center py-4">
+                <div class="w-14 h-14 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+                    <i class="fas fa-check"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-1">Thanh Toán Thành Công!</h3>
+                <p class="text-xs text-gray-400 mb-4">Mã đơn hàng: <span class="font-mono text-white" x-text="maDonHang"></span></p>
+
+                <div class="bg-gray-900 border border-green-500/40 rounded-xl p-4 text-left mb-4">
+                    <p class="text-[11px] font-bold text-green-400 uppercase mb-2">Thông tin API Key / Tài khoản của bạn:</p>
+                    <textarea readonly class="w-full h-24 bg-gray-950 border border-gray-700 rounded-lg p-2.5 font-mono text-xs text-white focus:outline-none resize-none" x-text="thongTinKeyNhanDuoc"></textarea>
+                    <button @click="saoChep(thongTinKeyNhanDuoc)" class="mt-2.5 w-full py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5">
+                        <i class="fas fa-copy"></i> Sao chép Key vào bộ nhớ tạm
+                    </button>
+                </div>
+
+                <button @click="dongThanhToan()" class="w-full py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold transition">
+                    Đóng cửa sổ
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- FOOTER CHÂN TRANG ĐỒNG BỘ TOÀN BỘ WEBSITE -->
+    <?php require_once __DIR__ . '/includes/footer.php'; ?>
+
+    <!-- JAVASCRIPT XỬ LÝ THANH TOÁN & TIỆN ÍCH TRÊN TRANG -->
+    <script>
+    function chiTietSanPhamApp() {
+        return {
+            idGoiMua: <?= (int)$product['id'] ?>,
+            tenGoiMua: '<?= addslashes($product['name']) ?>',
+            giaGoiMua: <?= (float)$product['price'] ?>,
+            emailKhachHang: '<?= !empty($userHienTai['email']) ? addslashes($userHienTai['email']) : '' ?>',
+            maGiamGia: '',
+
+            moPopupThanhToan: false,
+            dangTaoDon: false,
+            daTaoDon: false,
+            daThanhToan: false,
+            dangXuLyVi: false,
+
+            maDonHang: '',
+            linkVietQr: '',
+            thongBaoLoiPopup: '',
+            thongTinKeyNhanDuoc: '',
+
+            demNguoc5s: 5,
+            dangKiemTraNgay: false,
+            timerDemNguoc: null,
+
+            moThanhToan(id, ten, gia) {
+                this.idGoiMua = id;
+                this.tenGoiMua = ten;
+                this.giaGoiMua = gia;
+                this.thongBaoLoiPopup = '';
+                this.daTaoDon = false;
+                this.daThanhToan = false;
+                this.moPopupThanhToan = true;
+            },
+
+            dongThanhToan() {
+                this.moPopupThanhToan = false;
+                if (this.timerDemNguoc) {
+                    clearInterval(this.timerDemNguoc);
+                    this.timerDemNguoc = null;
+                }
+            },
+
+            saoChep(vanBan) {
+                if (!vanBan) return;
+                navigator.clipboard.writeText(vanBan).then(() => {
+                    alert('Đã sao chép thành công!');
+                }).catch(() => {
+                    const temp = document.createElement('textarea');
+                    temp.value = vanBan;
+                    document.body.appendChild(temp);
+                    temp.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(temp);
+                    alert('Đã sao chép thành công!');
+                });
+            },
+
+            dinhDangTien(soTien) {
+                return new Intl.NumberFormat('vi-VN').format(soTien) + ' VNĐ';
+            },
+
+            taoDonHang() {
+                if (!this.emailKhachHang || !this.emailKhachHang.includes('@')) {
+                    this.thongBaoLoiPopup = 'Vui lòng nhập địa chỉ Email hợp lệ để nhận Key!';
+                    return;
+                }
+                this.thongBaoLoiPopup = '';
+                this.dangTaoDon = true;
+
+                const formData = new FormData();
+                formData.append('action', 'tao_don_hang');
+                formData.append('product_id', this.idGoiMua);
+                formData.append('email', this.emailKhachHang);
+                formData.append('coupon_code', this.maGiamGia);
+
+                fetch('/backend/api.php', { method: 'POST', body: formData })
+                    .then(r => r.json())
+                    .then(res => {
+                        this.dangTaoDon = false;
+                        if (res.thanh_cong) {
+                            this.daTaoDon = true;
+                            this.maDonHang = res.ma_don_hang;
+                            this.giaGoiMua = res.so_tien;
+                            this.linkVietQr = res.link_vietqr;
+                            this.batDauDemNguocVaKiemTra();
+                        } else {
+                            this.thongBaoLoiPopup = res.thong_bao || 'Không thể tạo đơn hàng, vui lòng thử lại!';
+                        }
+                    })
+                    .catch(() => {
+                        this.dangTaoDon = false;
+                        this.thongBaoLoiPopup = 'Lỗi kết nối máy chủ, vui lòng thử lại sau!';
+                    });
+            },
+
+            batDauDemNguocVaKiemTra() {
+                if (this.timerDemNguoc) clearInterval(this.timerDemNguoc);
+                this.demNguoc5s = 5;
+
+                this.timerDemNguoc = setInterval(() => {
+                    if (this.daThanhToan) {
+                        clearInterval(this.timerDemNguoc);
+                        return;
+                    }
+                    this.demNguoc5s--;
+                    if (this.demNguoc5s <= 0) {
+                        this.demNguoc5s = 5;
+                        this.kiemTraThanhToanNgay(true);
+                    }
+                }, 1000);
+            },
+
+            kiemTraThanhToanNgay(laTuDong = false) {
+                if (!this.maDonHang || this.daThanhToan) return;
+                if (!laTuDong) this.dangKiemTraNgay = true;
+
+                fetch('/backend/api.php?action=kiem_tra_trang_thai_don&order_code=' + encodeURIComponent(this.maDonHang))
+                    .then(r => r.json())
+                    .then(res => {
+                        this.dangKiemTraNgay = false;
+                        if (res.thanh_cong && res.trang_thai === 'COMPLETED') {
+                            this.daThanhToan = true;
+                            this.thongTinKeyNhanDuoc = res.account_data || 'Key đã kích hoạt thành công!';
+                            if (this.timerDemNguoc) clearInterval(this.timerDemNguoc);
+                        } else if (!laTuDong) {
+                            alert('Hệ thống chưa nhận được tiền cho mã ' + this.maDonHang + '. Vui lòng đợi trong giây lát!');
+                        }
+                    })
+                    .catch(() => {
+                        this.dangKiemTraNgay = false;
+                    });
+            },
+
+            giaLapThanhToan() {
+                if (!this.maDonHang) return;
+                const fd = new FormData();
+                fd.append('action', 'test_chat_proxy');
+                fd.append('order_code', this.maDonHang);
+
+                fetch('/backend/api.php', { method: 'POST', body: fd })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.thanh_cong) {
+                            this.kiemTraThanhToanNgay(false);
+                        } else {
+                            alert(data.thong_bao || 'Không thể mô phỏng');
+                        }
+                    });
+            },
+
+            muaBangVi(productId) {
+                if (!confirm('Bạn có chắc chắn muốn dùng số dư ví để mua sản phẩm này ngay không?')) return;
+                this.dangXuLyVi = true;
+
+                const fd = new FormData();
+                fd.append('action', 'mua_bang_so_du');
+                fd.append('product_id', productId);
+
+                fetch('/backend/api.php', { method: 'POST', body: fd })
+                    .then(r => r.json())
+                    .then(res => {
+                        this.dangXuLyVi = false;
+                        if (res.thanh_cong) {
+                            alert('Mua hàng thành công! Key đã được thêm vào đơn hàng của bạn.');
+                            window.location.href = '/user/don-hang';
+                        } else {
+                            alert('Lỗi: ' + (res.thong_bao || 'Số dư không đủ!'));
+                        }
+                    })
+                    .catch(() => {
+                        this.dangXuLyVi = false;
+                        alert('Lỗi kết nối máy chủ!');
+                    });
+            }
+        }
+    }
+    </script>
+</body>
+</html>

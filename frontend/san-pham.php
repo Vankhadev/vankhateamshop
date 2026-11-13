@@ -174,8 +174,10 @@ foreach ($products as $p) {
                             </template>
                         </div>
 
-                        <!-- Tên gói sản phẩm -->
-                        <h3 class="text-sm font-bold text-white group-hover:text-blue-400 transition leading-snug mb-1" x-text="sp.name"></h3>
+                        <!-- Tên gói sản phẩm (Liên kết tới trang chi tiết) -->
+                        <a :href="'/san-pham/' + sp.slug" class="block">
+                            <h3 class="text-sm font-bold text-white group-hover:text-blue-400 transition leading-snug mb-1" x-text="sp.name"></h3>
+                        </a>
                         <div class="text-[11px] text-gray-500 font-mono mb-3" x-text="'SKU: ' + sp.sku"></div>
 
                         <!-- Tính năng nổi bật -->
@@ -211,9 +213,14 @@ foreach ($products as $p) {
                             </span>
                         </div>
 
-                        <button @click="moModalThanhToan(sp)" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition duration-200 shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 group-hover:scale-[1.02]">
-                            <i class="fas fa-cart-shopping"></i> Mua Ngay
-                        </button>
+                        <div class="grid grid-cols-2 gap-2">
+                            <a :href="'/san-pham/' + sp.slug" class="py-2.5 rounded-xl bg-gray-850 hover:bg-gray-700 bg-gray-800 text-gray-200 font-bold text-xs transition flex items-center justify-center gap-1.5 border border-gray-700">
+                                <i class="fas fa-eye text-blue-400"></i> Chi Tiết
+                            </a>
+                            <button @click="moModalThanhToan(sp)" class="py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition duration-200 shadow-md shadow-blue-600/30 flex items-center justify-center gap-1.5">
+                                <i class="fas fa-bolt"></i> Mua Ngay
+                            </button>
+                        </div>
                     </div>
 
                 </div>

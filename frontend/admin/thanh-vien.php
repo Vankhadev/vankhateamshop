@@ -47,46 +47,35 @@ $users = $stmt->fetchAll();
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0B0F19; color: #E5E7EB; }
     </style>
 </head>
-<body x-data="ungDungThanhVien()" class="min-h-screen flex flex-col antialiased">
+<body x-data="ungDungThanhVien()" class="min-h-screen bg-[#0B0F19] text-[#E5E7EB] antialiased">
 
-    <!-- THANH MENU QUẢN TRỊ VIÊN -->
-    <header class="bg-[#0F172A] border-b border-gray-800 sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="w-9 h-9 rounded-xl bg-amber-600 flex items-center justify-center text-white font-bold">
-                    <i class="fas fa-users-gear"></i>
+    <div class="flex min-h-screen">
+        <!-- SIDEBAR MENU QUẢN TRỊ BÊN TRÁI -->
+        <?php require_once __DIR__ . '/sidebar.php'; ?>
+
+        <!-- KHU VỰC NỘI DUNG CHÍNH BÊN PHẢI -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+            
+            <!-- THANH TOPBAR QUẢN TRỊ -->
+            <header class="h-16 bg-[#0F172A] border-b border-gray-800 px-6 flex items-center justify-between shrink-0 sticky top-0 z-30">
+                <div class="flex items-center gap-3">
+                    <h1 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fas fa-users text-amber-500"></i>
+                        <span>Quản Lý Thành Viên & Người Dùng</span>
+                    </h1>
                 </div>
-                <div>
-                    <span class="text-base font-bold text-white">VanKha<span class="text-amber-500">Admin</span></span>
-                    <span class="text-[10px] text-gray-400 block font-semibold uppercase">Quản Lý Thành Viên</span>
+                <div class="flex items-center gap-3">
+                    <a href="/" target="_blank" class="px-3.5 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-xs font-semibold text-gray-200 transition flex items-center gap-1.5 border border-gray-700">
+                        <i class="fas fa-globe text-blue-400"></i> Xem Website Shop
+                    </a>
+                    <a href="/logout" class="px-3.5 py-1.5 rounded-xl bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/20 text-xs font-semibold transition flex items-center gap-1.5">
+                        <i class="fas fa-right-from-bracket"></i> Thoát
+                    </a>
                 </div>
-            </div>
+            </header>
 
-            <!-- Menu quản trị hoàn chỉnh -->
-            <nav class="hidden xl:flex items-center space-x-3 text-xs font-semibold">
-                <a href="/admin/dashboard" class="text-gray-300 hover:text-white"><i class="fas fa-chart-pie mr-1"></i> Tổng Quan</a>
-                <a href="/admin/thong-ke" class="text-gray-300 hover:text-white"><i class="fas fa-chart-line mr-1"></i> Báo Cáo</a>
-                <a href="/admin/don-hang" class="text-gray-300 hover:text-white"><i class="fas fa-receipt mr-1"></i> Đơn Hàng</a>
-                <a href="/admin/san-pham" class="text-gray-300 hover:text-white"><i class="fas fa-cubes mr-1"></i> Sản Phẩm</a>
-                <a href="/admin/dai-ly" class="text-gray-300 hover:text-white"><i class="fas fa-handshake mr-1"></i> Đại Lý</a>
-                <a href="/admin/api-logs" class="text-gray-300 hover:text-white"><i class="fas fa-bolt mr-1"></i> Logs API</a>
-                <a href="/admin/danh-muc" class="text-gray-300 hover:text-white"><i class="fas fa-folder-tree mr-1"></i> Danh Mục</a>
-                <a href="/admin/thanh-vien" class="text-amber-400 font-bold border-b-2 border-amber-500 pb-1"><i class="fas fa-users mr-1"></i> Thành Viên</a>
-                <a href="/admin/ngan-hang" class="text-gray-300 hover:text-white"><i class="fas fa-building-columns mr-1"></i> Ngân Hàng</a>
-                <a href="/admin/nha-cung-cap" class="text-gray-300 hover:text-white"><i class="fas fa-network-wired mr-1"></i> Nhà Cung Cấp</a>
-                <a href="/admin/ma-giam-gia" class="text-gray-300 hover:text-white"><i class="fas fa-ticket mr-1"></i> Mã Giảm Giá</a>
-                <a href="/admin/ho-tro" class="text-gray-300 hover:text-white"><i class="fas fa-headset mr-1"></i> Hỗ Trợ</a>
-                <a href="/admin/thong-bao" class="text-gray-300 hover:text-white"><i class="fas fa-bullhorn mr-1"></i> Thông Báo</a>
-                <a href="/admin/nhat-ky" class="text-gray-300 hover:text-white"><i class="fas fa-shield-virus mr-1"></i> Nhật Ký</a>
-                <a href="/admin/cai-dat" class="text-gray-300 hover:text-white"><i class="fas fa-gear mr-1"></i> Cài Đặt</a>
-                <a href="/logout" class="text-red-400 hover:text-red-300 ml-2">
-                    <i class="fas fa-right-from-bracket mr-1"></i> Đăng Xuất
-                </a>
-            </nav>
-        </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
+            <!-- NỘI DUNG QUẢN TRỊ CHÍNH -->
+            <main class="p-6 lg:p-8 flex-1 max-w-7xl w-full mx-auto">
         
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div>
@@ -237,12 +226,13 @@ $users = $stmt->fetchAll();
             </div>
         </div>
 
-    </main>
+                </main>
 
-    <footer class="border-t border-gray-800/80 bg-[#0F172A] py-6 text-center text-xs text-gray-500">
-        &copy; <?= date('Y') ?> <?= SHOP_NAME ?> - Trang Quản Trị Hệ Thống
-    </footer>
-
+            <footer class="bg-gray-950 border-t border-gray-900 py-4 text-center text-xs text-gray-500 mt-auto">
+                &copy; 2026 <?= SHOP_NAME ?> - Trang Quản Trị Hệ Thống Tự Động
+            </footer>
+        </div>
+    </div>
     <script>
         function ungDungThanhVien() {
             return {

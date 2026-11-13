@@ -113,6 +113,7 @@ $routes = [
     '/admin/ngan-hang'       => __DIR__ . '/frontend/admin/ngan-hang.php',
     '/admin/nha-cung-cap'    => __DIR__ . '/frontend/admin/nha-cung-cap.php',
     '/admin/ma-giam-gia'     => __DIR__ . '/frontend/admin/ma-giam-gia.php',
+    '/chi-tiet-san-pham'     => __DIR__ . '/frontend/chi-tiet-san-pham.php',
     '/admin/ho-tro'          => __DIR__ . '/frontend/admin/ho-tro.php',
     '/admin/thong-bao'       => __DIR__ . '/frontend/admin/thong-bao.php',
     '/admin/nhat-ky'         => __DIR__ . '/frontend/admin/nhat-ky.php',
@@ -123,7 +124,19 @@ if (isset($routes[$uri]) && file_exists($routes[$uri])) {
     exit;
 }
 
-// 3. NẾU TRUY CẬP FILE TRỰC TIẾP TRONG BACKEND HOẶC API (VÍ DỤ BACKEND/API.PHP HOẶC API/PARTNER/V1/...)
+// 3. ĐƯỜNG DẪN ĐỘNG CHI TIẾT SẢN PHẨM: /san-pham/{slug} HOẶC /san-pham/{category}/{slug}
+if (preg_match('#^/san-pham/([^/]+)(?:/([^/]+))?$#', $uri, $matches)) {
+    if (!empty($matches[2])) {
+        $_GET['category_slug'] = $matches[1];
+        $_GET['slug'] = $matches[2];
+    } else {
+        $_GET['slug'] = $matches[1];
+    }
+    require __DIR__ . '/frontend/chi-tiet-san-pham.php';
+    exit;
+}
+
+// 4. NẾU TRUY CẬP FILE TRỰC TIẾP TRONG BACKEND HOẶC API (VÍ DỤ BACKEND/API.PHP HOẶC API/PARTNER/V1/...)
 $directFile = __DIR__ . $uri;
 if (file_exists($directFile) && !is_dir($directFile)) {
     if (pathinfo($directFile, PATHINFO_EXTENSION) === 'php') {
