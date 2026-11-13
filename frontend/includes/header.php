@@ -158,29 +158,31 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                 </nav>
 
                 <!-- Khu vực Người dùng & Công cụ bên phải -->
-                <div class="flex items-center gap-2 xl:gap-3 shrink-0">
+                <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+                    <!-- Nút Tra Cứu Key: hiển thị từ tablet sm trở lên -->
                     <button @click="moPopupKiemTraKey = true" class="hidden sm:inline-flex px-3 py-1.5 rounded-xl border border-gray-700 bg-gray-800/80 text-xs font-semibold text-gray-200 hover:bg-gray-700 hover:text-white transition items-center gap-1.5 shadow-sm whitespace-nowrap">
                         <i class="fas fa-chart-line text-blue-400"></i>
                         <span>Tra Cứu Key</span>
                     </button>
 
                     <?php if ($daDangNhap): ?>
-                        <!-- Ví tiền thành viên -->
-                        <a href="/user/nap-tien" title="Bấm để nạp thêm tiền vào ví" class="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold text-xs transition flex items-center gap-1.5 whitespace-nowrap shadow-sm">
-                            <i class="fas fa-wallet text-emerald-400"></i>
-                            <span>Ví: <?= number_format($userHienTai['balance'] ?? 0, 0, ',', '.') ?>đ</span>
+                        <!-- Ví tiền thành viên: Luôn hiển thị gọn gàng trên cả Mobile và Desktop -->
+                        <a href="/user/nap-tien" title="Bấm để nạp thêm tiền vào ví" class="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold text-[11px] sm:text-xs transition flex items-center gap-1 whitespace-nowrap shadow-sm">
+                            <i class="fas fa-wallet text-emerald-400 text-xs"></i>
+                            <span class="hidden sm:inline">Ví: </span>
+                            <span><?= number_format($userHienTai['balance'] ?? 0, 0, ',', '.') ?>đ</span>
                         </a>
 
                         <?php if (!empty($userHienTai['role']) && $userHienTai['role'] === 'admin'): ?>
-                            <!-- Nút tắt Admin -->
-                            <a href="/admin/dashboard" class="text-amber-400 hover:text-amber-300 transition text-xs font-bold px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-1 whitespace-nowrap shadow-sm">
+                            <!-- Nút tắt Admin: Chỉ hiển thị trên Desktop lg -->
+                            <a href="/admin/dashboard" class="hidden lg:inline-flex text-amber-400 hover:text-amber-300 transition text-xs font-bold px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 items-center gap-1 whitespace-nowrap shadow-sm">
                                 <i class="fas fa-shield-halved text-amber-400"></i>
                                 <span>Admin</span>
                             </a>
                         <?php endif; ?>
 
-                        <!-- Thông tin cá nhân & Đăng xuất -->
-                        <div class="flex items-center gap-2 bg-gray-800/80 border border-gray-700 rounded-xl px-2.5 py-1 shadow-sm shrink-0">
+                        <!-- Thông tin cá nhân & Đăng xuất: Chỉ hiển thị trên Desktop lg -->
+                        <div class="hidden lg:flex items-center gap-2 bg-gray-800/80 border border-gray-700 rounded-xl px-2.5 py-1 shadow-sm shrink-0">
                             <?php if (!empty($userHienTai['avatar'])): ?>
                                 <img src="<?= htmlspecialchars($userHienTai['avatar']) ?>" class="w-6 h-6 rounded-full object-cover shrink-0">
                             <?php else: ?>
@@ -196,23 +198,23 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                             </a>
                         </div>
                     <?php else: ?>
-                        <!-- Chưa đăng nhập -> Nút đăng nhập Google -->
-                        <a href="/login" class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white transition flex items-center gap-1.5 shadow-md shadow-blue-600/30 whitespace-nowrap">
+                        <!-- Chưa đăng nhập -> Nút đăng nhập Google trên Desktop -->
+                        <a href="/login" class="hidden sm:inline-flex px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white transition items-center gap-1.5 shadow-md shadow-blue-600/30 whitespace-nowrap">
                             <i class="fab fa-google text-white text-xs"></i>
                             <span>Đăng Nhập</span>
                         </a>
                     <?php endif; ?>
 
-                    <!-- NÚT HAMBURGER MOBILE -->
-                    <button @click="moMenuMobile = !moMenuMobile" class="lg:hidden p-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 focus:outline-none transition border border-gray-800 shrink-0" aria-label="Menu">
-                        <i class="fas" :class="moMenuMobile ? 'fa-times' : 'fa-bars'"></i>
+                    <!-- NÚT HAMBURGER MOBILE (Hiển thị trên Mobile & Tablet < lg) -->
+                    <button @click="moMenuMobile = !moMenuMobile" class="lg:hidden p-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 focus:outline-none transition border border-gray-800 shrink-0 flex items-center justify-center w-9 h-9" aria-label="Menu">
+                        <i class="fas" :class="moMenuMobile ? 'fa-times text-base' : 'fa-bars text-base'"></i>
                     </button>
                 </div>
 
             </div>
         </div>
 
-        <!-- MENU MOBILE DRAWER (RESPONSIVE CHO ĐIỆN THOẠI) -->
+        <!-- MENU MOBILE DRAWER (RESPONSIVE CHUYÊN NGHIỆP CHO ĐIỆN THOẠI) -->
         <div x-show="moMenuMobile" 
              x-transition:enter="transition ease-out duration-200"
              x-transition:enter-start="opacity-0 -translate-y-2"
@@ -220,48 +222,101 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
              x-transition:leave="transition ease-in duration-150"
              x-transition:leave-start="opacity-100 translate-y-0"
              x-transition:leave-end="opacity-0 -translate-y-2"
-             class="lg:hidden bg-[#0F172A] border-b border-gray-800 px-4 py-4 space-y-3 shadow-2xl" style="display: none;">
+             class="lg:hidden bg-[#0F172A] border-b border-gray-800 px-4 py-4 space-y-3.5 shadow-2xl max-h-[85vh] overflow-y-auto" style="display: none;">
             
+            <?php if ($daDangNhap): ?>
+                <!-- Khối User Profile trên Mobile -->
+                <div class="bg-gray-900 border border-gray-800 rounded-2xl p-3 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <?php if (!empty($userHienTai['avatar'])): ?>
+                            <img src="<?= htmlspecialchars($userHienTai['avatar']) ?>" class="w-10 h-10 rounded-full object-cover border border-gray-700">
+                        <?php else: ?>
+                            <div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">
+                                <?= mb_substr($userHienTai['name'] ?? 'U', 0, 1) ?>
+                            </div>
+                        <?php endif; ?>
+                        <div class="overflow-hidden">
+                            <div class="text-xs font-bold text-white truncate max-w-[150px]"><?= htmlspecialchars($userHienTai['name']) ?></div>
+                            <div class="text-[10px] text-gray-400 truncate max-w-[150px]"><?= htmlspecialchars($userHienTai['email']) ?></div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <?php if (!empty($userHienTai['role']) && $userHienTai['role'] === 'admin'): ?>
+                            <a href="/admin/dashboard" @click="moMenuMobile = false" class="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[11px] font-bold">
+                                <i class="fas fa-shield-halved"></i> Admin
+                            </a>
+                        <?php endif; ?>
+                        <a href="/logout" title="Đăng xuất" class="p-2 rounded-lg bg-red-600/10 text-red-400 hover:bg-red-600/20 text-xs">
+                            <i class="fas fa-right-from-bracket"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Số dư ví & Nạp ngay -->
+                <div class="bg-emerald-950/30 border border-emerald-800/40 rounded-2xl p-3 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-gray-400 font-medium">Số dư ví của bạn</div>
+                            <div class="text-sm font-bold text-emerald-400"><?= number_format($userHienTai['balance'] ?? 0, 0, ',', '.') ?>đ</div>
+                        </div>
+                    </div>
+                    <a href="/user/nap-tien" @click="moMenuMobile = false" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow-md shadow-emerald-600/30 flex items-center gap-1">
+                        <i class="fas fa-plus-circle"></i> Nạp Ngay
+                    </a>
+                </div>
+            <?php else: ?>
+                <!-- Nút đăng nhập nổi bật cho khách trên Mobile -->
+                <a href="/login" @click="moMenuMobile = false" class="w-full py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-center font-bold text-xs shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2">
+                    <i class="fab fa-google text-sm"></i> Đăng Nhập / Tạo Tài Khoản
+                </a>
+            <?php endif; ?>
+
+            <!-- Lưới liên kết điều hướng Mobile -->
             <div class="grid grid-cols-2 gap-2 text-xs font-semibold">
-                <a href="/" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-blue-500 transition">
-                    <i class="fas fa-home text-blue-400"></i> Trang Chủ
+                <a href="/" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-blue-500 transition">
+                    <i class="fas fa-home text-blue-400 w-4 text-center"></i> <span>Trang Chủ</span>
                 </a>
-                <a href="/san-pham" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-blue-500 transition">
-                    <i class="fas fa-tag text-purple-400"></i> Sản Phẩm
+                <a href="/san-pham" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-blue-500 transition">
+                    <i class="fas fa-cubes text-purple-400 w-4 text-center"></i> <span>Sản Phẩm API</span>
                 </a>
-                <a href="/phan-mem" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-emerald-500 transition">
-                    <i class="fas fa-cubes text-emerald-400"></i> Phần Mềm
+                <a href="/phan-mem" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-emerald-500 transition">
+                    <i class="fas fa-laptop-code text-emerald-400 w-4 text-center"></i> <span>Phần Mềm</span>
                 </a>
-                <a href="https://status.gwai.cloud/" target="_blank" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-purple-500 transition">
-                    <i class="fas fa-wave-square text-green-400"></i> Status Model
+                <a href="https://status.gwai.cloud/" target="_blank" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-green-500 transition">
+                    <i class="fas fa-wave-square text-green-400 w-4 text-center"></i> <span>Status Model</span>
                 </a>
-                <a href="/docs" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-amber-500 transition">
-                    <i class="fas fa-book text-amber-400"></i> Tài Liệu API
+                <a href="javascript:void(0)" @click="moMenuMobile = false; moPopupKiemTraKey = true" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-blue-500 transition">
+                    <i class="fas fa-chart-line text-blue-400 w-4 text-center"></i> <span>Tra Cứu Key</span>
                 </a>
-                <a href="javascript:void(0)" @click="moMenuMobile = false; moPopupBangXepHang = true" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-amber-500 transition">
-                    <i class="fas fa-trophy text-amber-400"></i> Xếp Hạng
+                <a href="javascript:void(0)" @click="moMenuMobile = false; moPopupBangXepHang = true" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-amber-500 transition">
+                    <i class="fas fa-trophy text-amber-400 w-4 text-center"></i> <span>Bảng Xếp Hạng</span>
+                </a>
+                <a href="/docs" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-amber-500 transition">
+                    <i class="fas fa-book-bookmark text-amber-400 w-4 text-center"></i> <span>Tài Liệu API</span>
+                </a>
+                <a href="/user/api-docs" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-blue-500 transition">
+                    <i class="fas fa-terminal text-cyan-400 w-4 text-center"></i> <span>Kết Nối Cursor</span>
                 </a>
             </div>
 
-            <div class="border-t border-gray-800/80 pt-3 flex flex-col gap-2 text-xs">
-                <?php if ($daDangNhap): ?>
-                    <div class="flex items-center justify-between bg-gray-900/90 border border-gray-800 rounded-xl p-2.5">
-                        <div class="flex items-center gap-2">
-                            <i class="fas fa-wallet text-green-400"></i>
-                            <span class="text-gray-300">Số dư ví:</span>
-                            <strong class="text-green-400"><?= number_format($userHienTai['balance'] ?? 0, 0, ',', '.') ?>đ</strong>
-                        </div>
-                        <a href="/user/nap-tien" @click="moMenuMobile = false" class="px-2.5 py-1 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg text-[11px]">Nạp Ngay</a>
+            <?php if ($daDangNhap): ?>
+                <!-- Mục tài khoản nhanh -->
+                <div class="border-t border-gray-800/80 pt-3">
+                    <div class="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-2">Quản Lý Cá Nhân</div>
+                    <div class="grid grid-cols-2 gap-2 text-xs font-semibold">
+                        <a href="/user/don-hang" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-900 text-gray-300 hover:text-white border border-gray-800">
+                            <i class="fas fa-receipt text-blue-400"></i> <span>Đơn hàng đã mua</span>
+                        </a>
+                        <a href="/user/bien-dong-so-du" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-900 text-gray-300 hover:text-white border border-gray-800">
+                            <i class="fas fa-clock-rotate-left text-purple-400"></i> <span>Biến động số dư</span>
+                        </a>
                     </div>
-                    <div class="grid grid-cols-2 gap-2 text-[11px]">
-                        <a href="/user/don-hang" @click="moMenuMobile = false" class="p-2 rounded-lg bg-gray-900 text-gray-300 hover:text-white flex items-center gap-1.5"><i class="fas fa-box text-blue-400"></i> Đơn hàng</a>
-                        <a href="/user/bien-dong-so-du" @click="moMenuMobile = false" class="p-2 rounded-lg bg-gray-900 text-gray-300 hover:text-white flex items-center gap-1.5"><i class="fas fa-clock-rotate-left text-purple-400"></i> Biến động ví</a>
-                    </div>
-                <?php else: ?>
-                    <a href="/login" @click="moMenuMobile = false" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-center font-bold">
-                        <i class="fab fa-google mr-1.5"></i> Đăng Nhập Tài Khoản
-                    </a>
-                <?php endif; ?>
+                </div>
+            <?php endif; ?>
+        </div>
 
                 <div class="flex items-center justify-between text-[11px] text-gray-400 pt-2 border-t border-gray-800/60">
                     <span>Hỗ trợ nhanh:</span>
