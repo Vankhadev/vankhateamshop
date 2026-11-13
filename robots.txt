@@ -1,6 +1,6 @@
 # ========================================================
 # TỆP ĐIỀU KHIỂN CÔNG CỤ TÌM KIẾM (ROBOTS.TXT)
-# Tự động đồng bộ theo tên miền máy chủ: http://shopvankha.com
+# Tự động đồng bộ theo tên miền máy chủ: https://tiemai.io.vn
 # ========================================================
 
 User-agent: *
@@ -21,4 +21,4 @@ Disallow: /*.sql$
 Disallow: /*.env$
 
 # Đường dẫn tệp Sơ đồ trang web (Sitemap)
-Sitemap: http://shopvankha.com/sitemap.xml
+Sitemap: https://tiemai.io.vn/sitemap.xml
