@@ -74,4 +74,81 @@ if ($soLogXoa > 0) {
     echo "-> Đã dọn dẹp {$soLogXoa} bản ghi log cũ hơn 30 ngày.\n";
 }
 
+// 4. TỰ ĐỘNG ĐỐI SOÁT GIAO DỊCH SEPAY (RECONCILIATION - CHỐNG SÓT WEBHOOK)
+$sepayToken = layGiaTriEnv('SEPAY_API_TOKEN', '');
+if (!empty($sepayToken) && $sepayToken !== 'YOUR_SEPAY_API_TOKEN' && $sepayToken !== 'your_sepay_api_token_for_reconciliation_here') {
+    echo "-> Đang chạy đối soát giao dịch SePay 24 giờ gần nhất... ";
+    try {
+        $dateFrom = date('Y-m-d H:i:s', strtotime('-24 hours'));
+        $dateTo = date('Y-m-d H:i:s');
+        $urlSepay = 'https://userapi.sepay.vn/v2/transactions?' . http_build_query([
+            'transaction_date_from' => $dateFrom,
+            'transaction_date_to'   => $dateTo,
+            'per_page'              => 100,
+        ]);
+
+        $ctx = stream_context_create([
+            'http' => [
+                'header'  => "Authorization: Bearer {$sepayToken}\r\nContent-Type: application/json\r\n",
+                'timeout' => 15
+            ]
+        ]);
+        $resp = @file_get_contents($urlSepay, false, $ctx);
+        if ($resp) {
+            $jsonRes = json_decode($resp, true);
+            $listTx = $jsonRes['data'] ?? ($jsonRes['transactions'] ?? []);
+            $soGiaoDichBu = 0;
+
+            $insertStmt = $pdo->prepare("
+                INSERT IGNORE INTO `sepay_transactions`
+                (`sepay_id`, `gateway`, `transaction_date`, `account_number`, `sub_account`,
+                 `code`, `amount_in`, `amount_out`, `accumulated`, `content`, `reference_code`, `body`)
+                VALUES (:id, :gateway, :date, :account, :sub, :code, :in, :out, :accumulated, :content, :ref, :body)
+            ");
+
+            foreach ($listTx as $tx) {
+                $txId = $tx['id'] ?? null;
+                if (!$txId) continue;
+
+                $insertStmt->execute([
+                    'id'          => $txId,
+                    'gateway'     => $tx['bank_brand_name'] ?? ($tx['gateway'] ?? 'ACB'),
+                    'date'        => $tx['transaction_date'] ?? date('Y-m-d H:i:s'),
+                    'account'     => $tx['account_number'] ?? '',
+                    'sub'         => $tx['va'] ?? ($tx['sub_account'] ?? ''),
+                    'code'        => $tx['code'] ?? null,
+                    'in'          => (int)($tx['amount_in'] ?? 0),
+                    'out'         => (int)($tx['amount_out'] ?? 0),
+                    'accumulated' => (int)($tx['accumulated'] ?? 0),
+                    'content'     => $tx['transaction_content'] ?? ($tx['content'] ?? ''),
+                    'ref'         => $tx['reference_number'] ?? ($tx['referenceCode'] ?? ''),
+                    'body'        => json_encode($tx, JSON_UNESCAPED_UNICODE)
+                ]);
+
+                // Nếu là giao dịch mới bổ sung thành công -> Kích hoạt xử lý đơn
+                if ($insertStmt->rowCount() > 0 && ((int)($tx['amount_in'] ?? 0)) > 0) {
+                    $noiDung = $tx['transaction_content'] ?? ($tx['content'] ?? '');
+                    if (preg_match('/(VK[A-Z0-9]{4,16})/i', $noiDung, $mDon)) {
+                        $maDon = strtoupper($mDon[1]);
+                        $tienNhan = (float)($tx['amount_in'] ?? 0);
+                        $upd = $pdo->prepare("UPDATE `orders` SET `status` = 'PAID', `paid_at` = NOW() WHERE `order_code` = ? AND `status` = 'PENDING' AND `total_amount` <= ?");
+                        $upd->execute([$maDon, $tienNhan]);
+                        if ($upd->rowCount() > 0) {
+                            require_once __DIR__ . '/dispatcher.php';
+                            $boDieuPhoi = new BoDieuPhoiDonHang($pdo);
+                            $boDieuPhoi->xuLyDonHang($maDon);
+                        }
+                    }
+                    $soGiaoDichBu++;
+                }
+            }
+            echo "Hoàn tất! Bổ sung {$soGiaoDichBu} giao dịch thiếu.\n";
+        } else {
+            echo "Không có phản hồi từ SePay API.\n";
+        }
+    } catch (Exception $e) {
+        echo "Lỗi đối soát: " . $e->getMessage() . "\n";
+    }
+}
+
 echo "[" . date('Y-m-d H:i:s') . "] HOÀN TẤT CRONJOB THÀNH CÔNG!\n";

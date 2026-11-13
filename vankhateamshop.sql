@@ -119,6 +119,7 @@ CREATE TABLE `orders` (
     `quantity` INT NOT NULL DEFAULT 1,
     `total_amount` DECIMAL(15, 2) NOT NULL COMMENT 'Tổng tiền thanh toán',
     `status` ENUM('PENDING', 'PAID', 'PROCESSING', 'COMPLETED', 'FAILED', 'REFUNDED') NOT NULL DEFAULT 'PENDING',
+    `paid_at` DATETIME NULL COMMENT 'Thời điểm thanh toán thành công',
     `supplier_id` INT UNSIGNED NULL COMMENT 'Nhà cung cấp đã giao đơn này thành công',
     `supplier_order_code` VARCHAR(100) NULL COMMENT 'Mã đơn bên web nguồn',
     `delivered_data` LONGTEXT NULL COMMENT 'JSON thông tin tài khoản / key trả cho khách',
@@ -233,6 +234,26 @@ CREATE TABLE `api_logs` (
     INDEX (`ip_address`),
     INDEX (`model`),
     INDEX (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 15. BẢNG NHẬT KÝ WEBHOOK SEPAY (XÁC THỰC HMAC-SHA256 & CHỐNG TRÙNG RACE-SAFE)
+CREATE TABLE IF NOT EXISTS `sepay_transactions` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `sepay_id` BIGINT NOT NULL UNIQUE COMMENT 'ID giao dịch SePay không đổi qua retry',
+    `gateway` VARCHAR(100) NOT NULL COMMENT 'Ngân hàng thực hiện (ACB, Vietcombank, v.v.)',
+    `transaction_date` DATETIME NOT NULL,
+    `account_number` VARCHAR(100) NULL,
+    `sub_account` VARCHAR(250) NULL,
+    `code` VARCHAR(250) NULL COMMENT 'Mã thanh toán trích xuất từ nội dung',
+    `amount_in` BIGINT NOT NULL DEFAULT 0,
+    `amount_out` BIGINT NOT NULL DEFAULT 0,
+    `accumulated` BIGINT NOT NULL DEFAULT 0,
+    `content` TEXT NULL,
+    `reference_code` VARCHAR(255) NULL,
+    `body` JSON NOT NULL COMMENT 'Payload gốc phục vụ debug và đối soát',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_code` (`code`),
+    INDEX `idx_account` (`account_number`, `transaction_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 

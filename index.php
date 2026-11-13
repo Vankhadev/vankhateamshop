@@ -4,6 +4,7 @@
 // vankhateamshop - Cho phép chạy đường link ngắn đẹp chuyên nghiệp
 // Ví dụ: shopvankha.com/user/dashboard thay vì /frontend/client/dashboard.php
 // Tự động chuyển hướng 301 các link cũ sang link mới
+// Hỗ trợ Webhook SePay (/webhook/sepay, /webhook.php)
 // Ghi chú code 100% bằng Tiếng Việt dễ hiểu
 // ========================================================
 
@@ -62,50 +63,55 @@ if (isset($redirectsLegacy[$uri])) {
 
 // 2. BẢNG ÁNH XẠ URL ĐẸP -> TỆP XỬ LÝ THỰC TẾ
 $routes = [
-    '/'                      => __DIR__ . '/user/index.php',
-    '/san-pham'              => __DIR__ . '/user/san-pham.php',
-    '/products'              => __DIR__ . '/user/san-pham.php',
-    '/docs'                  => __DIR__ . '/user/docs.php',
-    '/buyer-api'             => __DIR__ . '/user/docs.php',
-    '/chinh-sach'            => __DIR__ . '/user/chinh-sach.php',
-    '/login'                 => __DIR__ . '/user/login.php',
-    '/dang-nhap'             => __DIR__ . '/user/login.php',
-    '/register'              => __DIR__ . '/user/register.php',
-    '/dang-ky'               => __DIR__ . '/user/register.php',
-    '/quen-mat-khau'         => __DIR__ . '/user/quen-mat-khau.php',
-    '/forgot-password'       => __DIR__ . '/user/quen-mat-khau.php',
-    '/logout'                => __DIR__ . '/service/logout.php',
-    '/dang-xuat'             => __DIR__ . '/service/logout.php',
+    '/'                      => __DIR__ . '/frontend/index.php',
+    '/san-pham'              => __DIR__ . '/frontend/san-pham.php',
+    '/products'              => __DIR__ . '/frontend/san-pham.php',
+    '/docs'                  => __DIR__ . '/frontend/docs.php',
+    '/buyer-api'             => __DIR__ . '/frontend/docs.php',
+    '/chinh-sach'            => __DIR__ . '/frontend/chinh-sach.php',
+    '/login'                 => __DIR__ . '/frontend/login.php',
+    '/dang-nhap'             => __DIR__ . '/frontend/login.php',
+    '/register'              => __DIR__ . '/frontend/register.php',
+    '/dang-ky'               => __DIR__ . '/frontend/register.php',
+    '/quen-mat-khau'         => __DIR__ . '/frontend/quen-mat-khau.php',
+    '/forgot-password'       => __DIR__ . '/frontend/quen-mat-khau.php',
+    '/logout'                => __DIR__ . '/backend/logout.php',
+    '/dang-xuat'             => __DIR__ . '/backend/logout.php',
+
+    // Webhooks SePay VietQR (Tự động nhận tiền 24/7)
+    '/webhook/sepay'         => __DIR__ . '/backend/webhook_sepay.php',
+    '/webhook.php'           => __DIR__ . '/backend/webhook_sepay.php',
+    '/api/webhook/sepay'     => __DIR__ . '/backend/webhook_sepay.php',
 
     // Đường dẫn khách hàng (User Portal - shopvankha.com/user/dashboard)
-    '/user'                  => __DIR__ . '/user/client/dashboard.php',
-    '/user/dashboard'        => __DIR__ . '/user/client/dashboard.php',
-    '/user/nap-tien'         => __DIR__ . '/user/client/nap-tien.php',
-    '/user/don-hang'         => __DIR__ . '/user/client/don-hang.php',
-    '/user/api-docs'         => __DIR__ . '/user/client/api-docs.php',
-    '/user/api'              => __DIR__ . '/user/client/api-docs.php',
-    '/user/bien-dong-so-du'  => __DIR__ . '/user/client/bien-dong-so-du.php',
-    '/user/ho-tro'           => __DIR__ . '/user/client/ho-tro.php',
-    '/user/tai-khoan'        => __DIR__ . '/user/client/tai-khoan.php',
-    '/user/lich-su-dang-nhap'=> __DIR__ . '/user/client/lich-su-dang-nhap.php',
+    '/user'                  => __DIR__ . '/frontend/client/dashboard.php',
+    '/user/dashboard'        => __DIR__ . '/frontend/client/dashboard.php',
+    '/user/nap-tien'         => __DIR__ . '/frontend/client/nap-tien.php',
+    '/user/don-hang'         => __DIR__ . '/frontend/client/don-hang.php',
+    '/user/api-docs'         => __DIR__ . '/frontend/client/api-docs.php',
+    '/user/api'              => __DIR__ . '/frontend/client/api-docs.php',
+    '/user/bien-dong-so-du'  => __DIR__ . '/frontend/client/bien-dong-so-du.php',
+    '/user/ho-tro'           => __DIR__ . '/frontend/client/ho-tro.php',
+    '/user/tai-khoan'        => __DIR__ . '/frontend/client/tai-khoan.php',
+    '/user/lich-su-dang-nhap'=> __DIR__ . '/frontend/client/lich-su-dang-nhap.php',
 
     // Đường dẫn quản trị (Admin Portal - shopvankha.com/admin/dashboard)
-    '/admin'                 => __DIR__ . '/user/admin/dashboard.php',
-    '/admin/dashboard'       => __DIR__ . '/user/admin/dashboard.php',
-    '/admin/san-pham'        => __DIR__ . '/user/admin/san-pham.php',
-    '/admin/don-hang'        => __DIR__ . '/user/admin/don-hang.php',
-    '/admin/thanh-vien'      => __DIR__ . '/user/admin/thanh-vien.php',
-    '/admin/dai-ly'          => __DIR__ . '/user/admin/dai-ly.php',
-    '/admin/api-logs'        => __DIR__ . '/user/admin/api-logs.php',
-    '/admin/thong-ke'        => __DIR__ . '/user/admin/thong-ke.php',
-    '/admin/danh-muc'        => __DIR__ . '/user/admin/danh-muc.php',
-    '/admin/cai-dat'         => __DIR__ . '/user/admin/cai-dat.php',
-    '/admin/ngan-hang'       => __DIR__ . '/user/admin/ngan-hang.php',
-    '/admin/nha-cung-cap'    => __DIR__ . '/user/admin/nha-cung-cap.php',
-    '/admin/ma-giam-gia'     => __DIR__ . '/user/admin/ma-giam-gia.php',
-    '/admin/ho-tro'          => __DIR__ . '/user/admin/ho-tro.php',
-    '/admin/thong-bao'       => __DIR__ . '/user/admin/thong-bao.php',
-    '/admin/nhat-ky'         => __DIR__ . '/user/admin/nhat-ky.php',
+    '/admin'                 => __DIR__ . '/frontend/admin/dashboard.php',
+    '/admin/dashboard'       => __DIR__ . '/frontend/admin/dashboard.php',
+    '/admin/san-pham'        => __DIR__ . '/frontend/admin/san-pham.php',
+    '/admin/don-hang'        => __DIR__ . '/frontend/admin/don-hang.php',
+    '/admin/thanh-vien'      => __DIR__ . '/frontend/admin/thanh-vien.php',
+    '/admin/dai-ly'          => __DIR__ . '/frontend/admin/dai-ly.php',
+    '/admin/api-logs'        => __DIR__ . '/frontend/admin/api-logs.php',
+    '/admin/thong-ke'        => __DIR__ . '/frontend/admin/thong-ke.php',
+    '/admin/danh-muc'        => __DIR__ . '/frontend/admin/danh-muc.php',
+    '/admin/cai-dat'         => __DIR__ . '/frontend/admin/cai-dat.php',
+    '/admin/ngan-hang'       => __DIR__ . '/frontend/admin/ngan-hang.php',
+    '/admin/nha-cung-cap'    => __DIR__ . '/frontend/admin/nha-cung-cap.php',
+    '/admin/ma-giam-gia'     => __DIR__ . '/frontend/admin/ma-giam-gia.php',
+    '/admin/ho-tro'          => __DIR__ . '/frontend/admin/ho-tro.php',
+    '/admin/thong-bao'       => __DIR__ . '/frontend/admin/thong-bao.php',
+    '/admin/nhat-ky'         => __DIR__ . '/frontend/admin/nhat-ky.php',
 ];
 
 if (isset($routes[$uri]) && file_exists($routes[$uri])) {
@@ -124,4 +130,4 @@ if (file_exists($directFile) && !is_dir($directFile)) {
 }
 
 // Mặc định tải trang chủ
-require __DIR__ . '/user/index.php';
+require __DIR__ . '/frontend/index.php';
