@@ -794,7 +794,9 @@ switch ($hanhDong) {
             $cost = (float)($it['walletPricing'] ?? 0);
 
             $stmtUp->execute([$stock, $cost, $supplier['id'], $sku]);
-            if ($stmtUp->rowCount() > 0) {
+            $checkExist = $pdo->prepare("SELECT id FROM `supplier_product_mappings` WHERE `supplier_id` = ? AND `supplier_sku` = ?");
+            $checkExist->execute([$supplier['id'], $sku]);
+            if ($checkExist->fetch()) {
                 $demCapNhat++;
             }
         }
