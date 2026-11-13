@@ -295,7 +295,7 @@ if ($xemId > 0) {
                                 </td>
 
                                 <td class="py-3.5 px-4">
-                                    <a href="ho-tro.php?id=<?= $t['id'] ?>" class="font-bold text-white hover:text-blue-400 transition">
+                                    <a href="/user/ho-tro?id=<?= $t['id'] ?>" class="font-bold text-white hover:text-blue-400 transition">
                                         <?= htmlspecialchars($t['title']) ?>
                                     </a>
                                     <span class="text-[10px] text-gray-400 block mt-0.5"><?= $t['reply_count'] ?> tin nhắn trao đổi</span>
@@ -318,7 +318,7 @@ if ($xemId > 0) {
                                 </td>
 
                                 <td class="py-3.5 px-4 text-center">
-                                    <a href="ho-tro.php?id=<?= $t['id'] ?>" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-blue-600 hover:text-white text-gray-300 text-xs font-bold transition border border-gray-700">
+                                    <a href="/user/ho-tro?id=<?= $t['id'] ?>" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-blue-600 hover:text-white text-gray-300 text-xs font-bold transition border border-gray-700">
                                         Xem Chi Tiết
                                     </a>
                                 </td>

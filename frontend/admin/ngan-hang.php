@@ -136,7 +136,7 @@ $giaoDichs = $stmtGiaoDich->fetchAll();
                     </h2>
                     <p class="text-xs text-gray-400">Danh sách các giao dịch được cộng tiền tự động vào ví khách hàng</p>
                 </div>
-                <a href="../../backend/export.php?type=giao_dich" class="px-3 py-1.5 rounded-xl bg-green-600 hover:bg-green-500 text-white text-xs font-bold transition duration-150 flex items-center gap-1.5 shadow-md shadow-green-600/30">
+                <a href="/backend/export.php?type=giao_dich" class="px-3 py-1.5 rounded-xl bg-green-600 hover:bg-green-500 text-white text-xs font-bold transition duration-150 flex items-center gap-1.5 shadow-md shadow-green-600/30">
                     <i class="fas fa-file-excel"></i> Xuất CSV Giao Dịch
                 </a>
             </div>

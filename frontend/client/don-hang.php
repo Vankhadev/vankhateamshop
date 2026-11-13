@@ -92,7 +92,7 @@ $orders = $stmtOrders->fetchAll();
                 </h1>
                 <p class="text-xs text-gray-400 mt-1">Toàn bộ các gói API và tài khoản bạn đã mua tại <?= SHOP_NAME ?></p>
             </div>
-            <a href="../index.php#san-pham" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-blue-600/30">
+            <a href="/#san-pham" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-blue-600/30">
                 <i class="fas fa-plus"></i> Mua Thêm Gói Mới
             </a>
         </div>

@@ -139,8 +139,8 @@ if ($xemId > 0) {
             
             <div class="flex items-center gap-2">
                 <a href="/admin/ho-tro" class="px-3 py-1.5 rounded-xl bg-gray-800 text-gray-300 text-xs font-bold <?= empty($statusFilter) ? 'border border-amber-500 text-amber-400' : '' ?>">Tất cả</a>
-                <a href="ho-tro.php?status=OPEN" class="px-3 py-1.5 rounded-xl bg-gray-800 text-gray-300 text-xs font-bold <?= $statusFilter === 'OPEN' ? 'border border-amber-500 text-amber-400' : '' ?>">Chờ xử lý</a>
-                <a href="ho-tro.php?status=ANSWERED" class="px-3 py-1.5 rounded-xl bg-gray-800 text-gray-300 text-xs font-bold <?= $statusFilter === 'ANSWERED' ? 'border border-green-500 text-green-400' : '' ?>">Đã trả lời</a>
+                <a href="/admin/ho-tro?status=OPEN" class="px-3 py-1.5 rounded-xl bg-gray-800 text-gray-300 text-xs font-bold <?= $statusFilter === 'OPEN' ? 'border border-amber-500 text-amber-400' : '' ?>">Chờ xử lý</a>
+                <a href="/admin/ho-tro?status=ANSWERED" class="px-3 py-1.5 rounded-xl bg-gray-800 text-gray-300 text-xs font-bold <?= $statusFilter === 'ANSWERED' ? 'border border-green-500 text-green-400' : '' ?>">Đã trả lời</a>
             </div>
         </div>
 
@@ -255,7 +255,7 @@ if ($xemId > 0) {
                                 </td>
 
                                 <td class="py-3.5 px-4">
-                                    <a href="ho-tro.php?id=<?= $t['id'] ?>" class="font-bold text-white hover:text-amber-400 transition">
+                                    <a href="/admin/ho-tro?id=<?= $t['id'] ?>" class="font-bold text-white hover:text-amber-400 transition">
                                         <?= htmlspecialchars($t['title']) ?>
                                     </a>
                                     <span class="text-[10px] text-gray-500 block"><?= $t['reply_count'] ?> tin nhắn</span>
@@ -278,7 +278,7 @@ if ($xemId > 0) {
                                 </td>
 
                                 <td class="py-3.5 px-4 text-center">
-                                    <a href="ho-tro.php?id=<?= $t['id'] ?>" class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-md shadow-amber-600/30">
+                                    <a href="/admin/ho-tro?id=<?= $t['id'] ?>" class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-md shadow-amber-600/30">
                                         Xử Lý Ngay
                                     </a>
                                 </td>

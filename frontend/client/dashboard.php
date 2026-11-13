@@ -145,7 +145,7 @@ $orders = $stmtOrders->fetchAll();
                     </h3>
                     <p class="text-xs text-gray-400 mt-0.5">Dán Key này vào Cursor, NextChat hoặc công cụ lập trình của bạn</p>
                 </div>
-                <a href="../index.php#san-pham" class="text-xs font-bold text-blue-400 hover:text-blue-300">
+                <a href="/#san-pham" class="text-xs font-bold text-blue-400 hover:text-blue-300">
                     + Mua Thêm Gói Mới
                 </a>
             </div>

@@ -94,7 +94,7 @@ $danhSachUserThuong = $stmtUsers->fetchAll();
             <div class="bg-[#111827] border border-gray-800 rounded-2xl p-5 shadow-xl">
                 <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Tài Liệu Cho Đại Lý</span>
                 <div class="mt-2">
-                    <a href="../docs.php" target="_blank" class="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:underline font-bold">
+                    <a href="/docs" target="_blank" class="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:underline font-bold">
                         <i class="fas fa-book-open"></i> Xem Trang Docs Partner API &rarr;
                     </a>
                 </div>
