@@ -126,16 +126,45 @@ if (isset($routes[$uri]) && file_exists($routes[$uri])) {
     exit;
 }
 
-// 3. ĐƯỜNG DẪN ĐỘNG CHI TIẾT SẢN PHẨM: /san-pham/{slug} HOẶC /san-pham/{category}/{slug}
+// 3. ĐƯỜNG DẪN ĐỘNG CHI TIẾT SẢN PHẨM HOẶC DANH MỤC: /san-pham/{slug} HOẶC /san-pham/{category}/{slug}
 if (preg_match('#^/san-pham/([^/]+)(?:/([^/]+))?$#', $uri, $matches)) {
+    require_once __DIR__ . '/backend/config.php';
+    require_once __DIR__ . '/backend/db.php';
+
     if (!empty($matches[2])) {
+        // Có cả 2 phần: /san-pham/{category_slug}/{product_slug}
         $_GET['category_slug'] = $matches[1];
         $_GET['slug'] = $matches[2];
+        require __DIR__ . '/frontend/chi-tiet-san-pham.php';
+        exit;
     } else {
-        $_GET['slug'] = $matches[1];
+        $singleSlug = $matches[1];
+
+        // 1. Kiểm tra xem có phải là Sản phẩm không (ưu tiên sản phẩm)
+        $stmtP = $pdo->prepare("SELECT id FROM `products` WHERE (`slug` = ? OR `sku` = ?) AND `is_active` = 1 LIMIT 1");
+        $stmtP->execute([$singleSlug, $singleSlug]);
+        if ($stmtP->fetch()) {
+            $_GET['slug'] = $singleSlug;
+            require __DIR__ . '/frontend/chi-tiet-san-pham.php';
+            exit;
+        }
+
+        // 2. Kiểm tra xem có phải là Danh mục không (ví dụ /san-pham/cursor, /san-pham/claude)
+        $stmtC = $pdo->prepare("SELECT id FROM `categories` WHERE `slug` = ? AND `is_active` = 1 LIMIT 1");
+        $stmtC->execute([$singleSlug]);
+        $catId = $stmtC->fetchColumn();
+        if ($catId) {
+            $_GET['category_id'] = (int)$catId;
+            $_GET['category_slug'] = $singleSlug;
+            require __DIR__ . '/frontend/san-pham.php';
+            exit;
+        }
+
+        // 3. Nếu không tìm thấy, để chi-tiet-san-pham xử lý chuyển tiếp an toàn
+        $_GET['slug'] = $singleSlug;
+        require __DIR__ . '/frontend/chi-tiet-san-pham.php';
+        exit;
     }
-    require __DIR__ . '/frontend/chi-tiet-san-pham.php';
-    exit;
 }
 
 // 4. NẾU TRUY CẬP FILE TRỰC TIẾP TRONG BACKEND HOẶC API (VÍ DỤ BACKEND/API.PHP HOẶC API/PARTNER/V1/...)

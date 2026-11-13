@@ -14,6 +14,17 @@ thietLapBaoMatHeaders();
 // Lấy danh mục sản phẩm đang mở bán
 $categories = $pdo->query("SELECT * FROM `categories` WHERE `is_active` = 1 ORDER BY `sort_order` ASC")->fetchAll();
 
+// Xác định danh mục đang chọn nếu có từ URL
+$selectedCatId = (int)($_GET['category_id'] ?? 0);
+if (!$selectedCatId && !empty($_GET['category_slug'])) {
+    foreach ($categories as $cat) {
+        if ($cat['slug'] === $_GET['category_slug']) {
+            $selectedCatId = (int)$cat['id'];
+            break;
+        }
+    }
+}
+
 // Lấy toàn bộ sản phẩm đang hoạt động kèm tên danh mục
 $sqlProducts = "
     SELECT p.*, c.name AS category_name, c.slug AS category_slug 
@@ -403,7 +414,7 @@ foreach ($products as $p) {
     function ungDungTrangSanPham() {
         return {
             tatCaSanPham: <?= json_encode($sanPhamJs, JSON_UNESCAPED_UNICODE) ?>,
-            danhMucChon: 0,
+            danhMucChon: <?= $selectedCatId ?>,
             tuKhoaTim: '',
             kieuSapXep: 'mac_dinh',
 
