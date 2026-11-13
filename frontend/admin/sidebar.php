@@ -2,6 +2,7 @@
 // ========================================================
 // THANH SIDEBAR MENU QUẢN TRỊ BÊN TRÁI (ADMIN SIDEBAR)
 // vankhateamshop - Đồng bộ toàn bộ các trang Admin Panel
+// Chuẩn Responsive Desktop (Cố định) & Mobile/Tablet (Off-canvas Drawer)
 // Ghi chú code 100% bằng Tiếng Việt dễ hiểu
 // ========================================================
 
@@ -9,18 +10,31 @@ $uriHienTai = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
 $adminName = $_SESSION['user_name'] ?? 'Admin VanKha';
 $adminEmail = $_SESSION['user_email'] ?? 'admin@tiemai.io.vn';
 ?>
-<!-- KHỐI SIDEBAR TRÁI CỐ ĐỊNH -->
-<aside class="w-64 bg-[#0F172A] border-r border-gray-800 flex flex-col shrink-0 min-h-screen sticky top-0 h-screen overflow-y-auto">
+<!-- LỚP PHỦ BACKDROP KHI MỞ MENU TRÊN MOBILE -->
+<div id="admin-sidebar-backdrop" 
+     onclick="dongAdminSidebar()" 
+     class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 transition-opacity duration-300 opacity-0 pointer-events-none lg:hidden">
+</div>
+
+<!-- KHỐI SIDEBAR TRÁI CỐ ĐỊNH TRÊN DESKTOP / TRƯỢT OFF-CANVAS TRÊN MOBILE -->
+<aside id="admin-sidebar" 
+       class="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-[#0F172A] border-r border-gray-800 flex flex-col h-screen overflow-y-auto transform -translate-x-full transition-transform duration-300 ease-in-out lg:static lg:w-64 lg:h-screen lg:sticky lg:top-0 lg:translate-x-0 lg:z-auto shrink-0 shadow-2xl lg:shadow-none">
     
-    <!-- Logo & Nhãn hiệu Quản trị -->
-    <div class="h-16 flex items-center px-5 border-b border-gray-800/80 gap-3 shrink-0">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-orange-500 flex items-center justify-center text-white font-bold shadow-lg shadow-amber-600/20">
-            <i class="fas fa-shield-halved text-sm"></i>
+    <!-- Logo & Nhãn hiệu Quản trị + Nút Đóng trên Mobile -->
+    <div class="h-16 flex items-center justify-between px-5 border-b border-gray-800/80 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-orange-500 flex items-center justify-center text-white font-bold shadow-lg shadow-amber-600/20 shrink-0">
+                <i class="fas fa-shield-halved text-sm"></i>
+            </div>
+            <div>
+                <span class="text-sm font-black text-white tracking-wide block">VanKha<span class="text-amber-500">Admin</span></span>
+                <span class="text-[9px] text-gray-400 font-semibold uppercase tracking-wider block">Cổng Quản Trị Hệ Thống</span>
+            </div>
         </div>
-        <div>
-            <span class="text-sm font-black text-white tracking-wide block">VanKha<span class="text-amber-500">Admin</span></span>
-            <span class="text-[9px] text-gray-400 font-semibold uppercase tracking-wider block">Cổng Quản Trị Hệ Thống</span>
-        </div>
+        <!-- Nút Đóng Sidebar trên Mobile -->
+        <button type="button" onclick="dongAdminSidebar()" class="lg:hidden p-2 rounded-xl text-gray-400 hover:text-white hover:bg-gray-800/80 transition focus:outline-none" aria-label="Đóng Menu">
+            <i class="fas fa-xmark text-lg"></i>
+        </button>
     </div>
 
     <!-- Thông tin Quản trị viên nhanh -->
@@ -145,3 +159,55 @@ $adminEmail = $_SESSION['user_email'] ?? 'admin@tiemai.io.vn';
         </a>
     </div>
 </aside>
+
+<!-- SCRIPT ĐIỀU KHIỂN SIDEBAR TRÊN MOBILE -->
+<script>
+function moAdminSidebar() {
+    var sb = document.getElementById('admin-sidebar');
+    var bd = document.getElementById('admin-sidebar-backdrop');
+    if (sb) {
+        sb.classList.remove('-translate-x-full');
+        sb.classList.add('translate-x-0');
+    }
+    if (bd) {
+        bd.classList.remove('opacity-0', 'pointer-events-none');
+        bd.classList.add('opacity-100', 'pointer-events-auto');
+    }
+    document.body.classList.add('overflow-hidden', 'lg:overflow-auto');
+}
+
+function dongAdminSidebar() {
+    var sb = document.getElementById('admin-sidebar');
+    var bd = document.getElementById('admin-sidebar-backdrop');
+    if (sb) {
+        sb.classList.add('-translate-x-full');
+        sb.classList.remove('translate-x-0');
+    }
+    if (bd) {
+        bd.classList.add('opacity-0', 'pointer-events-none');
+        bd.classList.remove('opacity-100', 'pointer-events-auto');
+    }
+    document.body.classList.remove('overflow-hidden', 'lg:overflow-auto');
+}
+
+function toggleAdminSidebar() {
+    var sb = document.getElementById('admin-sidebar');
+    if (sb && sb.classList.contains('translate-x-0')) {
+        dongAdminSidebar();
+    } else {
+        moAdminSidebar();
+    }
+}
+
+// Tự động đóng menu trên mobile khi click vào một link bên trong sidebar
+document.addEventListener('DOMContentLoaded', function() {
+    var links = document.querySelectorAll('#admin-sidebar a');
+    links.forEach(function(link) {
+        link.addEventListener('click', function() {
+            if (window.innerWidth < 1024) {
+                dongAdminSidebar();
+            }
+        });
+    });
+});
+</script>

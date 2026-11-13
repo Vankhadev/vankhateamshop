@@ -97,25 +97,30 @@ $topSanPham = $pdo->query("
         <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
             
             <!-- THANH TOPBAR QUẢN TRỊ -->
-            <header class="h-16 bg-[#0F172A] border-b border-gray-800 px-6 flex items-center justify-between shrink-0 sticky top-0 z-30">
-                <div class="flex items-center gap-3">
-                    <h1 class="text-base font-bold text-white flex items-center gap-2">
+            <header class="h-16 bg-[#0F172A] border-b border-gray-800 px-4 sm:px-6 flex items-center justify-between shrink-0 sticky top-0 z-30">
+                <div class="flex items-center gap-2 sm:gap-3 overflow-hidden">
+                    <button type="button" onclick="moAdminSidebar()" class="lg:hidden p-2 -ml-1 rounded-xl bg-gray-800 text-gray-300 hover:text-white hover:bg-gray-700 focus:outline-none shrink-0" aria-label="Mở Menu">
+                        <i class="fas fa-bars text-sm"></i>
+                    </button>
+                    <h1 class="text-sm sm:text-base font-bold text-white flex items-center gap-2 truncate">
                         <i class="fas fa-chart-line text-amber-500"></i>
-                        <span>Báo Cáo & Thống Kê Kinh Doanh</span>
+                        <span class="truncate">Báo Cáo & Thống Kê Kinh Doanh</span>
                     </h1>
                 </div>
-                <div class="flex items-center gap-3">
-                    <a href="/" target="_blank" class="px-3.5 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-xs font-semibold text-gray-200 transition flex items-center gap-1.5 border border-gray-700">
-                        <i class="fas fa-globe text-blue-400"></i> Xem Website Shop
+                <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+                    <a href="/" target="_blank" class="px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-xs font-semibold text-gray-200 transition flex items-center gap-1.5 border border-gray-700">
+                        <i class="fas fa-globe text-blue-400"></i>
+                        <span class="hidden sm:inline">Xem Website Shop</span>
                     </a>
-                    <a href="/logout" class="px-3.5 py-1.5 rounded-xl bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/20 text-xs font-semibold transition flex items-center gap-1.5">
-                        <i class="fas fa-right-from-bracket"></i> Thoát
+                    <a href="/logout" class="px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/20 text-xs font-semibold transition flex items-center gap-1.5">
+                        <i class="fas fa-right-from-bracket"></i>
+                        <span class="hidden sm:inline">Thoát</span>
                     </a>
                 </div>
             </header>
 
             <!-- NỘI DUNG QUẢN TRỊ CHÍNH -->
-            <main class="p-6 lg:p-8 flex-1 max-w-7xl w-full mx-auto">
+            <main class="p-4 sm:p-6 lg:p-8 flex-1 max-w-7xl w-full mx-auto">
 
         <!-- 1. CÁC THẺ CHỈ SỐ TÀI CHÍNH -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
