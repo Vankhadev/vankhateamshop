@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <rect width="200" height="200" rx="44" fill="#0F172A"/>
+  <rect x="2" y="2" width="196" height="196" rx="42" stroke="#818CF8" stroke-width="4" stroke-opacity="0.3"/>
+  <text x="100" y="118" font-family="'Segoe UI', Roboto, sans-serif" font-size="52" font-weight="900" fill="#818CF8" text-anchor="middle" letter-spacing="-1">Kimi</text>
+  <circle cx="152" cy="74" r="8" fill="#F43F5E"/>
+</svg>

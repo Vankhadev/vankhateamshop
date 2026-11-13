@@ -49,6 +49,9 @@ $topUsers = $pdo->query("
 ")->fetchAll();
 $siteName = layCaiDatHeThong('site_name', SHOP_NAME);
 $siteZalo = layCaiDatHeThong('site_contact_zalo', SHOP_ZALO);
+$captchaEnabled   = function_exists('layCaiDatHeThong') ? (layCaiDatHeThong('captcha_enabled', '0') === '1') : false;
+$captchaProvider  = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('captcha_provider', defined('CAPTCHA_PROVIDER') ? CAPTCHA_PROVIDER : 'turnstile') : (defined('CAPTCHA_PROVIDER') ? CAPTCHA_PROVIDER : 'turnstile');
+$captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('captcha_site_key', defined('CAPTCHA_SITE_KEY') ? CAPTCHA_SITE_KEY : '') : (defined('CAPTCHA_SITE_KEY') ? CAPTCHA_SITE_KEY : '');
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -115,12 +118,14 @@ $siteZalo = layCaiDatHeThong('site_contact_zalo', SHOP_ZALO);
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <!-- Nạp thư viện CAPTCHA tương ứng theo cấu hình -->
-    <?php if (CAPTCHA_PROVIDER === 'turnstile'): ?>
-        <!-- Cloudflare Turnstile API -->
-        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-    <?php else: ?>
-        <!-- Google reCAPTCHA v2 API -->
-        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <?php if ($captchaEnabled && !empty($captchaSiteKey)): ?>
+        <?php if ($captchaProvider === 'turnstile'): ?>
+            <!-- Cloudflare Turnstile API -->
+            <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+        <?php else: ?>
+            <!-- Google reCAPTCHA v2 API -->
+            <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+        <?php endif; ?>
     <?php endif; ?>
 
     <style>
@@ -258,7 +263,7 @@ $siteZalo = layCaiDatHeThong('site_contact_zalo', SHOP_ZALO);
                         <!-- Ảnh gói sản phẩm & Tên sản phẩm -->
                         <div class="flex items-center gap-3 mb-2.5">
                             <?php if (!empty($p['image'])): ?>
-                                <img src="<?= htmlspecialchars($p['image']) ?>" alt="<?= htmlspecialchars($p['name']) ?>" class="w-11 h-11 rounded-xl object-cover border border-gray-700 bg-gray-800 shrink-0">
+                                <img src="<?= htmlspecialchars($p['image']) ?>" alt="<?= htmlspecialchars($p['name']) ?>" class="w-11 h-11 rounded-xl object-contain border border-gray-700 bg-gray-900/90 p-1 shrink-0">
                             <?php else: ?>
                                 <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600/30 to-indigo-600/30 border border-blue-500/30 flex items-center justify-center text-blue-400 text-lg font-bold shrink-0">
                                     <i class="fas <?= str_contains(strtolower($p['name']), 'cursor') ? 'fa-bolt text-amber-400' : (str_contains(strtolower($p['name']), 'claude') ? 'fa-brain text-orange-400' : (str_contains(strtolower($p['name']), 'deepseek') ? 'fa-magnifying-glass text-blue-400' : 'fa-code text-green-400')) ?>"></i>
@@ -358,16 +363,18 @@ $siteZalo = layCaiDatHeThong('site_contact_zalo', SHOP_ZALO);
                     </div>
 
                     <!-- WIDGET XÁC THỰC BẢO MẬT CAPTCHA -->
-                    <div class="pt-1 flex flex-col items-center">
-                        <label class="block text-[11px] text-gray-400 mb-2">Bảo mật hệ thống chống Bot:</label>
-                        <?php if (CAPTCHA_PROVIDER === 'turnstile'): ?>
-                            <!-- Cloudflare Turnstile -->
-                            <div class="cf-turnstile" data-sitekey="<?= CAPTCHA_SITE_KEY ?>" data-theme="dark" data-callback="onCaptchaXong"></div>
-                        <?php else: ?>
-                            <!-- Google reCAPTCHA v2 -->
-                            <div class="g-recaptcha" data-sitekey="<?= CAPTCHA_SITE_KEY ?>" data-theme="dark" data-callback="onCaptchaXong"></div>
-                        <?php endif; ?>
-                    </div>
+                    <?php if ($captchaEnabled && !empty($captchaSiteKey)): ?>
+                        <div class="pt-1 flex flex-col items-center">
+                            <label class="block text-[11px] text-gray-400 mb-2">Bảo mật hệ thống chống Bot:</label>
+                            <?php if ($captchaProvider === 'turnstile'): ?>
+                                <!-- Cloudflare Turnstile -->
+                                <div class="cf-turnstile" data-sitekey="<?= htmlspecialchars($captchaSiteKey) ?>" data-theme="dark" data-callback="onCaptchaXong"></div>
+                            <?php else: ?>
+                                <!-- Google reCAPTCHA v2 -->
+                                <div class="g-recaptcha" data-sitekey="<?= htmlspecialchars($captchaSiteKey) ?>" data-theme="dark" data-callback="onCaptchaXong"></div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
 
                     <div x-show="thongBaoLoiPopup" class="p-2.5 rounded-lg bg-red-950/70 border border-red-800 text-red-300 text-xs font-semibold text-center" x-text="thongBaoLoiPopup"></div>
 
@@ -640,7 +647,14 @@ $siteZalo = layCaiDatHeThong('site_contact_zalo', SHOP_ZALO);
                     formData.append('product_id', this.idSanPhamChon);
                     formData.append('email', this.emailKhachHang);
                     formData.append('coupon_code', this.maCoupon);
-                    formData.append('captcha_token', globalCaptchaToken);
+                    let token = globalCaptchaToken;
+                    if (!token) {
+                        const cfInput = document.querySelector('[name="cf-turnstile-response"]');
+                        if (cfInput && cfInput.value) token = cfInput.value;
+                        const gInput = document.querySelector('[name="g-recaptcha-response"]');
+                        if (gInput && gInput.value) token = gInput.value;
+                    }
+                    formData.append('captcha_token', token || '');
 
                     fetch('/backend/api.php', {
                         method: 'POST',
