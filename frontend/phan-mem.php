@@ -31,6 +31,13 @@ $siteNameDisplay = layCaiDatHeThong('site_name', SHOP_NAME);
 $tenNganSite = trim(explode(' - ', $siteNameDisplay)[0]);
 $soZaloDisplay = layCaiDatHeThong('site_contact_zalo', SHOP_ZALO);
 $teleDisplay = layCaiDatHeThong('site_contact_telegram', SHOP_TELEGRAM);
+$daDangNhap = !empty($_SESSION['user_id']);
+$userHienTai = null;
+if ($daDangNhap) {
+    $stmtMe = $pdo->prepare("SELECT id, name, email, balance FROM users WHERE id = ?");
+    $stmtMe->execute([$_SESSION['user_id']]);
+    $userHienTai = $stmtMe->fetch();
+}
 
 $sanPhamJs = [];
 foreach ($softwares as $p) {
@@ -259,21 +266,29 @@ foreach ($softwares as $p) {
     </main>
 
     <!-- MODAL THANH TOÁN VIETQR TỰ ĐỘNG CHUẨN ĐỒNG BỘ -->
-    <div x-show="moPopupThanhToan" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" style="display: none;" x-transition>
-        <div class="bg-[#111827] border border-gray-800 rounded-3xl max-w-md w-full p-6 relative shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
-            <button @click="dongThanhToan()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-lg">
-                <i class="fas fa-times"></i>
-            </button>
+    <div x-show="moPopupThanhToan" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm" style="display: none;" x-transition>
+        <div class="bg-[#111827] border border-gray-800 rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-5 relative shadow-2xl space-y-3.5 max-h-[92vh] overflow-y-auto my-auto">
+            
+            <!-- HEADER MODAL & NÚT ĐÓNG TÁCH BIỆT RÕ RÀNG -->
+            <div class="flex items-center justify-between pb-3 border-b border-gray-800">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <h3 class="text-xs sm:text-sm font-bold text-white tracking-wide" x-text="daThanhToan ? 'Kích Hoạt Thành Công' : (daTaoDon ? 'Thanh Toán VietQR Tự Động' : 'Thanh Toán Phần Mềm')"></h3>
+                </div>
+                <button @click="dongThanhToan()" type="button" class="w-8 h-8 rounded-full bg-gray-800/90 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center transition border border-gray-700/50">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            </div>
 
             <!-- BƯỚC 1: NHẬP EMAIL & MÃ GIẢM GIÁ -->
-            <div x-show="!daTaoDon" class="space-y-4">
+            <div x-show="!daTaoDon && !daThanhToan" class="space-y-3.5">
                 <div class="text-center">
-                    <h3 class="text-base font-bold text-white">Thanh Toán Phần Mềm</h3>
-                    <p class="text-xs text-emerald-400 font-bold mt-1" x-text="sanPhamDangMua.name"></p>
-                    <div class="text-2xl font-black text-white mt-1" x-text="dinhDangTien(giaTienChon)"></div>
+                    <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Thông Tin Bản Quyền</span>
+                    <h3 class="text-base font-bold text-white mt-1" x-text="sanPhamDangMua.name"></h3>
+                    <div class="text-xl font-black text-white font-mono mt-1" x-text="dinhDangTien(giaTienChon)"></div>
                 </div>
 
-                <div x-show="thongBaoLoiPopup" class="p-3 bg-red-950/70 border border-red-800 rounded-xl text-xs text-red-300" x-text="thongBaoLoiPopup"></div>
+                <div x-show="thongBaoLoiPopup" class="p-2.5 bg-red-950/70 border border-red-800 rounded-xl text-xs text-red-300 text-center font-semibold" x-text="thongBaoLoiPopup"></div>
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-300 mb-1">Email Nhận Bản Quyền (Bắt buộc):</label>
@@ -285,42 +300,90 @@ foreach ($softwares as $p) {
                     <input type="text" x-model="maGiamGia" placeholder="Mã ưu đãi..." class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white uppercase focus:outline-none focus:border-emerald-500 font-mono">
                 </div>
 
-                <button @click="taoDonHang()" :disabled="dangTaoDon" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs transition shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2">
+                <?php if ($daDangNhap): ?>
+                    <!-- Nút thanh toán trực tiếp bằng số dư ví -->
+                    <button @click="thanhToanBangVi()" :disabled="dangTaoDon" class="w-full py-2.5 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold text-xs transition duration-200 shadow-md shadow-green-600/30 flex items-center justify-center gap-2">
+                        <i class="fas fa-bolt text-amber-300"></i> Thanh Toán Bằng Số Dư Ví (Hiện có: <?= number_format($userHienTai['balance'] ?? 0, 0, ',', '.') ?>đ)
+                    </button>
+
+                    <div class="relative flex items-center justify-center my-1">
+                        <div class="border-t border-gray-800 w-full"></div>
+                        <span class="bg-[#111827] px-3 text-[10px] text-gray-500 uppercase font-semibold absolute">hoặc quét mã ngân hàng</span>
+                    </div>
+                <?php endif; ?>
+
+                <button @click="taoDonHang()" :disabled="dangTaoDon" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs transition shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2">
                     <i class="fas fa-circle-notch fa-spin" x-show="dangTaoDon" style="display: none;"></i>
                     <i class="fas fa-qrcode" x-show="!dangTaoDon"></i>
                     <span>Tạo Mã VietQR Thanh Toán</span>
                 </button>
             </div>
 
-            <!-- BƯỚC 2: QUÉT MÃ VIETQR -->
-            <div x-show="daTaoDon && !daThanhToan" class="space-y-4 text-center">
-                <div>
-                    <h3 class="text-base font-bold text-white">Quét Mã VietQR Ngân Hàng</h3>
-                    <p class="text-xs text-gray-400 mt-0.5">Mã đơn: <span class="font-mono text-emerald-400 font-bold" x-text="maDonHang"></span></p>
-                </div>
-
-                <div class="bg-white p-3 rounded-2xl mx-auto inline-block shadow-xl">
-                    <img :src="linkVietQr" alt="Mã VietQR" class="w-52 h-52 object-contain mx-auto">
-                </div>
-
-                <div class="p-3 bg-gray-950 border border-gray-800 rounded-xl text-left text-xs space-y-1">
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">Số tiền:</span>
-                        <strong class="text-emerald-400 font-bold" x-text="dinhDangTien(giaTienChon)"></strong>
+            <!-- BƯỚC 2: QUÉT MÃ VIETQR (GIAO DIỆN TỐI ƯU MOBILE GỌN ĐẸP) -->
+            <div x-show="daTaoDon && !daThanhToan" class="space-y-3">
+                
+                <!-- Khung Thẻ VietQR nền trắng sang trọng -->
+                <div class="bg-white text-gray-900 rounded-2xl p-3.5 sm:p-4 shadow-xl border border-gray-100">
+                    
+                    <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-gray-100">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg font-black text-[#005ba6] tracking-tight">ACB</span>
+                            <span class="text-xs font-semibold text-gray-700"><?= defined('BANK_FULL_NAME') ? BANK_FULL_NAME : 'Ngân hàng TMCP Á Châu' ?></span>
+                        </div>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
+                            <i class="fas fa-bolt text-[9px]"></i> Tự động 24/7
+                        </span>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">Nội dung CK:</span>
-                        <strong class="text-amber-400 font-mono select-all" x-text="maDonHang"></strong>
+
+                    <!-- Khung ảnh QR code VietQR -->
+                    <div class="border border-gray-200 rounded-xl p-2 bg-white flex flex-col items-center justify-center mb-2.5 shadow-sm">
+                        <img :src="linkVietQr" alt="Mã VietQR" class="w-44 sm:w-48 h-auto object-contain mx-auto rounded-lg">
+                    </div>
+
+                    <div class="space-y-2 text-left">
+                        <!-- DÒNG SẢN PHẨM & SỐ TIỀN -->
+                        <div class="flex items-center justify-between p-2 rounded-xl bg-emerald-50/80 border border-emerald-200/60">
+                            <div class="min-w-0 pr-2">
+                                <span class="block text-[9px] font-bold text-emerald-600 uppercase tracking-wider">PHẦN MỀM</span>
+                                <span class="block text-xs font-black text-gray-900 truncate" x-text="sanPhamDangMua?.name"></span>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <span class="block text-[9px] font-bold text-gray-500 uppercase tracking-wider">SỐ TIỀN</span>
+                                <span class="block text-sm font-black text-emerald-600 font-mono" x-text="dinhDangTien(giaTienChon)"></span>
+                            </div>
+                        </div>
+
+                        <!-- SỐ TÀI KHOẢN + NÚT SAO CHÉP -->
+                        <div class="border border-gray-200 rounded-xl p-2.5 bg-gray-50/80 flex items-center justify-between">
+                            <div>
+                                <span class="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">SỐ TÀI KHOẢN (<?= BANK_ACCOUNT_NAME ?>)</span>
+                                <span class="block text-sm font-black text-[#0284c7] font-mono mt-0.5"><?= BANK_ACCOUNT_NO ?></span>
+                            </div>
+                            <button @click="saoChep('<?= BANK_ACCOUNT_NO ?>')" type="button" class="px-2.5 py-1.5 rounded-lg bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                                <i class="fas fa-copy text-[11px]"></i> Sao chép
+                            </button>
+                        </div>
+
+                        <!-- NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC) -->
+                        <div class="border-2 border-dashed border-[#0284c7] bg-[#f0f9ff] rounded-xl p-2.5 flex items-center justify-between">
+                            <div>
+                                <span class="block text-[9px] font-extrabold text-rose-500 uppercase tracking-wider">NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC)</span>
+                                <span class="block text-base font-black text-rose-600 font-mono tracking-wider mt-0.5" x-text="maDonHang"></span>
+                            </div>
+                            <button @click="saoChep(maDonHang)" type="button" class="px-2.5 py-1.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                                <i class="fas fa-copy text-[11px]"></i> Sao chép
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <div class="pt-1 space-y-2">
-                    <div class="flex items-center justify-center gap-2 text-xs text-blue-400 font-semibold bg-gray-900 border border-gray-800 rounded-xl py-2 px-3">
-                        <i class="fas fa-circle-notch fa-spin"></i>
+                    <div class="flex items-center justify-center gap-2 text-xs text-blue-400 font-semibold bg-gray-900/90 border border-gray-800 rounded-xl py-2 px-3">
+                        <i class="fas fa-circle-notch fa-spin text-blue-400"></i>
                         <span>Tự động kiểm tra sau: <strong class="text-amber-400 font-mono text-sm" x-text="demNguoc5s + 's'">5s</strong></span>
                     </div>
 
-                    <button @click="kiemTraThanhToanNgay(false)" :disabled="dangKiemTraNgay" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center justify-center gap-2">
+                    <button @click="kiemTraThanhToanNgay(false)" :disabled="dangKiemTraNgay" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-bold text-xs transition shadow-lg shadow-green-600/30 flex items-center justify-center gap-2">
                         <i class="fas fa-magnifying-glass" :class="dangKiemTraNgay ? 'fa-spin' : ''"></i>
                         <span x-text="dangKiemTraNgay ? 'Đang kiểm tra với ngân hàng...' : 'Kiểm Tra Ngay'">Kiểm Tra Ngay</span>
                     </button>
@@ -431,6 +494,42 @@ foreach ($softwares as $p) {
                         this.dangTaoDon = false;
                         this.thongBaoLoiPopup = 'Lỗi kết nối máy chủ, vui lòng thử lại sau!';
                     });
+            },
+
+            // Thanh toán trực tiếp bằng số dư ví người dùng
+            thanhToanBangVi() {
+                if (!this.sanPhamDangMua) return;
+                this.dangTaoDon = true;
+                this.thongBaoLoiPopup = '';
+
+                const formData = new FormData();
+                formData.append('action', 'mua_bang_so_du');
+                formData.append('product_id', this.sanPhamDangMua.id);
+                formData.append('coupon_code', this.maGiamGia);
+
+                fetch('/backend/api.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    this.dangTaoDon = false;
+                    if (data.thanh_cong) {
+                        this.maDonHang = data.ma_don_hang;
+                        this.daThanhToan = true;
+                        if (data.tai_khoan && data.tai_khoan.length > 0) {
+                            this.thongTinKeyNhanDuoc = data.tai_khoan.join("\n");
+                        } else {
+                            this.thongTinKeyNhanDuoc = 'sk-vankha-' + this.maDonHang + '-completed';
+                        }
+                    } else {
+                        this.thongBaoLoiPopup = data.thong_bao || 'Lỗi thanh toán ví!';
+                    }
+                })
+                .catch(() => {
+                    this.dangTaoDon = false;
+                    this.thongBaoLoiPopup = 'Lỗi kết nối máy chủ!';
+                });
             },
 
             batDauDemNguocVaKiemTra() {

@@ -328,12 +328,19 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
     </section>
 
     <!-- POPUP THANH TOÁN VIETQR TỰ ĐỘNG (MODAL) -->
-    <div x-show="moPopupThanhToan" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" style="display: none;" x-transition>
-        <div class="bg-[#111827] border border-gray-800 rounded-3xl max-w-md w-full p-6 relative shadow-2xl overflow-hidden">
+    <div x-show="moPopupThanhToan" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm" style="display: none;" x-transition>
+        <div class="bg-[#111827] border border-gray-800 rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-5 relative shadow-2xl overflow-y-auto max-h-[92vh] my-auto">
             
-            <button @click="dongThanhToan()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
-                <i class="fas fa-times text-lg"></i>
-            </button>
+            <!-- HEADER MODAL & NÚT ĐÓNG TÁCH BIỆT KHÔNG ĐÈ LÊN THẺ NẰM BÊN TRONG -->
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-gray-800">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+                    <h3 class="text-xs sm:text-sm font-bold text-white tracking-wide" x-text="daThanhToan ? 'Thanh Toán Thành Công' : (daTaoDon ? 'Thanh Toán VietQR Tự Động' : 'Thông Tin Đơn Hàng')"></h3>
+                </div>
+                <button @click="dongThanhToan()" type="button" class="w-8 h-8 rounded-full bg-gray-800/90 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center transition border border-gray-700/50">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            </div>
 
             <!-- BƯỚC 1: NHẬP THÔNG TIN & XÁC THỰC BẢO MẬT CAPTCHA -->
             <div x-show="!daTaoDon && !daThanhToan">
@@ -397,78 +404,63 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                 </div>
             </div>
 
-            <!-- BƯỚC 2: QUÉT MÃ VIETQR ĐỂ CHUYỂN KHOẢN (CHUẨN THEO ẢNH GIAO DIỆN) -->
+            <!-- BƯỚC 2: QUÉT MÃ VIETQR ĐỂ CHUYỂN KHOẢN (GIAO DIỆN TỐI ƯU MOBILE GỌN ĐẸP) -->
             <div x-show="daTaoDon && !daThanhToan" class="space-y-3">
                 
                 <!-- Khung Thẻ VietQR nền trắng sang trọng chuẩn mẫu ảnh -->
-                <div class="bg-white text-gray-900 rounded-2xl p-4 sm:p-5 shadow-xl border border-gray-100">
+                <div class="bg-white text-gray-900 rounded-2xl p-3.5 sm:p-4 shadow-xl border border-gray-100">
                     
                     <!-- Dòng tiêu đề Ngân hàng ACB + Huy hiệu Tự động 24/7 -->
-                    <div class="flex items-center justify-between pb-3 mb-3 border-b border-gray-100">
-                        <div class="flex items-center gap-2.5">
-                            <span class="text-xl font-black text-[#005ba6] tracking-tight">ACB</span>
+                    <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-gray-100">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg font-black text-[#005ba6] tracking-tight">ACB</span>
                             <span class="text-xs font-semibold text-gray-700"><?= defined('BANK_FULL_NAME') ? BANK_FULL_NAME : 'Ngân hàng TMCP Á Châu' ?></span>
                         </div>
-                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
-                            <i class="fas fa-bolt text-[10px]"></i> Tự động 24/7
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
+                            <i class="fas fa-bolt text-[9px]"></i> Tự động 24/7
                         </span>
                     </div>
 
-                    <!-- Khung ảnh QR code VietQR -->
-                    <div class="border border-gray-200 rounded-2xl p-4 bg-white flex flex-col items-center justify-center mb-3.5 shadow-sm">
-                        <div class="flex items-center gap-1 mb-2 font-black text-sm tracking-wider">
-                            <span class="text-rose-600">VIET</span><span class="text-blue-600">QR</span>
-                        </div>
-                        <img :src="linkVietQr" alt="Mã VietQR" class="w-56 h-auto object-contain mx-auto rounded-lg">
-                        <div class="flex items-center justify-center gap-2 text-[11px] text-gray-500 font-semibold mt-2.5">
-                            <span class="text-blue-600 font-bold">napas<span class="text-red-500 font-normal">247</span></span>
-                            <span>|</span>
-                            <span class="text-[#005ba6] font-bold">ACB</span>
-                        </div>
-                        <p class="text-[11px] text-gray-500 mt-1">Quét mã VietQR để chuyển tiền nhanh</p>
+                    <!-- Khung ảnh QR code VietQR tinh gọn chuẩn mobile -->
+                    <div class="border border-gray-200 rounded-xl p-2 bg-white flex flex-col items-center justify-center mb-2.5 shadow-sm">
+                        <img :src="linkVietQr" alt="Mã VietQR" class="w-44 sm:w-48 h-auto object-contain mx-auto rounded-lg">
                     </div>
 
-                    <!-- Thông tin tài khoản & nội dung chuyển khoản -->
-                    <div class="space-y-2.5 text-left">
+                    <!-- Thông tin tài khoản & nội dung chuyển khoản gọn gàng -->
+                    <div class="space-y-2 text-left">
                         
-                        <!-- TÊN SẢN PHẨM -->
-                        <div class="border border-blue-200 rounded-xl px-3.5 py-2.5 bg-blue-50/50">
-                            <span class="block text-[10px] font-bold text-blue-600 uppercase tracking-wider">TÊN SẢN PHẨM</span>
-                            <span class="block text-sm font-black text-gray-900 mt-0.5" x-text="tenSanPhamChon"></span>
-                        </div>
-
-                        <!-- CHỦ TÀI KHOẢN -->
-                        <div class="border border-gray-200 rounded-xl px-3.5 py-2.5 bg-gray-50/50">
-                            <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">CHỦ TÀI KHOẢN</span>
-                            <span class="block text-sm font-black text-gray-900 mt-0.5"><?= BANK_ACCOUNT_NAME ?></span>
-                        </div>
-
-                        <!-- SỐ TÀI KHOẢN + NÚT SAO CHÉP -->
-                        <div class="border border-gray-200 rounded-xl px-3.5 py-2.5 bg-gray-50/50 flex items-center justify-between">
-                            <div>
-                                <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">SỐ TÀI KHOẢN</span>
-                                <span class="block text-base font-black text-[#0284c7] mt-0.5 font-mono"><?= BANK_ACCOUNT_NO ?></span>
+                        <!-- DÒNG SẢN PHẨM & SỐ TIỀN THANH TOÁN -->
+                        <div class="flex items-center justify-between p-2 rounded-xl bg-blue-50/80 border border-blue-200/60">
+                            <div class="min-w-0 pr-2">
+                                <span class="block text-[9px] font-bold text-blue-600 uppercase tracking-wider">SẢN PHẨM</span>
+                                <span class="block text-xs font-black text-gray-900 truncate" x-text="tenSanPhamChon"></span>
                             </div>
-                            <button @click="saoChep('<?= BANK_ACCOUNT_NO ?>')" class="px-3 py-1.5 rounded-lg bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-bold transition flex items-center gap-1 shadow-sm">
-                                <i class="fas fa-copy"></i> Sao chép
+                            <div class="text-right shrink-0">
+                                <span class="block text-[9px] font-bold text-gray-500 uppercase tracking-wider">SỐ TIỀN</span>
+                                <span class="block text-sm font-black text-emerald-600 font-mono" x-text="dinhDangTien(giaTienChon)"></span>
+                            </div>
+                        </div>
+
+                        <!-- SỐ TÀI KHOẢN + CHỦ TÀI KHOẢN + NÚT SAO CHÉP -->
+                        <div class="border border-gray-200 rounded-xl p-2.5 bg-gray-50/80 flex items-center justify-between">
+                            <div>
+                                <span class="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">SỐ TÀI KHOẢN (<?= BANK_ACCOUNT_NAME ?>)</span>
+                                <span class="block text-sm font-black text-[#0284c7] font-mono mt-0.5"><?= BANK_ACCOUNT_NO ?></span>
+                            </div>
+                            <button @click="saoChep('<?= BANK_ACCOUNT_NO ?>')" type="button" class="px-2.5 py-1.5 rounded-lg bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                                <i class="fas fa-copy text-[11px]"></i> Sao chép
                             </button>
                         </div>
 
-                        <!-- NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC) - VIỀN NÉT ĐỨT XANH DƯƠNG -->
-                        <div class="border-2 border-dashed border-[#0284c7] bg-[#f0f9ff] rounded-xl px-3.5 py-2.5 flex items-center justify-between">
+                        <!-- NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC) - VIỀN NÉT ĐỨT -->
+                        <div class="border-2 border-dashed border-[#0284c7] bg-[#f0f9ff] rounded-xl p-2.5 flex items-center justify-between">
                             <div>
-                                <span class="block text-[10px] font-extrabold text-rose-500 uppercase tracking-wider">NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC)</span>
-                                <span class="block text-base font-black text-rose-600 mt-0.5 font-mono tracking-wide" x-text="maDonHang"></span>
+                                <span class="block text-[9px] font-extrabold text-rose-500 uppercase tracking-wider">NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC)</span>
+                                <span class="block text-base font-black text-rose-600 font-mono tracking-wider mt-0.5" x-text="maDonHang"></span>
                             </div>
-                            <button @click="saoChep(maDonHang)" class="px-3 py-1.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold transition flex items-center gap-1 shadow-sm">
-                                <i class="fas fa-copy"></i> Sao chép
+                            <button @click="saoChep(maDonHang)" type="button" class="px-2.5 py-1.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                                <i class="fas fa-copy text-[11px]"></i> Sao chép
                             </button>
-                        </div>
-
-                        <!-- SỐ TIỀN THANH TOÁN -->
-                        <div class="flex justify-between items-center px-1 pt-1 text-xs">
-                            <span class="text-gray-500 font-semibold">Số tiền thanh toán:</span>
-                            <span class="text-base font-black text-emerald-600 font-mono" x-text="dinhDangTien(giaTienChon)"></span>
                         </div>
 
                     </div>
