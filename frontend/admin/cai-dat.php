@@ -30,6 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['luu_cai_dat'])) {
         'sepay_account_name' => trim($_POST['sepay_account_name'] ?? BANK_ACCOUNT_NAME),
         'sepay_bank_name' => trim($_POST['sepay_bank_name'] ?? BANK_NAME),
         'sepay_api_key' => trim($_POST['sepay_api_key'] ?? SEPAY_API_KEY),
+        'sepay_webhook_secret' => trim($_POST['sepay_webhook_secret'] ?? ''),
         'telegram_bot_token' => trim($_POST['telegram_bot_token'] ?? ''),
         'telegram_chat_id' => trim($_POST['telegram_chat_id'] ?? '')
     ];
@@ -159,6 +160,10 @@ $rawSettings = $pdo->query("SELECT `key`, `value` FROM `settings`")->fetchAll(PD
                     <div>
                         <label class="block text-gray-300 font-semibold mb-1">API Key SePay.vn:</label>
                         <input type="text" name="sepay_api_key" value="<?= htmlspecialchars($rawSettings['sepay_api_key'] ?? SEPAY_API_KEY) ?>" placeholder="API Key từ SePay.vn" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-300 font-semibold mb-1">Webhook Secret Key (HMAC-SHA256):</label>
+                        <input type="text" name="sepay_webhook_secret" value="<?= htmlspecialchars($rawSettings['sepay_webhook_secret'] ?? layGiaTriEnv('SEPAY_WEBHOOK_SECRET', '')) ?>" placeholder="VD: whsec_abc123... (Bấm nút xoay tròn trên SePay để tạo)" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-green-400 font-mono focus:outline-none focus:border-amber-500">
                     </div>
                 </div>
 

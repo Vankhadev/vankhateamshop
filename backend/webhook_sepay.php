@@ -29,7 +29,28 @@ try {
     $signature = $_SERVER['HTTP_X_SEPAY_SIGNATURE'] ?? '';
     $timestamp = (int)($_SERVER['HTTP_X_SEPAY_TIMESTAMP'] ?? 0);
     $webhookSecret = layGiaTriEnv('SEPAY_WEBHOOK_SECRET', '');
+    // Nếu trong .env chưa có, kiểm tra bảng settings được cấu hình trong Admin
+    if (empty($webhookSecret) || $webhookSecret === 'your_sepay_webhook_secret_here') {
+        try {
+            $stmtSec = $pdo->prepare("SELECT `value` FROM `settings` WHERE `key` = 'sepay_webhook_secret' LIMIT 1");
+            $stmtSec->execute();
+            $val = $stmtSec->fetchColumn();
+            if (!empty($val)) {
+                $webhookSecret = trim($val);
+            }
+        } catch (Exception $e) {}
+    }
     $apiKey = layGiaTriEnv('SEPAY_API_KEY', '');
+    if (empty($apiKey) || $apiKey === 'YOUR_SEPAY_API_KEY') {
+        try {
+            $stmtKey = $pdo->prepare("SELECT `value` FROM `settings` WHERE `key` = 'sepay_api_key' LIMIT 1");
+            $stmtKey->execute();
+            $valKey = $stmtKey->fetchColumn();
+            if (!empty($valKey)) {
+                $apiKey = trim($valKey);
+            }
+        } catch (Exception $e) {}
+    }
     $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
 
     // CÁCH 1: Xác thực bằng HMAC-SHA256 (Khuyến nghị chuẩn Production)
