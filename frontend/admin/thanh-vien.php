@@ -1,7 +1,7 @@
 <?php
 // ========================================================
 // TRANG QUẢN LÝ THÀNH VIÊN (ADMIN USERS MANAGEMENT)
-// vankhateamshop - Danh sách người dùng, xem số dư, cộng/trừ tiền ví thủ công, khóa/xóa tài khoản
+// vankhateamshop - Danh sách người dùng, xem số dư, cộng/trừ tiền ví, khóa/mở, nâng đại lý, xóa tài khoản
 // Ghi chú code 100% bằng Tiếng Việt dễ hiểu
 // ========================================================
 
@@ -113,6 +113,7 @@ foreach ($users as $u) {
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0B0F19; color: #E5E7EB; }
+        [x-cloak] { display: none !important; }
     </style>
 </head>
 <body x-data="ungDungThanhVien()" class="min-h-screen bg-[#0B0F19] text-[#E5E7EB] antialiased">
@@ -143,209 +144,302 @@ foreach ($users as $u) {
             </header>
 
             <!-- NỘI DUNG QUẢN TRỊ CHÍNH -->
-            <main class="p-6 lg:p-8 flex-1 max-w-7xl w-full mx-auto">
+            <main class="p-6 lg:p-8 flex-1 max-w-7xl w-full mx-auto space-y-6">
         
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <div>
-                <h1 class="text-xl font-bold text-white flex items-center gap-2">
-                    <i class="fas fa-users text-amber-500"></i> Quản Lý Danh Sách Thành Viên
-                </h1>
-                <p class="text-xs text-gray-400 mt-1">Xem thông tin khách hàng, số dư ví hiện tại, nạp/trừ tiền thủ công và xóa tài khoản</p>
-            </div>
-            
-            <form method="GET" action="" class="flex items-center gap-2 w-full sm:w-auto">
-                <input type="text" name="q" value="<?= htmlspecialchars($search) ?>" placeholder="Tìm tên, email..." class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-700 text-white text-xs w-64 focus:border-amber-500 focus:outline-none">
-                <button type="submit" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition">
-                    <i class="fas fa-magnifying-glass"></i>
-                </button>
-            </form>
-        </div>
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-xl font-bold text-white flex items-center gap-2">
+                            <i class="fas fa-users text-amber-500"></i> Quản Lý Danh Sách Thành Viên
+                        </h1>
+                        <p class="text-xs text-gray-400 mt-1">Xem thông tin khách hàng, số dư ví hiện tại, nạp/trừ tiền thủ công, nâng đại lý, khóa/mở và xóa tài khoản</p>
+                    </div>
+                    
+                    <form method="GET" action="" class="flex items-center gap-2 w-full sm:w-auto">
+                        <input type="text" name="q" value="<?= htmlspecialchars($search) ?>" placeholder="Tìm tên, email..." class="px-3.5 py-2 rounded-xl bg-gray-900 border border-gray-700 text-white text-xs w-64 focus:border-amber-500 focus:outline-none">
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition">
+                            <i class="fas fa-magnifying-glass"></i>
+                        </button>
+                    </form>
+                </div>
 
-        <?php if (!empty($thongBao)): ?>
-            <div class="p-4 rounded-xl mb-6 flex items-center gap-3 text-xs font-bold <?= $loaiThongBao === 'success' ? 'bg-green-950/70 border border-green-700 text-green-300' : 'bg-red-950/70 border border-red-700 text-red-300' ?>">
-                <i class="fas <?= $loaiThongBao === 'success' ? 'fa-circle-check text-green-400' : 'fa-circle-exclamation text-red-400' ?> text-base"></i>
-                <span><?= htmlspecialchars($thongBao) ?></span>
-            </div>
-        <?php endif; ?>
+                <?php if (!empty($thongBao)): ?>
+                    <div class="p-4 rounded-xl flex items-center gap-3 text-xs font-bold <?= $loaiThongBao === 'success' ? 'bg-green-950/70 border border-green-700 text-green-300' : 'bg-red-950/70 border border-red-700 text-red-300' ?>">
+                        <i class="fas <?= $loaiThongBao === 'success' ? 'fa-circle-check text-green-400' : 'fa-circle-exclamation text-red-400' ?> text-base"></i>
+                        <span><?= htmlspecialchars($thongBao) ?></span>
+                    </div>
+                <?php endif; ?>
 
-        <!-- THANH CÔNG CỤ XÓA HÀNG LOẠT (BULK ACTION BAR) -->
-        <div x-show="danhSachChon.length > 0" class="mb-4 p-3.5 rounded-2xl bg-red-950/70 border border-red-800 flex items-center justify-between shadow-lg" style="display: none;" x-transition>
-            <div class="text-xs text-red-200 font-bold flex items-center gap-2">
-                <i class="fas fa-trash-can text-red-400"></i>
-                <span>Đã tích chọn <strong class="text-white text-sm" x-text="danhSachChon.length"></strong> thành viên</span>
-            </div>
-            <form method="POST" action="" onsubmit="return confirm('CẢNH BÁO: Bạn có chắc chắn muốn XÓA HÀNG LOẠT tất cả ' + danhSachChon.length + ' tài khoản đã chọn? Thao tác không thể hoàn tác!');">
-                <input type="hidden" name="action" value="xoa_hang_loat">
-                <template x-for="id in danhSachChon" :key="id">
-                    <input type="hidden" name="ids[]" :value="id">
-                </template>
-                <button type="submit" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs transition shadow-md flex items-center gap-2">
-                    <i class="fas fa-trash-can"></i> Xóa Đã Chọn
-                </button>
-            </form>
-        </div>
+                <!-- THANH CÔNG CỤ XÓA HÀNG LOẠT (BULK ACTION BAR) -->
+                <div x-show="danhSachChon.length > 0" x-cloak class="p-3.5 rounded-2xl bg-red-950/70 border border-red-800 flex items-center justify-between shadow-lg" x-transition>
+                    <div class="text-xs text-red-200 font-bold flex items-center gap-2">
+                        <i class="fas fa-trash-can text-red-400"></i>
+                        <span>Đã tích chọn <strong class="text-white text-sm" x-text="danhSachChon.length"></strong> thành viên</span>
+                    </div>
+                    <form method="POST" action="" onsubmit="return confirm('CẢNH BÁO: Bạn có chắc chắn muốn XÓA HÀNG LOẠT tất cả ' + danhSachChon.length + ' tài khoản đã chọn? Thao tác không thể hoàn tác!');">
+                        <input type="hidden" name="action" value="xoa_hang_loat">
+                        <template x-for="id in danhSachChon" :key="id">
+                            <input type="hidden" name="ids[]" :value="id">
+                        </template>
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs transition shadow-md flex items-center gap-2">
+                            <i class="fas fa-trash-can"></i> Xóa Đã Chọn
+                        </button>
+                    </form>
+                </div>
 
-        <!-- BẢNG DANH SÁCH THÀNH VIÊN -->
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs">
-                    <thead class="bg-gray-800/80 text-gray-400 font-bold uppercase tracking-wider border-b border-gray-700">
-                        <tr>
-                            <th class="py-3.5 px-3 w-10 text-center">
-                                <input type="checkbox" @change="chonTatCa($event)" class="w-4 h-4 rounded bg-gray-800 border-gray-700 text-amber-500 focus:ring-0 cursor-pointer">
-                            </th>
-                            <th class="py-3.5 px-4">ID / Thành Viên</th>
-                            <th class="py-3.5 px-4">Email</th>
-                            <th class="py-3.5 px-4">Số Dư Ví</th>
-                            <th class="py-3.5 px-4 text-center">Vai Trò</th>
-                            <th class="py-3.5 px-4 text-center">Trạng Thái</th>
-                            <th class="py-3.5 px-4">Ngày Đăng Ký</th>
-                            <th class="py-3.5 px-4 text-center">Thao Tác</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-800/60 font-medium">
-                        <?php if (empty($users)): ?>
-                            <tr>
-                                <td colspan="8" class="py-8 text-center text-gray-500">Không tìm thấy thành viên nào.</td>
-                            </tr>
-                        <?php endif; ?>
+                <!-- BẢNG DANH SÁCH THÀNH VIÊN -->
+                <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-gray-800/80 text-gray-400 font-bold uppercase tracking-wider border-b border-gray-700">
+                                <tr>
+                                    <th class="py-3.5 px-3 w-10 text-center">
+                                        <input type="checkbox" @change="chonTatCa($event)" class="w-4 h-4 rounded bg-gray-800 border-gray-700 text-amber-500 focus:ring-0 cursor-pointer">
+                                    </th>
+                                    <th class="py-3.5 px-4">ID / Thành Viên</th>
+                                    <th class="py-3.5 px-4">Email</th>
+                                    <th class="py-3.5 px-4">Số Dư Ví</th>
+                                    <th class="py-3.5 px-4 text-center">Vai Trò</th>
+                                    <th class="py-3.5 px-4 text-center">Trạng Thái</th>
+                                    <th class="py-3.5 px-4">Ngày Đăng Ký</th>
+                                    <th class="py-3.5 px-4 text-center">Thao Tác</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-800/60 font-medium">
+                                <?php if (empty($users)): ?>
+                                    <tr>
+                                        <td colspan="8" class="py-8 text-center text-gray-500">Không tìm thấy thành viên nào.</td>
+                                    </tr>
+                                <?php endif; ?>
 
-                        <?php foreach ($users as $u): 
-                            $isCurrentAdmin = ((int)$u['id'] === $currentAdminId);
-                        ?>
-                            <tr class="hover:bg-gray-800/30 transition">
-                                <td class="py-3.5 px-3 text-center">
-                                    <?php if (!$isCurrentAdmin): ?>
-                                        <input type="checkbox" :value="<?= $u['id'] ?>" x-model="danhSachChon" class="w-4 h-4 rounded bg-gray-800 border-gray-700 text-amber-500 focus:ring-0 cursor-pointer">
-                                    <?php else: ?>
-                                        <i class="fas fa-shield-halved text-amber-500/60 text-xs" title="Tài khoản Admin hiện tại"></i>
-                                    <?php endif; ?>
-                                </td>
+                                <?php foreach ($users as $u): 
+                                    $isCurrentAdmin = ((int)$u['id'] === $currentAdminId);
+                                ?>
+                                    <tr class="hover:bg-gray-800/30 transition">
+                                        <td class="py-3.5 px-3 text-center">
+                                            <?php if (!$isCurrentAdmin): ?>
+                                                <input type="checkbox" :value="<?= $u['id'] ?>" x-model="danhSachChon" class="w-4 h-4 rounded bg-gray-800 border-gray-700 text-amber-500 focus:ring-0 cursor-pointer">
+                                            <?php else: ?>
+                                                <i class="fas fa-shield-halved text-amber-500/60 text-xs" title="Tài khoản Admin hiện tại"></i>
+                                            <?php endif; ?>
+                                        </td>
 
-                                <td class="py-3.5 px-4">
-                                    <div class="flex items-center gap-3">
-                                        <?php if (!empty($u['avatar'])): ?>
-                                            <img src="<?= htmlspecialchars($u['avatar']) ?>" class="w-8 h-8 rounded-full object-cover">
-                                        <?php else: ?>
-                                            <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
-                                                <?= mb_substr($u['name'], 0, 1) ?>
+                                        <td class="py-3.5 px-4">
+                                            <div class="flex items-center gap-3">
+                                                <?php if (!empty($u['avatar'])): ?>
+                                                    <img src="<?= htmlspecialchars($u['avatar']) ?>" class="w-8 h-8 rounded-full object-cover">
+                                                <?php else: ?>
+                                                    <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
+                                                        <?= mb_substr($u['name'], 0, 1) ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <div>
+                                                    <div class="font-bold text-white flex items-center gap-1.5">
+                                                        <?= htmlspecialchars($u['name']) ?>
+                                                        <?php if (!empty($u['google_id'])): ?>
+                                                            <i class="fab fa-google text-[10px] text-blue-400" title="Tài khoản Google"></i>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <span class="text-[10px] text-gray-500 font-mono">ID: #<?= $u['id'] ?></span>
+                                                </div>
                                             </div>
-                                        <?php endif; ?>
-                                        <div>
-                                            <div class="font-bold text-white flex items-center gap-1.5">
-                                                <?= htmlspecialchars($u['name']) ?>
-                                                <?php if (!empty($u['google_id'])): ?>
-                                                    <i class="fab fa-google text-[10px] text-blue-400" title="Tài khoản Google"></i>
+                                        </td>
+
+                                        <td class="py-3.5 px-4 text-gray-300 font-mono text-[11px]">
+                                            <?= htmlspecialchars($u['email']) ?>
+                                        </td>
+
+                                        <td class="py-3.5 px-4">
+                                            <span class="font-bold text-green-400 text-sm">
+                                                <?= number_format($u['balance'], 0, ',', '.') ?>đ
+                                            </span>
+                                        </td>
+
+                                        <td class="py-3.5 px-4 text-center">
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase <?= $u['role'] === 'admin' ? 'bg-amber-950 text-amber-400 border border-amber-800' : 'bg-gray-800 text-gray-400' ?>">
+                                                <?= $u['role'] ?>
+                                            </span>
+                                            <?php if (!empty($u['is_reseller'])): ?>
+                                                <div class="mt-1 px-2 py-0.5 rounded text-[9px] font-bold bg-purple-900/60 text-purple-300 border border-purple-700/60" title="Đại lý chiết khấu">
+                                                    <i class="fas fa-handshake mr-0.5"></i> Đại Lý (-<?= (float)$u['reseller_discount'] ?>%)
+                                                </div>
+                                            <?php endif; ?>
+                                        </td>
+
+                                        <td class="py-3.5 px-4 text-center">
+                                            <?php if (!$isCurrentAdmin): ?>
+                                                <button @click="doiTrangThaiUser(<?= $u['id'] ?>, <?= $u['is_active'] ? 0 : 1 ?>)" 
+                                                        class="px-2 py-0.5 rounded-full text-[10px] font-bold transition <?= $u['is_active'] ? 'bg-green-950 text-green-400 border border-green-800 hover:bg-red-950 hover:text-red-400' : 'bg-red-950 text-red-400 border border-red-800 hover:bg-green-950 hover:text-green-400' ?>"
+                                                        title="Bấm để đổi trạng thái khóa/mở">
+                                                    <i class="fas <?= $u['is_active'] ? 'fa-circle-check text-green-400' : 'fa-ban text-red-400' ?> mr-1"></i>
+                                                    <?= $u['is_active'] ? 'Đang hoạt động' : 'Đã khóa' ?>
+                                                </button>
+                                            <?php else: ?>
+                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-950 text-green-400 border border-green-800">
+                                                    <i class="fas fa-circle-check mr-1"></i> Đang hoạt động
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
+
+                                        <td class="py-3.5 px-4 text-gray-500 text-[11px]">
+                                            <?= date('d/m/Y H:i', strtotime($u['created_at'])) ?>
+                                        </td>
+
+                                        <!-- CỘT THAO TÁC ĐẦY ĐỦ -->
+                                        <td class="py-3.5 px-4 text-center">
+                                            <div class="flex items-center justify-center gap-1.5">
+                                                <!-- 1. CỘNG / TRỪ TIỀN -->
+                                                <button @click="moModalDieuChinh(<?= $u['id'] ?>, '<?= addslashes($u['name']) ?>', <?= $u['balance'] ?>)" 
+                                                        class="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition shadow-md shadow-amber-600/30 flex items-center gap-1" title="Cộng / Trừ tiền">
+                                                    <i class="fas fa-coins"></i>
+                                                </button>
+
+                                                <!-- 2. NÂNG ĐẠI LÝ / CẤU HÌNH VAI TRÒ -->
+                                                <button @click="moModalVaiTro(<?= htmlspecialchars(json_encode($u)) ?>)" 
+                                                        class="px-2.5 py-1.5 rounded-lg bg-purple-900/70 hover:bg-purple-600 text-purple-300 hover:text-white font-bold text-xs transition border border-purple-700/80 shadow" title="Nâng Đại Lý / Cấu Hình Chiết Khấu / Vai Trò">
+                                                    <i class="fas fa-handshake"></i>
+                                                </button>
+
+                                                <!-- 3. KHÓA / MỞ KHÓA NHANH -->
+                                                <?php if (!$isCurrentAdmin): ?>
+                                                    <button @click="doiTrangThaiUser(<?= $u['id'] ?>, <?= $u['is_active'] ? 0 : 1 ?>)" 
+                                                            class="px-2.5 py-1.5 rounded-lg font-bold text-xs transition border <?= $u['is_active'] ? 'bg-yellow-950/60 hover:bg-yellow-600 text-yellow-400 hover:text-white border-yellow-800/80' : 'bg-green-950/60 hover:bg-green-600 text-green-400 hover:text-white border-green-800/80' ?>" 
+                                                            title="<?= $u['is_active'] ? 'Khóa tài khoản này' : 'Mở khóa tài khoản' ?>">
+                                                        <i class="fas <?= $u['is_active'] ? 'fa-lock' : 'fa-lock-open' ?>"></i>
+                                                    </button>
+                                                <?php endif; ?>
+
+                                                <!-- 4. XÓA TÀI KHOẢN -->
+                                                <?php if (!$isCurrentAdmin): ?>
+                                                    <form method="POST" action="" onsubmit="return confirm('Bạn có chắc muốn xóa vĩnh viễn tài khoản \'<?= addslashes($u['name']) ?>\'? Tất cả dữ liệu liên quan sẽ bị xóa!');" class="inline">
+                                                        <input type="hidden" name="action" value="xoa_user">
+                                                        <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
+                                                        <button type="submit" class="px-2.5 py-1.5 rounded-lg bg-red-950/60 hover:bg-red-600 text-red-400 hover:text-white font-bold text-xs transition border border-red-800/80" title="Xóa tài khoản này">
+                                                            <i class="fas fa-trash-can"></i>
+                                                        </button>
+                                                    </form>
                                                 <?php endif; ?>
                                             </div>
-                                            <span class="text-[10px] text-gray-500 font-mono">ID: #<?= $u['id'] ?></span>
-                                        </div>
-                                    </div>
-                                </td>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
 
-                                <td class="py-3.5 px-4 text-gray-300 font-mono text-[11px]">
-                                    <?= htmlspecialchars($u['email']) ?>
-                                </td>
+                <!-- MODAL CỘNG / TRỪ TIỀN VÍ THỦ CÔNG -->
+                <div x-show="moModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" x-transition>
+                    <div class="bg-gray-900 border border-gray-800 rounded-3xl max-w-md w-full p-6 relative shadow-2xl">
+                        <button @click="moModal = false" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                            <i class="fas fa-times text-lg"></i>
+                        </button>
 
-                                <td class="py-3.5 px-4">
-                                    <span class="font-bold text-green-400 text-sm">
-                                        <?= number_format($u['balance'], 0, ',', '.') ?>đ
-                                    </span>
-                                </td>
+                        <h3 class="text-base font-bold text-white mb-1 flex items-center gap-2">
+                            <i class="fas fa-coins text-amber-500"></i> Điều Chỉnh Số Dư Thành Viên
+                        </h3>
+                        <p class="text-xs text-gray-400 mb-4">Thành viên: <span class="text-white font-bold" x-text="tenUserDangChon"></span></p>
 
-                                <td class="py-3.5 px-4 text-center">
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase <?= $u['role'] === 'admin' ? 'bg-amber-950 text-amber-400 border border-amber-800' : 'bg-gray-800 text-gray-400' ?>">
-                                        <?= $u['role'] ?>
-                                    </span>
-                                    <?php if (!empty($u['is_reseller'])): ?>
-                                        <a href="/admin/dai-ly" class="block mt-1 px-2 py-0.5 rounded text-[9px] font-bold bg-purple-900/60 text-purple-300 border border-purple-700/60 hover:bg-purple-800" title="Xem thông tin đại lý">
-                                            <i class="fas fa-handshake mr-0.5"></i> Đại Lý (-<?= (float)$u['reseller_discount'] ?>%)
-                                        </a>
-                                    <?php endif; ?>
-                                </td>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-300 mb-1">Loại thao tác:</label>
+                                <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+                                    <button @click="loaiThaoTac = 'CONG'" :class="loaiThaoTac === 'CONG' ? 'bg-green-600 text-white' : 'bg-gray-800 text-gray-400'" class="py-2 rounded-xl transition">
+                                        <i class="fas fa-plus mr-1"></i> Cộng Tiền (Nạp)
+                                    </button>
+                                    <button @click="loaiThaoTac = 'TRU'" :class="loaiThaoTac === 'TRU' ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-400'" class="py-2 rounded-xl transition">
+                                        <i class="fas fa-minus mr-1"></i> Trừ Tiền
+                                    </button>
+                                </div>
+                            </div>
 
-                                <td class="py-3.5 px-4 text-center">
-                                    <?php if (!$isCurrentAdmin): ?>
-                                        <button @click="doiTrangThaiUser(<?= $u['id'] ?>, <?= $u['is_active'] ? 0 : 1 ?>)" 
-                                                class="px-2 py-0.5 rounded-full text-[10px] font-bold transition <?= $u['is_active'] ? 'bg-green-950 text-green-400 border border-green-800 hover:bg-red-950' : 'bg-red-950 text-red-400 border border-red-800 hover:bg-green-950' ?>">
-                                            <?= $u['is_active'] ? 'Đang hoạt động' : 'Đã khóa' ?>
-                                        </button>
-                                    <?php else: ?>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-950 text-green-400 border border-green-800">Đang hoạt động</span>
-                                    <?php endif; ?>
-                                </td>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-300 mb-1">Số tiền (VNĐ):</label>
+                                <input type="number" step="1000" min="1000" x-model="soTienDieuChinh" placeholder="Ví dụ: 50000" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm text-green-400 font-bold focus:outline-none focus:border-amber-500">
+                            </div>
 
-                                <td class="py-3.5 px-4 text-gray-500 text-[11px]">
-                                    <?= date('d/m/Y H:i', strtotime($u['created_at'])) ?>
-                                </td>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-300 mb-1">Lý do điều chỉnh:</label>
+                                <input type="text" x-model="lyDoDieuChinh" placeholder="Ví dụ: Khách chuyển khoản bù tiền, hỗ trợ..." class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                            </div>
 
-                                <td class="py-3.5 px-4 text-center">
-                                    <div class="flex items-center justify-center gap-1.5">
-                                        <button @click="moModalDieuChinh(<?= $u['id'] ?>, '<?= addslashes($u['name']) ?>', <?= $u['balance'] ?>)" 
-                                                class="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition shadow-md shadow-amber-600/30 flex items-center gap-1" title="Cộng / Trừ tiền">
-                                            <i class="fas fa-coins"></i>
-                                        </button>
-
-                                        <?php if (!$isCurrentAdmin): ?>
-                                            <form method="POST" action="" onsubmit="return confirm('Bạn có chắc muốn xóa vĩnh viễn tài khoản \'<?= addslashes($u['name']) ?>\'? Tất cả dữ liệu liên quan sẽ bị xóa!');" class="inline">
-                                                <input type="hidden" name="action" value="xoa_user">
-                                                <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
-                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg bg-red-950/60 hover:bg-red-600 text-red-400 hover:text-white font-bold text-xs transition border border-red-800/80" title="Xóa tài khoản này">
-                                                    <i class="fas fa-trash-can"></i>
-                                                </button>
-                                            </form>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- MODAL CỘNG / TRỪ TIỀN VÍ THỦ CÔNG -->
-        <div x-show="moModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" style="display: none;" x-transition>
-            <div class="bg-gray-900 border border-gray-800 rounded-3xl max-w-md w-full p-6 relative shadow-2xl">
-                <button @click="moModal = false" class="absolute top-4 right-4 text-gray-400 hover:text-white">
-                    <i class="fas fa-times text-lg"></i>
-                </button>
-
-                <h3 class="text-base font-bold text-white mb-1 flex items-center gap-2">
-                    <i class="fas fa-coins text-amber-500"></i> Điều Chỉnh Số Dư Thành Viên
-                </h3>
-                <p class="text-xs text-gray-400 mb-4">Thành viên: <span class="text-white font-bold" x-text="tenUserDangChon"></span></p>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-300 mb-1">Loại thao tác:</label>
-                        <div class="grid grid-cols-2 gap-2 text-xs font-bold">
-                            <button @click="loaiThaoTac = 'CONG'" :class="loaiThaoTac === 'CONG' ? 'bg-green-600 text-white' : 'bg-gray-800 text-gray-400'" class="py-2 rounded-xl transition">
-                                <i class="fas fa-plus mr-1"></i> Cộng Tiền (Nạp)
-                            </button>
-                            <button @click="loaiThaoTac = 'TRU'" :class="loaiThaoTac === 'TRU' ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-400'" class="py-2 rounded-xl transition">
-                                <i class="fas fa-minus mr-1"></i> Trừ Tiền
+                            <button @click="xacNhanDieuChinh()" :disabled="dangXuLy" class="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition duration-200 shadow-md shadow-amber-600/30 flex items-center justify-center gap-1.5">
+                                <span x-show="!dangXuLy"><i class="fas fa-check mr-1"></i> Xác Nhận Điều Chỉnh</span>
+                                <span x-show="dangXuLy"><i class="fas fa-circle-notch fa-spin mr-1"></i> Đang xử lý...</span>
                             </button>
                         </div>
                     </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-300 mb-1">Số tiền (VNĐ):</label>
-                        <input type="number" step="1000" min="1000" x-model="soTienDieuChinh" placeholder="Ví dụ: 50000" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm text-green-400 font-bold focus:outline-none focus:border-amber-500">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-300 mb-1">Lý do điều chỉnh:</label>
-                        <input type="text" x-model="lyDoDieuChinh" placeholder="Ví dụ: Khách chuyển khoản bù tiền, hỗ trợ..." class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
-                    </div>
-
-                    <button @click="xacNhanDieuChinh()" :disabled="dangXuLy" class="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition duration-200 shadow-md shadow-amber-600/30 flex items-center justify-center gap-1.5">
-                        <span x-show="!dangXuLy"><i class="fas fa-check mr-1"></i> Xác Nhận Điều Chỉnh</span>
-                        <span x-show="dangXuLy"><i class="fas fa-circle-notch fa-spin mr-1"></i> Đang xử lý...</span>
-                    </button>
                 </div>
-            </div>
-        </div>
+
+                <!-- MODAL NÂNG CẤP ĐẠI LÝ & CẤU HÌNH VAI TRÒ -->
+                <div x-show="moModalReseller" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" x-transition>
+                    <div class="bg-gray-900 border border-gray-800 rounded-3xl max-w-md w-full p-6 relative shadow-2xl space-y-4">
+                        <button @click="moModalReseller = false" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                            <i class="fas fa-times text-lg"></i>
+                        </button>
+
+                        <h3 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fas fa-handshake text-purple-400"></i> Cấu Hình Đại Lý & Phân Quyền
+                        </h3>
+                        <p class="text-xs text-gray-400">
+                            Thành viên: <strong class="text-white" x-text="resellerForm.name"></strong> (<span class="font-mono text-gray-300" x-text="resellerForm.email"></span>)
+                        </p>
+
+                        <div class="space-y-4 text-xs">
+                            <!-- Vai trò -->
+                            <div>
+                                <label class="block text-gray-300 font-semibold mb-1">Vai trò hệ thống:</label>
+                                <select x-model="resellerForm.role" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-purple-500">
+                                    <option value="user">Thành viên thường (user)</option>
+                                    <option value="admin">Quản trị viên cấp cao (admin)</option>
+                                </select>
+                            </div>
+
+                            <!-- Bật quyền Đại lý -->
+                            <div class="p-3 bg-gray-950 rounded-2xl border border-gray-800 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="font-bold text-white">Quyền Đại Lý Cấp 1</div>
+                                        <div class="text-[11px] text-gray-400">Cho phép hưởng chiết khấu sỉ và dùng API Reseller</div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" x-model="resellerForm.is_reseller" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                                    </label>
+                                </div>
+
+                                <div x-show="resellerForm.is_reseller" class="space-y-3 pt-2 border-t border-gray-800" x-transition>
+                                    <div>
+                                        <label class="block text-gray-300 font-semibold mb-1">Mức chiết khấu đại lý (%):</label>
+                                        <div class="relative">
+                                            <input type="number" step="0.5" min="0" max="90" x-model="resellerForm.reseller_discount" placeholder="5.0" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-purple-300 font-bold font-mono focus:outline-none focus:border-purple-500">
+                                            <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 font-bold">%</span>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-gray-300 font-semibold mb-1">API Key Riêng của Đại Lý:</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="text" readonly :value="resellerForm.reseller_key || 'Chưa cấp key (hệ thống sẽ tự tạo)'" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-[11px] font-mono text-gray-300 truncate">
+                                            <button type="button" @click="capLaiKeyDaiLy()" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-purple-300 rounded-xl font-bold text-xs transition shrink-0" title="Cấp lại key mới">
+                                                <i class="fas fa-rotate"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="pt-2 flex items-center justify-end gap-3">
+                                <button type="button" @click="moModalReseller = false" class="px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold transition">
+                                    Đóng
+                                </button>
+                                <button type="button" @click="luuVaiTroDaiLy()" :disabled="dangLuuReseller" class="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition shadow-lg shadow-purple-600/30 flex items-center gap-2">
+                                    <span x-show="!dangLuuReseller"><i class="fas fa-check"></i> Lưu Cấu Hình</span>
+                                    <span x-show="dangLuuReseller"><i class="fas fa-spinner fa-spin"></i> Đang lưu...</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
             </main>
 
@@ -354,6 +448,7 @@ foreach ($users as $u) {
             </footer>
         </div>
     </div>
+
     <script>
         function ungDungThanhVien() {
             return {
@@ -366,6 +461,19 @@ foreach ($users as $u) {
                 soTienDieuChinh: '',
                 lyDoDieuChinh: '',
                 dangXuLy: false,
+
+                // Quản lý Đại lý & vai trò
+                moModalReseller: false,
+                dangLuuReseller: false,
+                resellerForm: {
+                    user_id: 0,
+                    name: '',
+                    email: '',
+                    role: 'user',
+                    is_reseller: false,
+                    reseller_discount: 5.0,
+                    reseller_key: ''
+                },
 
                 chonTatCa(e) {
                     if (e.target.checked) {
@@ -382,6 +490,64 @@ foreach ($users as $u) {
                     this.lyDoDieuChinh = '';
                     this.loaiThaoTac = 'CONG';
                     this.moModal = true;
+                },
+
+                moModalVaiTro(u) {
+                    this.resellerForm = {
+                        user_id: u.id,
+                        name: u.name,
+                        email: u.email,
+                        role: u.role,
+                        is_reseller: parseInt(u.is_reseller) === 1,
+                        reseller_discount: parseFloat(u.reseller_discount) || 5.0,
+                        reseller_key: u.reseller_key || ''
+                    };
+                    this.moModalReseller = true;
+                },
+
+                async luuVaiTroDaiLy() {
+                    this.dangLuuReseller = true;
+                    const fd = new FormData();
+                    fd.append('action', 'admin_cap_nhat_vai_tro_dai_ly');
+                    fd.append('user_id', this.resellerForm.user_id);
+                    fd.append('role', this.resellerForm.role);
+                    fd.append('is_reseller', this.resellerForm.is_reseller ? 1 : 0);
+                    fd.append('reseller_discount', this.resellerForm.reseller_discount);
+
+                    try {
+                        const res = await fetch('/backend/api.php', { method: 'POST', body: fd });
+                        const d = await res.json();
+                        this.dangLuuReseller = false;
+                        if (d.thanh_cong) {
+                            alert(d.thong_bao);
+                            location.reload();
+                        } else {
+                            alert('Lỗi: ' + (d.thong_bao || 'Không thể cập nhật'));
+                        }
+                    } catch(e) {
+                        this.dangLuuReseller = false;
+                        alert('Lỗi kết nối máy chủ');
+                    }
+                },
+
+                async capLaiKeyDaiLy() {
+                    if (!confirm('Cấp lại API Key mới cho đại lý này? Khách hàng sẽ phải cập nhật key mới vào bot/code!')) return;
+                    const fd = new FormData();
+                    fd.append('action', 'admin_doi_key_dai_ly');
+                    fd.append('user_id', this.resellerForm.user_id);
+
+                    try {
+                        const res = await fetch('/backend/api.php', { method: 'POST', body: fd });
+                        const d = await res.json();
+                        if (d.thanh_cong) {
+                            this.resellerForm.reseller_key = d.reseller_key;
+                            alert('Đã tạo API Key mới thành công!');
+                        } else {
+                            alert('Lỗi: ' + d.thong_bao);
+                        }
+                    } catch(e) {
+                        alert('Lỗi kết nối máy chủ');
+                    }
                 },
 
                 xacNhanDieuChinh() {
@@ -419,7 +585,7 @@ foreach ($users as $u) {
                 },
 
                 doiTrangThaiUser(id, newStatus) {
-                    const msg = newStatus === 1 ? 'Mở khóa tài khoản này?' : 'Khóa tài khoản người dùng này?';
+                    const msg = newStatus === 1 ? 'Mở khóa tài khoản này cho phép đăng nhập và mua hàng?' : 'Khóa tài khoản này? Người dùng sẽ không thể đăng nhập hoặc mua hàng.';
                     if (!confirm(msg)) return;
 
                     const formData = new FormData();

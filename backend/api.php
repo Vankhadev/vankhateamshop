@@ -645,6 +645,357 @@ switch ($hanhDong) {
         ]);
         break;
 
+    // 20. ADMIN: CẬP NHẬT VAI TRÒ & QUYỀN ĐẠI LÝ TOÀN DIỆN
+    case 'admin_cap_nhat_vai_tro_dai_ly':
+        if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Không có quyền']);
+            exit;
+        }
+        $userId = (int)($_POST['user_id'] ?? 0);
+        $role = in_array($_POST['role'] ?? '', ['admin', 'user']) ? $_POST['role'] : 'user';
+        $isReseller = (int)($_POST['is_reseller'] ?? 0);
+        $discount = max(0, min(90, floatval($_POST['reseller_discount'] ?? 5.0)));
+
+        if ($userId <= 0) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Chưa chọn thành viên']);
+            exit;
+        }
+
+        // Kiểm tra xem đã có reseller_key chưa, nếu chưa có mà bật đại lý thì tạo mới
+        $stmtU = $pdo->prepare("SELECT reseller_key FROM `users` WHERE `id` = ?");
+        $stmtU->execute([$userId]);
+        $currentKey = $stmtU->fetchColumn();
+
+        $resellerKey = $currentKey;
+        if ($isReseller === 1 && empty($currentKey)) {
+            $resellerKey = 'vk_partner_' . bin2hex(random_bytes(16));
+        }
+
+        $stmtUp = $pdo->prepare("
+            UPDATE `users` 
+            SET `role` = ?, `is_reseller` = ?, `reseller_discount` = ?, `reseller_key` = ?
+            WHERE `id` = ?
+        ");
+        $stmtUp->execute([$role, $isReseller, $discount, $resellerKey, $userId]);
+
+        ghiNhatKyHeThong('INFO', 'CAP_NHAT_VAI_TRO', "Cập nhật User ID {$userId}: Vai trò={$role}, Đại lý={$isReseller}, Chiết khấu={$discount}%");
+        echo json_encode([
+            'thanh_cong'   => true,
+            'thong_bao'    => 'Đã lưu cấu hình vai trò & đại lý thành công!',
+            'reseller_key' => $resellerKey
+        ]);
+        break;
+
+    // 21. ADMIN: LẤY DANH SÁCH SẢN PHẨM & TỒN KHO THỜI GIAN THỰC TỪ NHÀ CUNG CẤP (GENZSHOP)
+    case 'admin_lay_kho_ncc':
+        if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Không có quyền']);
+            exit;
+        }
+
+        $supplier = $pdo->query("SELECT * FROM `suppliers` WHERE `is_active` = 1 ORDER BY `id` ASC LIMIT 1")->fetch();
+        if (!$supplier) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Chưa kích hoạt nhà cung cấp nào trong hệ thống']);
+            exit;
+        }
+
+        $apiClient = new NhaCungCapApi($supplier['api_url'], $supplier['api_key']);
+        $rawProducts = $apiClient->layDanhSachSanPham();
+
+        if (empty($rawProducts['success']) && empty($rawProducts['products'])) {
+            echo json_encode([
+                'thanh_cong' => false,
+                'thong_bao'  => 'Không thể kết nối hoặc tải sản phẩm từ nhà cung cấp: ' . ($rawProducts['message'] ?? 'Lỗi không xác định')
+            ]);
+            exit;
+        }
+
+        $nccItems = $rawProducts['products'] ?? [];
+
+        // Lấy danh sách mapping hiện tại trong shop
+        $mappings = $pdo->query("
+            SELECT m.supplier_sku, m.stock, m.cost_price, p.id AS product_id, p.name AS product_name, p.price AS product_price, p.is_active AS product_active
+            FROM `supplier_product_mappings` m
+            JOIN `products` p ON m.product_id = p.id
+            WHERE m.supplier_id = {$supplier['id']}
+        ")->fetchAll();
+
+        $mapBySku = [];
+        foreach ($mappings as $m) {
+            $mapBySku[$m['supplier_sku']] = $m;
+        }
+
+        $danhSachSanPham = [];
+        $demDaMap = 0;
+        $demConHang = 0;
+
+        foreach ($nccItems as $it) {
+            $sku = $it['product_id'] ?? '';
+            $isMapped = isset($mapBySku[$sku]);
+            if ($isMapped) $demDaMap++;
+            if (($it['available'] ?? 0) > 0) $demConHang++;
+
+            $danhSachSanPham[] = [
+                'supplier_sku'   => $sku,
+                'name'           => $it['name'] ?? '',
+                'description'    => $it['description'] ?? '',
+                'type'           => $it['type'] ?? 'other',
+                'cost_price'     => (float)($it['walletPricing'] ?? 0),
+                'cost_text'      => $it['walletPricingText'] ?? (number_format($it['walletPricing'] ?? 0, 0, ',', '.') . ' VNĐ'),
+                'stock'          => (int)($it['available'] ?? 0),
+                'is_mapped'      => $isMapped,
+                'shop_product'   => $isMapped ? $mapBySku[$sku] : null
+            ];
+        }
+
+        echo json_encode([
+            'thanh_cong'    => true,
+            'tong_ncc'      => count($nccItems),
+            'da_map'        => $demDaMap,
+            'chua_map'      => count($nccItems) - $demDaMap,
+            'con_hang'      => $demConHang,
+            'supplier_name' => $supplier['name'],
+            'products'      => $danhSachSanPham
+        ]);
+        break;
+
+    // 22. ADMIN: ĐỒNG BỘ TỒN KHO & GIÁ VỐN TỪ NHÀ CUNG CẤP HÀNG LOẠT
+    case 'admin_dong_bo_ton_kho':
+        if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Không có quyền']);
+            exit;
+        }
+
+        $supplier = $pdo->query("SELECT * FROM `suppliers` WHERE `is_active` = 1 ORDER BY `id` ASC LIMIT 1")->fetch();
+        if (!$supplier) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Chưa cấu hình nhà cung cấp']);
+            exit;
+        }
+
+        $apiClient = new NhaCungCapApi($supplier['api_url'], $supplier['api_key']);
+        $rawProducts = $apiClient->layDanhSachSanPham();
+        $nccItems = $rawProducts['products'] ?? [];
+
+        if (empty($nccItems)) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Không lấy được danh sách sản phẩm từ nhà cung cấp']);
+            exit;
+        }
+
+        $stmtUp = $pdo->prepare("
+            UPDATE `supplier_product_mappings` 
+            SET `stock` = ?, `cost_price` = ? 
+            WHERE `supplier_id` = ? AND `supplier_sku` = ?
+        ");
+
+        $demCapNhat = 0;
+        foreach ($nccItems as $it) {
+            $sku = $it['product_id'] ?? '';
+            $stock = (int)($it['available'] ?? 0);
+            $cost = (float)($it['walletPricing'] ?? 0);
+
+            $stmtUp->execute([$stock, $cost, $supplier['id'], $sku]);
+            if ($stmtUp->rowCount() > 0) {
+                $demCapNhat++;
+            }
+        }
+
+        // Cập nhật số dư ví nguồn luôn
+        $kqVi = $apiClient->laySoDuVi();
+        if (!empty($kqVi['success'])) {
+            $pdo->prepare("UPDATE `suppliers` SET `balance` = ? WHERE `id` = ?")->execute([$kqVi['balance'], $supplier['id']]);
+        }
+
+        echo json_encode([
+            'thanh_cong'  => true,
+            'thong_bao'   => "Đã đồng bộ tồn kho và giá vốn thời gian thực cho {$demCapNhat} sản phẩm!",
+            'dem_cap_nhat'=> $demCapNhat
+        ]);
+        break;
+
+    // 23. ADMIN: NHẬP SẢN PHẨM TỪ NHÀ CUNG CẤP VÀO SHOP (1-CLICK IMPORT)
+    case 'admin_nhap_san_pham_ncc':
+        if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Không có quyền']);
+            exit;
+        }
+
+        $supplier = $pdo->query("SELECT * FROM `suppliers` WHERE `is_active` = 1 ORDER BY `id` ASC LIMIT 1")->fetch();
+        if (!$supplier) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Chưa cấu hình nhà cung cấp']);
+            exit;
+        }
+
+        $skuNcc = trim($_POST['supplier_sku'] ?? 'ALL'); // 'ALL' hoặc mã cụ thể như 'CUR-0013'
+        $customPrice = floatval($_POST['custom_price'] ?? 0);
+
+        $apiClient = new NhaCungCapApi($supplier['api_url'], $supplier['api_key']);
+        $rawProducts = $apiClient->layDanhSachSanPham();
+        $nccItems = $rawProducts['products'] ?? [];
+
+        if (empty($nccItems)) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Không tải được danh mục sản phẩm từ nhà cung cấp']);
+            exit;
+        }
+
+        // Danh mục chuẩn và icon tương ứng
+        $danhMucChuan = [
+            'cursor'   => ['ten' => 'Cursor API',       'slug' => 'cursor',   'icon' => 'fa-bolt'],
+            'claude'   => ['ten' => 'Claude API',       'slug' => 'claude',   'icon' => 'fa-brain'],
+            'codex'    => ['ten' => 'Codex API',        'slug' => 'codex',    'icon' => 'fa-code'],
+            'gemini'   => ['ten' => 'Gemini API',       'slug' => 'gemini',   'icon' => 'fa-gem'],
+            'deepseek' => ['ten' => 'DeepSeek API',     'slug' => 'deepseek', 'icon' => 'fa-robot'],
+            'grok'     => ['ten' => 'Grok API',         'slug' => 'grok',     'icon' => 'fa-rocket'],
+            'kimi'     => ['ten' => 'Kimi API',         'slug' => 'kimi',     'icon' => 'fa-moon'],
+            'zhipu'    => ['ten' => 'GLM (Zhipu) API',  'slug' => 'zhipu',    'icon' => 'fa-feather'],
+            'muse'     => ['ten' => 'Muse AI API',      'slug' => 'muse',     'icon' => 'fa-music'],
+            'software' => ['ten' => 'Phần Mềm AI',      'slug' => 'software', 'icon' => 'fa-desktop'],
+            'other'    => ['ten' => 'Sản Phẩm Khác',    'slug' => 'other',    'icon' => 'fa-cube']
+        ];
+
+        // Hàm xóa dấu tiếng việt tạo slug
+        function taoSlugVn($str) {
+            $unicode = [
+                'a'=>'á|à|ả|ã|ạ|ă|ắ|ặ|ằ|ẳ|ẵ|â|ấ|ầ|ẩ|ẫ|ậ',
+                'd'=>'đ',
+                'e'=>'é|è|ẻ|ẽ|ẹ|ê|ế|ề|ể|ễ|ệ',
+                'i'=>'í|ì|ỉ|ĩ|ị',
+                'o'=>'ó|ò|ỏ|õ|ọ|ô|ố|ồ|ổ|ỗ|ộ|ơ|ớ|ờ|ở|ỡ|ợ',
+                'u'=>'ú|ù|ủ|ũ|ụ|ư|ứ|ừ|ử|ữ|ự',
+                'y'=>'ý|ỳ|ỷ|ỹ|ỵ'
+            ];
+            foreach($unicode as $nonAccent=>$accent){
+                $str = preg_replace("/($accent)/iu", $nonAccent, $str);
+            }
+            $slug = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '-', $str));
+            return trim($slug, '-');
+        }
+
+        // Lấy danh mục hiện tại trong DB
+        $cats = $pdo->query("SELECT id, slug FROM `categories`")->fetchAll(PDO::FETCH_KEY_PAIR); // slug => id
+
+        $demThem = 0;
+        $demCapNhat = 0;
+
+        foreach ($nccItems as $it) {
+            $sku = $it['product_id'] ?? '';
+            if ($skuNcc !== 'ALL' && $sku !== $skuNcc) {
+                continue;
+            }
+
+            $type = strtolower($it['type'] ?? 'other');
+            $catInfo = $danhMucChuan[$type] ?? $danhMucChuan['other'];
+            $catSlug = $catInfo['slug'];
+
+            // Nếu danh mục chưa có thì tự động tạo
+            if (!isset($cats[$catSlug])) {
+                $stmtC = $pdo->prepare("INSERT INTO `categories` (`name`, `slug`, `icon`, `sort_order`, `is_active`) VALUES (?, ?, ?, 10, 1)");
+                $stmtC->execute([$catInfo['ten'], $catSlug, $catInfo['icon']]);
+                $catId = (int)$pdo->lastInsertId();
+                $cats[$catSlug] = $catId;
+            } else {
+                $catId = (int)$cats[$catSlug];
+            }
+
+            $cost = (float)($it['walletPricing'] ?? 0);
+            $stock = (int)($it['available'] ?? 0);
+            $name = trim($it['name'] ?? '');
+
+            // Tính giá bán lẻ tự động (nếu không nhập giá tùy chỉnh)
+            if ($skuNcc !== 'ALL' && $customPrice > 0) {
+                $price = $customPrice;
+            } else {
+                if ($cost <= 20000) {
+                    $price = $cost + 7000;
+                } elseif ($cost <= 60000) {
+                    $price = ceil(($cost * 1.25) / 1000) * 1000;
+                } elseif ($cost <= 150000) {
+                    $price = ceil(($cost * 1.20) / 1000) * 1000;
+                } else {
+                    $price = ceil(($cost * 1.15) / 1000) * 1000;
+                }
+            }
+            $originalPrice = ceil(($price * 1.3) / 1000) * 1000;
+
+            // Tính thời hạn (duration_days) từ tên
+            $duration = 30;
+            if (stripos($name, '1 Ngày') !== false || stripos($name, '1 ngày') !== false) {
+                $duration = 1;
+            } elseif (stripos($name, '3 Ngày') !== false || stripos($name, '3 ngày') !== false) {
+                $duration = 3;
+            } elseif (stripos($name, '7 Ngày') !== false || stripos($name, '1 tuần') !== false) {
+                $duration = 7;
+            } elseif (stripos($name, '6 tháng') !== false) {
+                $duration = 180;
+            } elseif (stripos($name, '12 tháng') !== false || stripos($name, '1 năm') !== false) {
+                $duration = 365;
+            } elseif (stripos($name, '24 tháng') !== false) {
+                $duration = 730;
+            }
+
+            // Tính request count hoặc badge nổi bật
+            $badge = null;
+            $requestCount = 'Tốc độ cao 24/7';
+            if (preg_match('/(\d+)\s*Request/i', $name, $matches)) {
+                $requestCount = $matches[1] . ' Request';
+                $badge = $matches[1] . ' Req';
+            } elseif (preg_match('/(\d+)\$/i', $name, $matches)) {
+                $requestCount = $matches[1] . '$ Credit';
+                $badge = $matches[1] . '$';
+            }
+
+            // Kiểm tra xem sản phẩm đã map hay chưa
+            $stmtMap = $pdo->prepare("SELECT product_id FROM `supplier_product_mappings` WHERE `supplier_id` = ? AND `supplier_sku` = ?");
+            $stmtMap->execute([$supplier['id'], $sku]);
+            $existingPid = $stmtMap->fetchColumn();
+
+            if ($existingPid) {
+                // Đã có -> Cập nhật tồn kho và giá vốn
+                $pdo->prepare("UPDATE `supplier_product_mappings` SET `stock` = ?, `cost_price` = ? WHERE `product_id` = ? AND `supplier_id` = ?")
+                    ->execute([$stock, $cost, $existingPid, $supplier['id']]);
+                $demCapNhat++;
+            } else {
+                // Tạo SKU và slug duy nhất
+                $ourSku = 'VK-' . strtoupper(str_replace('-', '', $sku));
+                $slug = taoSlugVn($name) . '-' . strtolower(str_replace('-', '', $sku));
+
+                // Chuẩn bị tính năng mặc định
+                $features = json_encode([
+                    "Sử dụng full model theo hệ thống nguồn",
+                    "Thời hạn bản quyền {$duration} ngày",
+                    "Giao key tự động ngay sau thanh toán",
+                    "Bảo hành 100% trong thời gian sử dụng"
+                ], JSON_UNESCAPED_UNICODE);
+
+                // Insert vào products
+                $stmtInsP = $pdo->prepare("
+                    INSERT INTO `products` 
+                    (`category_id`, `sku`, `name`, `slug`, `badge`, `description`, `price`, `original_price`, `request_count`, `duration_days`, `features`, `is_hot`, `is_active`)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1)
+                ");
+                $stmtInsP->execute([
+                    $catId, $ourSku, $name, $slug, $badge, $it['description'] ?? '', $price, $originalPrice, $requestCount, $duration, $features
+                ]);
+                $newPid = (int)$pdo->lastInsertId();
+
+                // Insert vào supplier_product_mappings
+                $stmtInsMap = $pdo->prepare("
+                    INSERT INTO `supplier_product_mappings`
+                    (`product_id`, `supplier_id`, `supplier_sku`, `cost_price`, `stock`, `priority`, `is_active`)
+                    VALUES (?, ?, ?, ?, ?, 1, 1)
+                ");
+                $stmtInsMap->execute([$newPid, $supplier['id'], $sku, $cost, $stock]);
+                $demThem++;
+            }
+        }
+
+        echo json_encode([
+            'thanh_cong'   => true,
+            'thong_bao'    => "Đã nhập thành công {$demThem} sản phẩm mới và cập nhật {$demCapNhat} sản phẩm có sẵn!",
+            'dem_them'     => $demThem,
+            'dem_cap_nhat' => $demCapNhat
+        ]);
+        break;
+
     default:
         echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Hành động không hợp lệ']);
         break;

@@ -61,15 +61,23 @@ function thietLapBaoMatHeaders(): void {
  * @return array ['success' => bool, 'message' => string]
  */
 function xacThucCaptcha(string $token, ?string $userIp = null): array {
-    $provider = defined('CAPTCHA_PROVIDER') ? CAPTCHA_PROVIDER : 'turnstile'; // 'turnstile' hoặc 'google'
-    $secretKey = defined('CAPTCHA_SECRET_KEY') ? CAPTCHA_SECRET_KEY : '';
+    $isEnabled = function_exists('layCaiDatHeThong') ? (layCaiDatHeThong('captcha_enabled', '0') === '1') : false;
+    if (!$isEnabled) {
+        return [
+            'success' => true,
+            'message' => 'CAPTCHA đang tắt theo cấu hình hệ thống.'
+        ];
+    }
+
+    $provider = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('captcha_provider', (defined('CAPTCHA_PROVIDER') ? CAPTCHA_PROVIDER : 'turnstile')) : (defined('CAPTCHA_PROVIDER') ? CAPTCHA_PROVIDER : 'turnstile');
+    $secretKey = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('captcha_secret_key', (defined('CAPTCHA_SECRET_KEY') ? CAPTCHA_SECRET_KEY : '')) : (defined('CAPTCHA_SECRET_KEY') ? CAPTCHA_SECRET_KEY : '');
     $userIp = $userIp ?: layIpNguoiDung();
 
-    // Nếu quản trị viên chưa cấu hình Secret Key thì tự động cho qua để không chặn phát triển cục bộ
+    // Nếu quản trị viên chưa cấu hình Secret Key thì tự động cho qua để không chặn người dùng
     if (empty($secretKey) || $secretKey === 'YOUR_CAPTCHA_SECRET_KEY_HERE') {
         return [
             'success' => true,
-            'message' => 'CAPTCHA đang ở chế độ thử nghiệm (chưa điền Secret Key).'
+            'message' => 'CAPTCHA chưa điền Secret Key, tự động thông qua.'
         ];
     }
 

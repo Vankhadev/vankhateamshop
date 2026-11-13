@@ -31,8 +31,9 @@ class NhaCungCapApi {
         $headers = [
             'Accept: application/json',
             'Content-Type: application/json',
+            'Authorization: Bearer ' . $this->apiKey,
             'X-API-Key: ' . $this->apiKey,
-            'User-Agent: VanKhaTeamShop-ApiClient/1.0'
+            'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) VanKhaShop/1.0'
         ];
 
         curl_setopt($ch, CURLOPT_URL, $url);

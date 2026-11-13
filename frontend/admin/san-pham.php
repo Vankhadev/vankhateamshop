@@ -168,6 +168,7 @@ $sql = "
         c.name AS category_name,
         m.supplier_sku,
         m.cost_price,
+        m.stock,
         s.name AS supplier_name
     FROM `products` p
     LEFT JOIN `categories` c ON p.category_id = c.id
@@ -228,13 +229,17 @@ $allProductIds = array_map(fn($p) => (int)$p['id'], $products);
                 </h1>
                 <p class="text-xs text-gray-400 mt-1">Cài đặt giá bán cho khách, mã SKU kết nối nhà cung cấp, thêm mới và xóa sản phẩm</p>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
+                <button @click="dongBoTonKho()" :disabled="dangDongBo" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-emerald-600/30">
+                    <i class="fas fa-arrows-rotate" :class="dangDongBo ? 'fa-spin' : ''"></i>
+                    <span x-text="dangDongBo ? 'Đang đồng bộ...' : 'Đồng Bộ Kho & Giá'"></span>
+                </button>
+                <a href="/admin/nha-cung-cap" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-purple-600/30">
+                    <i class="fas fa-boxes-stacked"></i> Nhập Từ Kho NCC
+                </a>
                 <button @click="moModalThem = true" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-blue-600/30">
                     <i class="fas fa-plus"></i> Thêm Sản Phẩm Mới
                 </button>
-                <a href="/admin/dashboard" class="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-bold transition flex items-center gap-2">
-                    <i class="fas fa-arrow-left"></i> Dashboard
-                </a>
             </div>
         </div>
 
@@ -279,6 +284,7 @@ $allProductIds = array_map(fn($p) => (int)$p['id'], $products);
                             <th class="py-3.5 px-3">Link Ảnh Đại Diện</th>
                             <th class="py-3.5 px-3">Mã SKU Nguồn</th>
                             <th class="py-3.5 px-3">Giá Vốn</th>
+                            <th class="py-3.5 px-3 text-center">Tồn Kho NCC</th>
                             <th class="py-3.5 px-3">Lợi Nhuận</th>
                             <th class="py-3.5 px-3 text-center">Trạng Thái</th>
                             <th class="py-3.5 px-3 text-center">Hành Động</th>
@@ -354,6 +360,12 @@ $allProductIds = array_map(fn($p) => (int)$p['id'], $products);
 
                                 <td class="py-3.5 px-3">
                                     <input form="<?= $formId ?>" type="number" step="1000" name="cost_price" value="<?= (int)($p['cost_price'] ?? 0) ?>" class="w-20 px-2 py-1 rounded bg-gray-900 border border-gray-700 text-gray-300 focus:border-gray-500 focus:outline-none text-xs">
+                                </td>
+
+                                <td class="py-3.5 px-3 text-center">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold <?= (isset($p['stock']) && (int)$p['stock'] > 0) ? 'bg-green-950 text-green-400 border border-green-800' : 'bg-red-950 text-red-400 border border-red-800' ?>">
+                                        <?= (isset($p['stock']) && (int)$p['stock'] > 0) ? ($p['stock'] . ' gói') : 'Hết hàng' ?>
+                                    </span>
                                 </td>
 
                                 <td class="py-3.5 px-3">
@@ -503,12 +515,31 @@ $allProductIds = array_map(fn($p) => (int)$p['id'], $products);
                 danhSachChon: [],
                 moModalThem: false,
                 tatCaIds: <?= json_encode($allProductIds) ?>,
+                dangDongBo: false,
 
                 chonTatCa(e) {
                     if (e.target.checked) {
                         this.danhSachChon = [...this.tatCaIds];
                     } else {
                         this.danhSachChon = [];
+                    }
+                },
+
+                async dongBoTonKho() {
+                    this.dangDongBo = true;
+                    try {
+                        const res = await fetch('/backend/api.php?action=admin_dong_bo_ton_kho');
+                        const d = await res.json();
+                        this.dangDongBo = false;
+                        if (d.thanh_cong) {
+                            alert(d.thong_bao);
+                            location.reload();
+                        } else {
+                            alert('Lỗi đồng bộ: ' + (d.thong_bao || ''));
+                        }
+                    } catch(e) {
+                        this.dangDongBo = false;
+                        alert('Lỗi kết nối máy chủ');
                     }
                 }
             };

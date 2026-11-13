@@ -12,11 +12,21 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Lấy thông số cấu hình Google OAuth linh hoạt (Ưu tiên bảng settings -> .env)
+$googleClientId     = layCaiDatHeThong('google_client_id', GOOGLE_CLIENT_ID);
+$googleClientSecret = layCaiDatHeThong('google_client_secret', GOOGLE_CLIENT_SECRET);
+$googleRedirectUri  = layCaiDatHeThong('google_redirect_uri', GOOGLE_REDIRECT_URI);
+$googleLoginEnabled = layCaiDatHeThong('google_login_enabled', '1');
+
 // 1. Nếu người dùng bấm "Đăng nhập bằng Google" (chưa có tham số code)
 if (!isset($_GET['code'])) {
     // Kiểm tra cấu hình Google Client ID
-    if (empty(GOOGLE_CLIENT_ID) || GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID_HERE') {
-        die('Hệ thống chưa được cấu hình Google Client ID trong backend/config.php. Vui lòng liên hệ quản trị viên.');
+    if (empty($googleClientId) || $googleClientId === 'YOUR_GOOGLE_CLIENT_ID_HERE' || $googleLoginEnabled === '0') {
+        die('<div style="font-family:sans-serif;text-align:center;padding:50px;">
+            <h2>Chức năng Đăng nhập bằng Google chưa được bật hoặc chưa điền Client ID</h2>
+            <p>Quản trị viên vui lòng vào <b>/admin/cai-dat</b> để điền Google Client ID & Secret Key.</p>
+            <a href="/login" style="color:#2563eb;text-decoration:none;font-weight:bold;">&larr; Quay lại trang đăng nhập</a>
+        </div>');
     }
 
     // Tạo mã chống giả mạo CSRF (State Token)
@@ -25,13 +35,13 @@ if (!isset($_GET['code'])) {
 
     // Chuyển hướng người dùng sang trang đăng nhập của Google
     $params = [
-        'client_id' => GOOGLE_CLIENT_ID,
-        'redirect_uri' => GOOGLE_REDIRECT_URI,
+        'client_id'     => $googleClientId,
+        'redirect_uri'  => $googleRedirectUri,
         'response_type' => 'code',
-        'scope' => 'openid email profile',
-        'access_type' => 'online',
-        'state' => $state,
-        'prompt' => 'select_account'
+        'scope'         => 'openid email profile',
+        'access_type'   => 'online',
+        'state'         => $state,
+        'prompt'        => 'select_account'
     ];
 
     $authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query($params);
@@ -53,11 +63,11 @@ unset($_SESSION['oauth_state']);
 // Gửi yêu cầu đổi mã code lấy Token truy cập (Access Token) từ máy chủ Google
 $tokenUrl = 'https://oauth2.googleapis.com/token';
 $postData = [
-    'code' => $code,
-    'client_id' => GOOGLE_CLIENT_ID,
-    'client_secret' => GOOGLE_CLIENT_SECRET,
-    'redirect_uri' => GOOGLE_REDIRECT_URI,
-    'grant_type' => 'authorization_code'
+    'code'          => $code,
+    'client_id'     => $googleClientId,
+    'client_secret' => $googleClientSecret,
+    'redirect_uri'  => $googleRedirectUri,
+    'grant_type'    => 'authorization_code'
 ];
 
 $ch = curl_init();
@@ -105,42 +115,59 @@ $email = strtolower(trim($googleUser['email']));
 $hoTen = trim($googleUser['name'] ?? 'Khách Hàng');
 $avatar = $googleUser['picture'] ?? '';
 
+// 3. Tra cứu hoặc Tạo mới người dùng trong Database
 try {
-    // 3. Kiểm tra xem người dùng đã có trong CSDL chưa
     $stmt = $pdo->prepare("SELECT * FROM `users` WHERE `google_id` = ? OR `email` = ? LIMIT 1");
     $stmt->execute([$googleId, $email]);
     $user = $stmt->fetch();
 
     if ($user) {
+        // Nếu tài khoản đã bị khóa bởi Admin
+        if (isset($user['is_active']) && (int)$user['is_active'] === 0) {
+            die('<div style="font-family:sans-serif;text-align:center;padding:50px;">
+                <h2 style="color:red;">Tài khoản của bạn đã bị tạm khóa</h2>
+                <p>Vui lòng liên hệ ban quản trị để được hỗ trợ mở khóa tài khoản.</p>
+                <a href="/" style="color:#2563eb;text-decoration:none;">&larr; Về trang chủ</a>
+            </div>');
+        }
+
         // Đã có tài khoản: Cập nhật Google ID và ảnh đại diện mới nhất
         $updateStmt = $pdo->prepare("UPDATE `users` SET `google_id` = ?, `avatar` = ?, `updated_at` = CURRENT_TIMESTAMP WHERE `id` = ?");
         $updateStmt->execute([$googleId, $avatar, $user['id']]);
-        
-        $userId = $user['id'];
-        $userRole = $user['role'];
-    } else {
-        // Khách mới lần đầu đăng nhập: Tự động đăng ký tài khoản (User đầu tiên là Admin)
-        $soLuongUser = (int)$pdo->query("SELECT COUNT(*) FROM `users`")->fetchColumn();
-        $userRole = ($soLuongUser === 0) ? 'admin' : 'user';
 
+        // Lưu thông tin vào phiên làm việc (Session)
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['user_name'] = $user['name'];
+        $_SESSION['user_email'] = $user['email'];
+        $_SESSION['user_avatar'] = !empty($avatar) ? $avatar : $user['avatar'];
+        $_SESSION['role'] = $user['role'];
+
+    } else {
+        // Tài khoản đầu tiên đăng ký sẽ tự động gán quyền ADMIN
+        $demUser = (int)$pdo->query("SELECT COUNT(*) FROM `users`")->fetchColumn();
+        $userRole = ($demUser === 0) ? 'admin' : 'user';
+
+        // Tạo API Token cá nhân ngẫu nhiên
         $apiToken = bin2hex(random_bytes(32));
+
         $insertStmt = $pdo->prepare("
             INSERT INTO `users` (`name`, `email`, `password`, `google_id`, `avatar`, `balance`, `role`, `api_token`, `is_active`)
             VALUES (?, ?, NULL, ?, ?, 0.00, ?, ?, 1)
         ");
         $insertStmt->execute([$hoTen, $email, $googleId, $avatar, $userRole, $apiToken]);
-        $userId = $pdo->lastInsertId();
+
+        $newUserId = $pdo->lastInsertId();
+
+        // Lưu thông tin vào phiên làm việc (Session)
+        $_SESSION['user_id'] = $newUserId;
+        $_SESSION['user_name'] = $hoTen;
+        $_SESSION['user_email'] = $email;
+        $_SESSION['user_avatar'] = $avatar;
+        $_SESSION['role'] = $userRole;
     }
 
-    // 4. Lưu thông tin đăng nhập vào Session
-    $_SESSION['user_id'] = $userId;
-    $_SESSION['user_name'] = $hoTen;
-    $_SESSION['user_email'] = $email;
-    $_SESSION['user_avatar'] = $avatar;
-    $_SESSION['role'] = $userRole;
-
-    // Chuyển hướng người dùng tương ứng theo quyền
-    if ($userRole === 'admin') {
+    // 4. Chuyển hướng tới trang phù hợp theo quyền hạn
+    if ($_SESSION['role'] === 'admin') {
         header('Location: /admin/dashboard');
     } else {
         header('Location: /user/dashboard');

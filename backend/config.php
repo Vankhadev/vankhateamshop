@@ -44,11 +44,19 @@ napBienMoiTruong(__DIR__ . '/../.env');
 // Hàm lấy giá trị cấu hình theo thứ tự ưu tiên: .env -> Mặc định
 function layGiaTriEnv($khoa, $macDinh = '') {
     $val = getenv($khoa);
-    if ($val !== false) return $val;
-    if (isset($_ENV[$khoa])) return $_ENV[$khoa];
-    if (isset($_SERVER[$khoa])) return $_SERVER[$khoa];
+    if ($val !== false && $val !== '') return $val;
+    if (isset($_ENV[$khoa]) && $_ENV[$khoa] !== '') return $_ENV[$khoa];
+    if (isset($_SERVER[$khoa]) && $_SERVER[$khoa] !== '') return $_SERVER[$khoa];
     return $macDinh;
 }
+
+// Tự động nhận diện Domain hiện tại (ưu tiên https://tiemai.io.vn)
+$httpHost = $_SERVER['HTTP_HOST'] ?? '';
+$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+$proto = $isHttps ? 'https://' : 'http://';
+$detectedDomain = $httpHost ? ($proto . $httpHost) : 'https://tiemai.io.vn';
+
+define('SITE_URL', layGiaTriEnv('SITE_URL', $detectedDomain));
 
 // 1. CẤU HÌNH CƠ SỞ DỮ LIỆU MYSQL
 define('DB_HOST', layGiaTriEnv('DB_HOST', '127.0.0.1'));
@@ -58,23 +66,23 @@ define('DB_PASS', layGiaTriEnv('DB_PASS', ''));
 define('DB_PORT', layGiaTriEnv('DB_PORT', '3306'));
 
 // 2. CẤU HÌNH KẾT NỐI API NHÀ CUNG CẤP (SUPPLIER API)
-define('SUPPLIER_API_URL', layGiaTriEnv('SUPPLIER_API_URL', 'https://api.nhacungcap.com/v1'));
+define('SUPPLIER_API_URL', layGiaTriEnv('SUPPLIER_API_URL', 'https://genzshop.vn/api/partner/v1'));
 define('SUPPLIER_API_KEY', layGiaTriEnv('SUPPLIER_API_KEY', 'YOUR_SUPPLIER_API_KEY_HERE'));
 
 // 3. CẤU HÌNH ĐĂNG NHẬP GOOGLE (GOOGLE OAUTH 2.0)
-define('GOOGLE_CLIENT_ID', layGiaTriEnv('GOOGLE_CLIENT_ID', 'YOUR_GOOGLE_CLIENT_ID_HERE.apps.googleusercontent.com'));
-define('GOOGLE_CLIENT_SECRET', layGiaTriEnv('GOOGLE_CLIENT_SECRET', 'YOUR_GOOGLE_CLIENT_SECRET_HERE'));
-define('GOOGLE_REDIRECT_URI', layGiaTriEnv('GOOGLE_REDIRECT_URI', 'http://127.0.0.1:8000/backend/auth_google.php'));
+define('GOOGLE_CLIENT_ID', layGiaTriEnv('GOOGLE_CLIENT_ID', ''));
+define('GOOGLE_CLIENT_SECRET', layGiaTriEnv('GOOGLE_CLIENT_SECRET', ''));
+define('GOOGLE_REDIRECT_URI', layGiaTriEnv('GOOGLE_REDIRECT_URI', SITE_URL . '/backend/auth_google.php'));
 
 // 4. CẤU HÌNH BẢO MẬT CAPTCHA (CHỐNG SPAM & BOT)
 define('CAPTCHA_PROVIDER', layGiaTriEnv('CAPTCHA_PROVIDER', 'turnstile'));
-define('CAPTCHA_SITE_KEY', layGiaTriEnv('CAPTCHA_SITE_KEY', '1x00000000000000000000AA'));
-define('CAPTCHA_SECRET_KEY', layGiaTriEnv('CAPTCHA_SECRET_KEY', '1x0000000000000000000000000000000AA'));
+define('CAPTCHA_SITE_KEY', layGiaTriEnv('CAPTCHA_SITE_KEY', ''));
+define('CAPTCHA_SECRET_KEY', layGiaTriEnv('CAPTCHA_SECRET_KEY', ''));
 
 // 5. CẤU HÌNH CỔNG THANH TOÁN TỰ ĐỘNG VIETQR (SEPAY.VN)
-define('SEPAY_API_KEY', layGiaTriEnv('SEPAY_API_KEY', 'YOUR_SEPAY_API_KEY'));
-define('SEPAY_WEBHOOK_SECRET', layGiaTriEnv('SEPAY_WEBHOOK_SECRET', 'YOUR_SEPAY_WEBHOOK_SECRET'));
-define('SEPAY_API_TOKEN', layGiaTriEnv('SEPAY_API_TOKEN', 'YOUR_SEPAY_API_TOKEN'));
+define('SEPAY_API_KEY', layGiaTriEnv('SEPAY_API_KEY', ''));
+define('SEPAY_WEBHOOK_SECRET', layGiaTriEnv('SEPAY_WEBHOOK_SECRET', ''));
+define('SEPAY_API_TOKEN', layGiaTriEnv('SEPAY_API_TOKEN', ''));
 define('BANK_ACCOUNT_NAME', layGiaTriEnv('BANK_ACCOUNT_NAME', 'VO VAN KHA'));
 define('BANK_ACCOUNT_NO', layGiaTriEnv('BANK_ACCOUNT_NO', '22254531'));
 define('BANK_NAME', layGiaTriEnv('BANK_NAME', 'ACB'));
@@ -85,4 +93,25 @@ define('BANK_BIN', layGiaTriEnv('BANK_BIN', '970416'));
 define('SHOP_NAME', layGiaTriEnv('SHOP_NAME', 'VanKha Team Shop'));
 define('SHOP_ZALO', layGiaTriEnv('SHOP_ZALO', '0847154088'));
 define('SHOP_TELEGRAM', layGiaTriEnv('SHOP_TELEGRAM', 'https://t.me/vankhateam'));
-define('SITE_URL', layGiaTriEnv('SITE_URL', 'http://127.0.0.1:8000'));
+
+/**
+ * Hàm lấy cấu hình linh hoạt (Ưu tiên Database settings -> .env -> Mặc định)
+ */
+function layCaiDatHeThong(string $khoa, $macDinh = '') {
+    global $pdo;
+    static $settingsCache = null;
+
+    if ($settingsCache === null && isset($pdo)) {
+        try {
+            $settingsCache = $pdo->query("SELECT `key`, `value` FROM `settings`")->fetchAll(PDO::FETCH_KEY_PAIR);
+        } catch (Exception $e) {
+            $settingsCache = [];
+        }
+    }
+
+    if (isset($settingsCache[$khoa]) && $settingsCache[$khoa] !== '') {
+        return $settingsCache[$khoa];
+    }
+
+    return layGiaTriEnv(strtoupper($khoa), $macDinh);
+}
