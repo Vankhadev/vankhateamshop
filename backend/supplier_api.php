@@ -148,9 +148,33 @@ class NhaCungCapApi {
             $danhSachTaiKhoan = $phanHoi['deliveredAccounts'] ?? $phanHoi['data']['accounts'] ?? [];
         }
 
+        // Chuẩn hóa danh sách tài khoản / token / key trả về để khách hàng dễ sao chép
+        $formattedAccounts = [];
+        if (!empty($danhSachTaiKhoan) && is_array($danhSachTaiKhoan)) {
+            foreach ($danhSachTaiKhoan as $item) {
+                if (is_array($item)) {
+                    if (!empty($item['key'])) {
+                        $formattedAccounts[] = $item['key'];
+                    } elseif (!empty($item['token'])) {
+                        $formattedAccounts[] = $item['token'];
+                    } elseif (!empty($item['apiKey'])) {
+                        $formattedAccounts[] = $item['apiKey'];
+                    } elseif (!empty($item['user']) && !empty($item['password'])) {
+                        $accStr = $item['user'] . '|' . $item['password'];
+                        if (!empty($item['verifyEmail'])) $accStr .= '|' . $item['verifyEmail'];
+                        $formattedAccounts[] = $accStr;
+                    } else {
+                        $formattedAccounts[] = json_encode($item, JSON_UNESCAPED_UNICODE);
+                    }
+                } else {
+                    $formattedAccounts[] = (string)$item;
+                }
+            }
+        }
+
         return [
             'success' => $thanhCong,
-            'accounts' => $danhSachTaiKhoan,
+            'accounts' => !empty($formattedAccounts) ? $formattedAccounts : $danhSachTaiKhoan,
             'order_code' => $phanHoi['orderCode'] ?? $phanHoi['order_id'] ?? null,
             'error_code' => $phanHoi['errorCode'] ?? null,
             'message' => $phanHoi['detail'] ?? $phanHoi['message'] ?? ($thanhCong ? 'Thành công' : 'Thất bại'),
