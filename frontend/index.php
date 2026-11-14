@@ -155,26 +155,27 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
             animation-play-state: paused;
         }
 
-        /* Marquee 2 chiều đối xứng */
-        @keyframes marqueeL2R {
-            0% { transform: translateX(-50%); }
+        /* Marquee 2 chiều đối xứng chạy vô tận không bao giờ hở khoảng trống */
+        @keyframes marqueeScrollLeft {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+        @keyframes marqueeScrollRight {
+            0% { transform: translateX(-100%); }
             100% { transform: translateX(0); }
         }
-        @keyframes marqueeR2L {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-        }
-        .marquee-track-l2r {
+        .animate-marquee-left {
             display: flex;
-            width: max-content;
-            animation: marqueeL2R 30s linear infinite;
+            flex-shrink: 0;
+            animation: marqueeScrollLeft 35s linear infinite;
         }
-        .marquee-track-r2l {
+        .animate-marquee-right {
             display: flex;
-            width: max-content;
-            animation: marqueeR2L 30s linear infinite;
+            flex-shrink: 0;
+            animation: marqueeScrollRight 35s linear infinite;
         }
-        .marquee-track-l2r:hover, .marquee-track-r2l:hover {
+        .marquee-container:hover .animate-marquee-left,
+        .marquee-container:hover .animate-marquee-right {
             animation-play-state: paused;
         }
 
@@ -212,6 +213,70 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
             50% { box-shadow: 0 0 55px rgba(251, 191, 36, 0.65), 0 0 100px rgba(168, 85, 247, 0.45); }
         }
         .animate-orb-glow { animation: orbGlow 3.5s ease-in-out infinite; }
+
+        /* Tia laser năng lượng bắn từ Mascot lên Quả cầu mặt trăng Hero */
+        @keyframes laserPulse {
+            0% { stroke-dashoffset: 80; opacity: 0.3; }
+            50% { opacity: 0.95; }
+            100% { stroke-dashoffset: 0; opacity: 0.3; }
+        }
+        .animate-laser-pulse {
+            stroke-dasharray: 8 6;
+            animation: laserPulse 1.8s linear infinite;
+        }
+        .animate-laser-pulse-fast {
+            stroke-dasharray: 6 4;
+            animation: laserPulse 1.2s linear infinite;
+        }
+
+        /* Hạt năng lượng pixel bắn vút lên cao từ Mascot Hero */
+        @keyframes shootUpSparkles {
+            0% { transform: translateY(0) scale(0.6); opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 0.9; }
+            100% { transform: translateY(-75px) scale(1.2); opacity: 0; }
+        }
+        .animate-shoot-spark-1 { animation: shootUpSparkles 2s ease-out infinite; }
+        .animate-shoot-spark-2 { animation: shootUpSparkles 2.4s ease-out infinite 0.6s; }
+        .animate-shoot-spark-3 { animation: shootUpSparkles 1.8s ease-out infinite 1.2s; }
+        .animate-shoot-spark-4 { animation: shootUpSparkles 2.2s ease-out infinite 0.9s; }
+
+        /* Mascot đi tuần tra qua lại trong phòng làm việc dưới */
+        @keyframes mascotPatrol1 {
+            0% { transform: translateX(0) scaleX(1); }
+            35% { transform: translateX(110px) scaleX(1); }
+            40% { transform: translateX(110px) scaleX(-1); }
+            45% { transform: translateX(110px) scaleX(-1); }
+            80% { transform: translateX(0) scaleX(-1); }
+            85% { transform: translateX(0) scaleX(1); }
+            100% { transform: translateX(0) scaleX(1); }
+        }
+        @keyframes mascotPatrol2 {
+            0% { transform: translateX(0) scaleX(-1); }
+            30% { transform: translateX(-120px) scaleX(-1); }
+            35% { transform: translateX(-120px) scaleX(1); }
+            50% { transform: translateX(-50px) scaleX(1); }
+            85% { transform: translateX(0) scaleX(1); }
+            90% { transform: translateX(0) scaleX(-1); }
+            100% { transform: translateX(0) scaleX(-1); }
+        }
+        .animate-patrol-1 { animation: mascotPatrol1 12s ease-in-out infinite; }
+        .animate-patrol-2 { animation: mascotPatrol2 15s ease-in-out infinite 1.5s; }
+
+        /* Mascot gõ phím / cắm máy tính liên tục */
+        @keyframes mascotTyping {
+            0%, 100% { transform: translateY(0); }
+            25% { transform: translateY(-1.5px); }
+            75% { transform: translateY(0.5px); }
+        }
+        .animate-typing { animation: mascotTyping 0.35s ease-in-out infinite; }
+
+        /* Cáp kết nối / Tia điện cắm máy tính */
+        @keyframes cableSpark {
+            0%, 100% { opacity: 0.3; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 5px #38bdf8); }
+        }
+        .animate-cable-spark { animation: cableSpark 1s ease-in-out infinite; }
     </style>
 </head>
 <body x-data="ungDungBanHang()" class="min-h-screen flex flex-col antialiased">
@@ -260,18 +325,26 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
         </div>
 
         <!-- Quả cầu phát sáng Glowing Orb (Mặt trăng AI) trên góc phải với luồng tia sáng chiếu xuống -->
-        <div class="absolute top-6 right-6 sm:right-28 z-10 hidden md:block pointer-events-none">
+        <div class="absolute top-6 right-6 sm:right-24 z-10 hidden md:block pointer-events-none">
             <div class="relative">
                 <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-amber-300 via-white to-amber-100 animate-orb-glow flex items-center justify-center p-1.5">
                     <div class="w-full h-full rounded-full bg-[#0d1222] flex items-center justify-center border-2 border-amber-300/80 shadow-inner">
                         <i class="fas fa-sparkles text-amber-400 text-xl sm:text-2xl animate-pulse"></i>
                     </div>
                 </div>
-                <!-- Các tia sáng màu pastel chiếu xuống đáy cảnh -->
-                <svg class="absolute top-20 right-10 w-[480px] h-[260px] pointer-events-none opacity-40" viewBox="0 0 480 260" fill="none">
-                    <path d="M 440 0 L 40 250" stroke="#F59E0B" stroke-width="1.2" stroke-dasharray="3 3"/>
-                    <path d="M 440 0 L 160 250" stroke="#10B981" stroke-width="1.2"/>
-                    <path d="M 440 0 L 290 250" stroke="#8B5CF6" stroke-width="1.2" stroke-dasharray="4 2"/>
+                <!-- Các tia laser năng lượng bắn kết nối giữa quả cầu và các nhân vật bên dưới -->
+                <svg class="absolute top-16 right-8 w-[640px] h-[340px] pointer-events-none opacity-60" viewBox="0 0 640 340" fill="none">
+                    <!-- Tia bắn từ Claude Code (vàng cam) -->
+                    <path d="M 600 10 L 40 330" stroke="#F59E0B" stroke-width="1.8" class="animate-laser-pulse"/>
+                    <!-- Tia bắn từ DeepSeek (xanh dương) -->
+                    <path d="M 600 10 L 170 330" stroke="#38BDF8" stroke-width="1.6" class="animate-laser-pulse-fast"/>
+                    <!-- Tia bắn từ Pi (hồng tím) -->
+                    <path d="M 600 10 L 290 330" stroke="#EC4899" stroke-width="1.5" class="animate-laser-pulse"/>
+                    <!-- Tia bắn từ Lửa trại (vàng rực) -->
+                    <path d="M 600 10 L 420 330" stroke="#FBBF24" stroke-width="2" class="animate-laser-pulse-fast"/>
+                    <!-- Tia bắn từ Codex / OpenCode (tím & xanh lá) -->
+                    <path d="M 600 10 L 530 330" stroke="#A855F7" stroke-width="1.6" class="animate-laser-pulse"/>
+                    <path d="M 600 10 L 610 330" stroke="#4ADE80" stroke-width="1.5" class="animate-laser-pulse-fast"/>
                 </svg>
             </div>
         </div>
@@ -344,12 +417,17 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
             </svg>
         </div>
 
-        <!-- PHÂN CẢNH PIXEL TECH CAMP & LỬA TRẠI DƯỚI ĐÁY HERO SECTION -->
+        <!-- PHÂN CẢNH PIXEL TECH CAMP & LỬA TRẠI DƯỚI ĐÁY HERO SECTION (CÁC MASCOT BẮN HIỆU ỨNG LÊN TRỜI) -->
         <div class="w-full relative overflow-x-auto no-scrollbar pt-2 select-none border-b border-gray-800/80 bg-gradient-to-b from-transparent to-[#0a0e1c]">
             <div class="min-w-[780px] max-w-7xl mx-auto px-4 sm:px-8 pb-3 flex items-end justify-between gap-4 text-xs font-mono">
                 
-                <!-- 1. CLAUDE CODE (Nhân vật tóc cam + Bàn làm việc laptop) -->
+                <!-- 1. CLAUDE CODE (Nhân vật tóc cam + Bàn làm việc laptop + Hạt bắn hiệu ứng) -->
                 <div class="flex flex-col items-center group relative cursor-pointer">
+                    <!-- Hạt năng lượng pixel bắn vút lên trên -->
+                    <div class="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center">
+                        <span class="animate-shoot-spark-1 text-amber-400 font-bold text-xs select-none">✦</span>
+                        <span class="animate-shoot-spark-3 text-orange-400 font-bold text-[9px] select-none">▲</span>
+                    </div>
                     <!-- Bong bóng thoại -->
                     <div class="animate-bubble-float bg-gray-900 border border-gray-700 text-orange-400 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1.5 flex items-center gap-1">
                         <i class="fas fa-terminal text-[9px]"></i> Bash
@@ -369,8 +447,8 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                             <rect x="11" y="22" width="10" height="7" fill="#f8fafc"/>
                             <rect x="14" y="22" width="4" height="7" fill="#ea580c"/>
                         </svg>
-                        <div class="w-10 h-7 bg-amber-950/80 border border-amber-800 rounded-xs relative flex items-center justify-center p-0.5">
-                            <div class="w-6 h-4 bg-gray-800 border border-gray-600 rounded-xs flex items-center justify-center text-[7px] text-cyan-400">
+                        <div class="w-10 h-7 bg-amber-950/80 border border-amber-800 rounded-xs relative flex items-center justify-center p-0.5 shadow-[0_0_8px_rgba(245,158,11,0.5)]">
+                            <div class="w-6 h-4 bg-gray-800 border border-gray-600 rounded-xs flex items-center justify-center text-[7px] text-cyan-400 animate-pulse">
                                 &gt;_
                             </div>
                         </div>
@@ -378,8 +456,13 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                     <span class="text-[11px] text-gray-400 font-sans font-bold mt-1">Claude Code</span>
                 </div>
 
-                <!-- 2. DEEPSEEK HARNESS (Nhân vật tóc xanh dương + Chồng sách/tài liệu) -->
+                <!-- 2. DEEPSEEK HARNESS (Nhân vật tóc xanh dương + Chồng sách/tài liệu + Hạt bắn hiệu ứng) -->
                 <div class="flex flex-col items-center group relative cursor-pointer">
+                    <!-- Hạt năng lượng pixel bắn vút lên trên -->
+                    <div class="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center">
+                        <span class="animate-shoot-spark-2 text-cyan-400 font-bold text-xs select-none">✦</span>
+                        <span class="animate-shoot-spark-4 text-blue-400 font-bold text-[9px] select-none">⚡</span>
+                    </div>
                     <div class="animate-bubble-float-2 bg-gray-900 border border-blue-600/50 text-blue-400 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1.5 flex items-center gap-1">
                         <i class="fas fa-book text-[9px]"></i> Read
                     </div>
@@ -396,7 +479,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                             <rect x="18" y="15" width="2" height="3" fill="#0f172a"/>
                             <rect x="11" y="22" width="10" height="7" fill="#1e3a8a"/>
                         </svg>
-                        <div class="w-8 h-8 bg-amber-900/60 border border-amber-700/80 p-0.5 flex flex-col justify-between rounded-xs">
+                        <div class="w-8 h-8 bg-amber-900/60 border border-amber-700/80 p-0.5 flex flex-col justify-between rounded-xs shadow-[0_0_8px_rgba(56,189,248,0.5)]">
                             <div class="h-1.5 bg-blue-500 rounded-xs"></div>
                             <div class="h-1.5 bg-cyan-400 rounded-xs"></div>
                             <div class="h-1.5 bg-amber-500 rounded-xs"></div>
@@ -405,8 +488,13 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                     <span class="text-[11px] text-gray-400 font-sans font-bold mt-1">DeepSeek Harness</span>
                 </div>
 
-                <!-- 3. PI (Nhân vật kỳ nhông hồng Axolotl + Bàn chế tác) -->
+                <!-- 3. PI (Nhân vật kỳ nhông hồng Axolotl + Bàn chế tác + Hạt bắn hiệu ứng) -->
                 <div class="flex flex-col items-center group relative cursor-pointer">
+                    <!-- Hạt năng lượng pixel bắn vút lên trên -->
+                    <div class="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center">
+                        <span class="animate-shoot-spark-3 text-pink-400 font-bold text-xs select-none">✦</span>
+                        <span class="animate-shoot-spark-1 text-rose-400 font-bold text-[9px] select-none">■</span>
+                    </div>
                     <div class="animate-bubble-float-3 bg-gray-900 border border-pink-600/50 text-pink-400 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1.5 flex items-center gap-1">
                         <i class="fas fa-pen-ruler text-[9px]"></i> Edit
                     </div>
@@ -427,7 +515,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                             <rect x="8" y="26" width="3" height="3" fill="#ec4899"/>
                             <rect x="23" y="26" width="3" height="3" fill="#ec4899"/>
                         </svg>
-                        <div class="w-9 h-6 bg-amber-900/80 border border-amber-700/80 rounded-xs flex items-center justify-center">
+                        <div class="w-9 h-6 bg-amber-900/80 border border-amber-700/80 rounded-xs flex items-center justify-center shadow-[0_0_8px_rgba(244,114,182,0.5)]">
                             <span class="w-4 h-1.5 bg-gray-400 rounded-xs"></span>
                         </div>
                     </div>
@@ -446,10 +534,15 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                     </div>
                 </div>
 
-                <!-- 5. LỬA TRẠI PIXEL CAMPFIRE PHÁT SÁNG BẬP BÙNG -->
-                <div class="flex flex-col items-center pb-0.5">
+                <!-- 5. LỬA TRẠI PIXEL CAMPFIRE PHÁT SÁNG BẬP BÙNG + TIA LỬA BẮN LÊN -->
+                <div class="flex flex-col items-center pb-0.5 relative">
+                    <!-- Tia tàn lửa đỏ vàng bắn lên không trung -->
+                    <div class="absolute -top-10 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center">
+                        <span class="animate-shoot-spark-1 text-yellow-300 font-bold text-xs select-none">🔥</span>
+                        <span class="animate-shoot-spark-2 text-amber-400 font-bold text-[10px] select-none">✦</span>
+                    </div>
                     <div class="animate-fire relative w-7 h-8 flex items-center justify-center">
-                        <div class="w-6 h-7 bg-amber-500 rounded-t-full shadow-[0_0_15px_rgba(245,158,11,0.9)]"></div>
+                        <div class="w-6 h-7 bg-amber-500 rounded-t-full shadow-[0_0_20px_rgba(245,158,11,1)]"></div>
                         <div class="absolute bottom-0 w-3.5 h-4.5 bg-yellow-200 rounded-t-full"></div>
                     </div>
                     <div class="w-9 h-2 bg-amber-950 border border-amber-800 rounded-full flex items-center justify-center mt-0.5">
@@ -457,8 +550,13 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                     </div>
                 </div>
 
-                <!-- 6. CODEX (Nhân vật tóc tím + Server trạm thu phát) -->
+                <!-- 6. CODEX (Nhân vật tóc tím + Server trạm thu phát + Hạt bắn hiệu ứng) -->
                 <div class="flex flex-col items-center group relative cursor-pointer">
+                    <!-- Hạt năng lượng pixel bắn vút lên trên -->
+                    <div class="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center">
+                        <span class="animate-shoot-spark-4 text-purple-300 font-bold text-xs select-none">✦</span>
+                        <span class="animate-shoot-spark-2 text-fuchsia-400 font-bold text-[9px] select-none">⚡</span>
+                    </div>
                     <div class="animate-bubble-float bg-gray-900 border border-purple-500/50 text-purple-300 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1.5 flex items-center gap-1">
                         <i class="fas fa-gauge-high text-[9px]"></i> 95 tok/s
                     </div>
@@ -475,7 +573,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                             <rect x="18" y="15" width="2" height="3" fill="#3b0764"/>
                             <rect x="11" y="22" width="10" height="7" fill="#6b21a8"/>
                         </svg>
-                        <div class="w-7 h-10 bg-slate-900 border border-purple-700/80 p-0.5 flex flex-col justify-between rounded-xs">
+                        <div class="w-7 h-10 bg-slate-900 border border-purple-700/80 p-0.5 flex flex-col justify-between rounded-xs shadow-[0_0_8px_rgba(168,85,247,0.5)]">
                             <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-ping"></span>
                             <span class="w-1.5 h-1.5 bg-purple-400 rounded-full"></span>
                             <span class="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
@@ -484,8 +582,13 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                     <span class="text-[11px] text-gray-400 font-sans font-bold mt-1">Codex</span>
                 </div>
 
-                <!-- 7. OPENCODE (Robot terminal đầu vuông xanh lá) -->
+                <!-- 7. OPENCODE (Robot terminal đầu vuông xanh lá + Hạt bắn hiệu ứng) -->
                 <div class="flex flex-col items-center group relative cursor-pointer">
+                    <!-- Hạt năng lượng pixel bắn vút lên trên -->
+                    <div class="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center">
+                        <span class="animate-shoot-spark-1 text-green-300 font-bold text-xs select-none">✦</span>
+                        <span class="animate-shoot-spark-3 text-emerald-400 font-bold text-[9px] select-none">01</span>
+                    </div>
                     <div class="animate-bubble-float-2 bg-gray-900 border border-green-500/50 text-green-400 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1.5 flex items-center gap-1">
                         <i class="fas fa-bolt text-[9px]"></i> 100 tok/s
                     </div>
@@ -508,7 +611,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
         </div>
     </section>
 
-    <!-- DẢI NỀN TẢNG ĐỐI TÁC & CÔNG CỤ (MARQUEE 2 CHIỀU ĐỐI XỨNG CHUẨN ẢNH 3) -->
+    <!-- DẢI NỀN TẢNG ĐỐI TÁC & CÔNG CỤ (MARQUEE 2 CHIỀU ĐỐI XỨNG CHUẨN ẢNH 3 - VÒNG LẶP VÔ TẬN KHÔNG KHOẢNG TRỐNG) -->
     <section class="py-9 bg-[#0B0F19] border-b border-gray-800/80 overflow-hidden relative">
         <div class="max-w-7xl mx-auto px-4 mb-5 text-center">
             <h2 class="text-[11px] sm:text-xs font-bold uppercase tracking-[0.25em] text-gray-400">
@@ -521,9 +624,9 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
         <div class="absolute right-0 top-0 bottom-0 w-14 sm:w-28 bg-gradient-to-l from-[#0B0F19] to-transparent z-10 pointer-events-none"></div>
 
         <div class="space-y-3">
-            <!-- HÀNG 1: CHẠY TỪ PHẢI SANG TRÁI (CÁC NHÀ CUNG CẤP AI) -->
-            <div class="flex overflow-hidden">
-                <div class="marquee-track-l2r flex items-center gap-3">
+            <!-- HÀNG 1: CHẠY TỪ PHẢI SANG TRÁI (CÁC NHÀ CUNG CẤP AI) - 2 TRACK ANH EM CHẠY VÔ TẬN KHÔNG GIÁN ĐOẠN -->
+            <div class="marquee-container flex overflow-hidden w-full select-none">
+                <div class="flex items-center gap-3 shrink-0 animate-marquee-left">
                     <?php 
                     $nhaCungCapAI = [
                         ['ten' => 'DeepSeek',   'icon' => 'fa-solid fa-brain',          'color' => '#3B82F6'],
@@ -537,8 +640,19 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                         ['ten' => 'OpenAI',     'icon' => 'fa-solid fa-circle-notch',   'color' => '#10B981'],
                         ['ten' => 'Gemini',     'icon' => 'fa-solid fa-sparkles',       'color' => '#F59E0B'],
                     ];
-                    // Lặp 2 lần để tạo chu kỳ marquee liên tục không giật
-                    for ($k = 0; $k < 2; $k++):
+                    // Lặp 3 lần trong mỗi track để track rộng hơn 3500px, không bao giờ hở khoảng trống trên mọi màn hình
+                    for ($k = 0; $k < 3; $k++):
+                        foreach ($nhaCungCapAI as $ncc): ?>
+                            <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gray-900/80 border border-gray-800 hover:border-gray-700 text-gray-200 text-xs font-semibold whitespace-nowrap shadow-sm transition">
+                                <i class="<?= $ncc['icon'] ?>" style="color: <?= $ncc['color'] ?>"></i>
+                                <span><?= $ncc['ten'] ?></span>
+                            </div>
+                        <?php endforeach; 
+                    endfor; ?>
+                </div>
+                <div class="flex items-center gap-3 shrink-0 animate-marquee-left" aria-hidden="true">
+                    <?php 
+                    for ($k = 0; $k < 3; $k++):
                         foreach ($nhaCungCapAI as $ncc): ?>
                             <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gray-900/80 border border-gray-800 hover:border-gray-700 text-gray-200 text-xs font-semibold whitespace-nowrap shadow-sm transition">
                                 <i class="<?= $ncc['icon'] ?>" style="color: <?= $ncc['color'] ?>"></i>
@@ -549,9 +663,9 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                 </div>
             </div>
 
-            <!-- HÀNG 2: CHẠY THEO CHIỀU NGƯỢC LẠI (CÁC CÔNG CỤ / AI AGENT) -->
-            <div class="flex overflow-hidden">
-                <div class="marquee-track-r2l flex items-center gap-3">
+            <!-- HÀNG 2: CHẠY THEO CHIỀU NGƯỢC LẠI (CÁC CÔNG CỤ / AI AGENT) - 2 TRACK ANH EM CHẠY VÔ TẬN -->
+            <div class="marquee-container flex overflow-hidden w-full select-none">
+                <div class="flex items-center gap-3 shrink-0 animate-marquee-right">
                     <?php 
                     $congCuAI = [
                         ['ten' => 'Codex',         'icon' => 'fa-solid fa-code',             'color' => '#818CF8'],
@@ -565,8 +679,18 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                         ['ten' => 'Obsidian',      'icon' => 'fa-solid fa-gem',              'color' => '#C084FC'],
                         ['ten' => 'Cursor',        'icon' => 'fa-solid fa-square-full',      'color' => '#60A5FA'],
                     ];
-                    // Lặp 2 lần để tạo chu kỳ marquee liên tục không giật
-                    for ($k = 0; $k < 2; $k++):
+                    for ($k = 0; $k < 3; $k++):
+                        foreach ($congCuAI as $cc): ?>
+                            <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gray-900/80 border border-gray-800 hover:border-gray-700 text-gray-200 text-xs font-semibold whitespace-nowrap shadow-sm transition">
+                                <i class="<?= $cc['icon'] ?>" style="color: <?= $cc['color'] ?>"></i>
+                                <span><?= $cc['ten'] ?></span>
+                            </div>
+                        <?php endforeach; 
+                    endfor; ?>
+                </div>
+                <div class="flex items-center gap-3 shrink-0 animate-marquee-right" aria-hidden="true">
+                    <?php 
+                    for ($k = 0; $k < 3; $k++):
                         foreach ($congCuAI as $cc): ?>
                             <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gray-900/80 border border-gray-800 hover:border-gray-700 text-gray-200 text-xs font-semibold whitespace-nowrap shadow-sm transition">
                                 <i class="<?= $cc['icon'] ?>" style="color: <?= $cc['color'] ?>"></i>
@@ -698,7 +822,36 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
 
     </section>
 
-    <!-- PHÂN ĐOẠN ĐƠN HÀNG TRỰC TIẾP PIXEL SHOWCASE TRÊN FOOTER (THEO ẢNH 1) -->
+    <!-- PHÂN ĐOẠN ĐƠN HÀNG TRỰC TIẾP PIXEL SHOWCASE TRÊN FOOTER (THEO ẢNH 1 & CHẠY QUA LẠI CẮM MÁY TÍNH) -->
+    <?php
+    // Truy vấn số đơn hàng đang dùng thực tế từ Database
+    try {
+        $stmtLive = $pdo->query("
+            SELECT o.id, o.order_code, o.status, o.created_at, p.name AS product_name
+            FROM `orders` o
+            LEFT JOIN `products` p ON o.product_id = p.id
+            WHERE o.status IN ('COMPLETED', 'PAID')
+            ORDER BY o.id DESC
+            LIMIT 12
+        ");
+        $danhSachDonHangDangDung = $stmtLive->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        $danhSachDonHangDangDung = [];
+    }
+    // Số nhân vật trong phòng tương ứng với số đơn hàng thực tế (tối thiểu 5)
+    $soLuongDonDangDung = max(5, count($danhSachDonHangDangDung));
+    
+    // Mảng tên các gói hiển thị trên bong bóng nhân vật
+    $danhSachGoi = [];
+    foreach ($danhSachDonHangDangDung as $dh) {
+        $tenRutGon = !empty($dh['product_name']) ? preg_replace('/^API\s+/i', '', $dh['product_name']) : 'API Key';
+        $danhSachGoi[] = $tenRutGon;
+    }
+    $macDinhGoi = ['Cursor 1 Ngày', 'Claude 10$ Max', 'Codex Plus', 'OpenCode Pro', 'DeepSeek R1', 'Gemini 10$'];
+    while (count($danhSachGoi) < 5) {
+        $danhSachGoi[] = $macDinhGoi[count($danhSachGoi) % count($macDinhGoi)];
+    }
+    ?>
     <section class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full border-t border-gray-800/80">
         <!-- Tiêu đề giới thiệu -->
         <div class="space-y-3 mb-6 text-left">
@@ -710,21 +863,21 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                 Mỗi đơn đang giao là một nhân vật pixel
             </h2>
             <p class="text-xs sm:text-sm text-gray-400 max-w-2xl leading-relaxed">
-                Bong bóng trên mỗi nhân vật cho biết loại API khách vừa mua. Key được giao tự động ngay sau khi thanh toán.
+                Bong bóng trên mỗi nhân vật cho biết loại API khách vừa mua. Các pixel chạy qua lại trong văn phòng, cắm máy tính và xử lý đơn hàng tự động.
             </p>
         </div>
 
         <!-- KHUNG PHÒNG LÀM VIỆC PIXEL ROOM SHOWCASE -->
-        <div class="border border-gray-800 rounded-3xl bg-[#0e1320] p-4 sm:p-7 shadow-2xl overflow-hidden relative">
+        <div class="border border-gray-800 rounded-3xl bg-[#0e1320] p-4 sm:p-7 shadow-2xl overflow-hidden relative group">
             
-            <!-- Huy hiệu trạng thái trên thanh header phòng -->
+            <!-- Huy hiệu trạng thái trên thanh header phòng (Đồng bộ số lượng thực tế) -->
             <div class="flex items-center justify-between border-b border-gray-800/80 pb-3 mb-3">
                 <div class="flex items-center gap-2 text-xs font-bold">
                     <span class="relative flex h-2.5 w-2.5">
                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                         <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                     </span>
-                    <span class="text-emerald-400">Đang giao • 5 đơn hàng</span>
+                    <span class="text-emerald-400">Đang giao • <?= $soLuongDonDangDung ?> đơn hàng</span>
                 </div>
                 <div class="text-[11px] text-gray-400 font-mono flex items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
@@ -732,11 +885,19 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                 </div>
             </div>
 
+            <!-- Nút điều hướng cuộn ngang trên màn hình mobile nhỏ -->
+            <button onclick="document.getElementById('pixelRoomInner').scrollBy({left: -200, behavior: 'smooth'})" class="sm:hidden absolute left-2 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-black/80 text-white flex items-center justify-center border border-gray-600 shadow-xl active:scale-90 transition" aria-label="Xem bên trái">
+                <i class="fas fa-chevron-left text-xs"></i>
+            </button>
+            <button onclick="document.getElementById('pixelRoomInner').scrollBy({left: 200, behavior: 'smooth'})" class="sm:hidden absolute right-2 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-black/80 text-white flex items-center justify-center border border-gray-600 shadow-xl active:scale-90 transition" aria-label="Xem bên phải">
+                <i class="fas fa-chevron-right text-xs"></i>
+            </button>
+
             <!-- PHÒNG LÀM VIỆC PIXEL INTERIOR NỀN SÁNG ẤM ÁP / HIỆN ĐẠI CHUẨN ẢNH 1 -->
-            <div class="w-full bg-[#f4ecd8] text-gray-900 rounded-2xl overflow-x-auto no-scrollbar relative pt-2 pb-0 border border-amber-200/60 shadow-inner">
+            <div id="pixelRoomInner" class="w-full bg-[#f4ecd8] text-gray-900 rounded-2xl overflow-x-auto no-scrollbar relative pt-2 pb-0 border border-amber-200/60 shadow-inner">
                 
                 <!-- DÂY CỜ LỄ HỘI TREO TRÊN TRẦN PHÒNG -->
-                <div class="w-full min-w-[760px] h-7 relative select-none pointer-events-none mb-1">
+                <div class="w-full min-w-[820px] h-7 relative select-none pointer-events-none mb-1">
                     <svg class="w-full h-7" preserveAspectRatio="none" viewBox="0 0 1000 28" fill="none">
                         <path d="M 0 6 Q 250 18, 500 8 T 1000 6" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4 3"/>
                         <polygon points="30,7 40,7 35,17" fill="#EF4444"/>
@@ -765,7 +926,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                 </div>
 
                 <!-- CẢNH NỀN VĂN PHÒNG (TRANH TREO TƯỜNG, ĐỒNG HỒ, BẢNG TRẮNG, CỬA SỔ) -->
-                <div class="w-full min-w-[760px] h-12 relative flex items-center justify-between px-6 opacity-80 pointer-events-none select-none">
+                <div class="w-full min-w-[820px] h-12 relative flex items-center justify-between px-6 opacity-80 pointer-events-none select-none">
                     <div class="w-8 h-6 bg-white border border-gray-400 p-0.5 rounded-xs shadow-xs">
                         <div class="w-full h-full bg-emerald-200"></div>
                     </div>
@@ -805,18 +966,19 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                     </div>
                 </div>
 
-                <!-- HÀNG CÁC MASCOT PIXEL VÀ VẬT DỤNG VĂN PHÒNG -->
-                <div class="w-full min-w-[760px] flex items-end justify-between px-6 pt-2 pb-1 relative z-10">
+                <!-- HÀNG CÁC MASCOT PIXEL VÀ VẬT DỤNG VĂN PHÒNG (CHẠY QUA LẠI, CẮM MÁY TÍNH) -->
+                <div class="w-full min-w-[820px] flex items-end justify-between px-6 pt-2 pb-1 relative z-10">
                     
-                    <!-- 1. CỬA RA VÀO + PI (Kỳ nhông hồng) -->
+                    <!-- 1. CỬA RA VÀO + PI (Kỳ nhông hồng CHẠY QUA LẠI & BÀN MÁY TÍNH) -->
                     <div class="flex items-end gap-3">
                         <div class="w-7 h-16 bg-amber-800/90 border border-amber-950 rounded-t-xs relative">
                             <span class="w-1.5 h-1.5 bg-amber-300 rounded-full absolute right-1 top-8"></span>
                         </div>
 
-                        <div class="flex flex-col items-center">
-                            <div class="animate-bubble-float bg-white border border-pink-400 text-pink-600 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono">
-                                <span>Bash</span>
+                        <!-- Pi đi tuần tra qua lại từ cửa tới bàn máy tính -->
+                        <div class="flex flex-col items-center animate-patrol-1 cursor-pointer">
+                            <div class="animate-bubble-float bg-white border border-pink-400 text-pink-600 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono whitespace-nowrap">
+                                <span><?= htmlspecialchars($danhSachGoi[0] ?? 'Cursor 1 Ngày') ?></span>
                             </div>
                             <svg width="40" height="38" viewBox="0 0 34 32" class="drop-shadow-sm">
                                 <rect x="4" y="10" width="4" height="6" fill="#ec4899"/>
@@ -833,10 +995,13 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                             </svg>
                         </div>
 
-                        <div class="w-11 h-9 bg-amber-900 border border-amber-950 p-1 flex items-center justify-center rounded-xs">
-                            <div class="w-7 h-5 bg-gray-900 border border-gray-700 rounded-xs flex items-center justify-center text-[7px] text-green-400 font-mono">
-                                &gt;_
+                        <!-- Trạm máy tính 1: Đang cắm sạc & gõ phím -->
+                        <div class="w-12 h-10 bg-amber-900 border border-amber-950 p-1 flex items-center justify-center rounded-xs relative">
+                            <div class="w-8 h-6 bg-gray-900 border border-gray-700 rounded-xs flex items-center justify-center text-[7px] text-green-400 font-mono animate-typing">
+                                &gt;_run
                             </div>
+                            <!-- Tia sét cắm máy tính -->
+                            <span class="absolute -top-3 right-0 animate-cable-spark text-amber-500 text-xs">⚡</span>
                         </div>
                     </div>
 
@@ -849,8 +1014,8 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                         </div>
 
                         <div class="flex flex-col items-center">
-                            <div class="animate-bubble-float-2 bg-white border border-purple-400 text-purple-700 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono">
-                                <span>Bash</span>
+                            <div class="animate-bubble-float-2 bg-white border border-purple-400 text-purple-700 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono whitespace-nowrap">
+                                <span><?= htmlspecialchars($danhSachGoi[1] ?? 'Claude 10$') ?></span>
                             </div>
                             <svg width="40" height="38" viewBox="0 0 32 32" class="drop-shadow-sm">
                                 <rect x="9" y="6" width="14" height="6" fill="#7e22ce"/>
@@ -876,12 +1041,13 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                         </div>
                     </div>
 
-                    <!-- 3. CLAUDE CODE (Nhân vật tóc cam) + TỦ SERVER RACK -->
+                    <!-- 3. CLAUDE CODE (Nhân vật tóc cam CẮM VÀO SERVER & GÕ PHÍM) -->
                     <div class="flex items-end gap-2.5">
-                        <div class="w-10 h-10 bg-gray-900 border border-gray-700 p-1 flex items-center justify-center rounded-xs">
-                            <div class="w-7 h-6 bg-blue-600 rounded-xs flex items-center justify-center text-[7px] text-white font-mono">
+                        <div class="w-10 h-10 bg-gray-900 border border-gray-700 p-1 flex items-center justify-center rounded-xs relative">
+                            <div class="w-7 h-6 bg-blue-600 rounded-xs flex items-center justify-center text-[7px] text-white font-mono animate-typing">
                                 AI
                             </div>
+                            <span class="absolute -top-3.5 left-1 text-cyan-400 text-xs animate-cable-spark">🔌</span>
                         </div>
 
                         <div class="w-8 h-18 bg-slate-900 border border-slate-950 p-1 flex flex-col justify-between rounded-xs">
@@ -892,9 +1058,10 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                             <span class="w-2 h-1 bg-cyan-400 rounded-full"></span>
                         </div>
 
-                        <div class="flex flex-col items-center">
-                            <div class="animate-bubble-float bg-white border border-orange-400 text-orange-600 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono">
-                                <span>Claude 3.5</span>
+                        <!-- Claude Code đang ngồi cắm máy làm việc -->
+                        <div class="flex flex-col items-center animate-typing cursor-pointer">
+                            <div class="animate-bubble-float bg-white border border-orange-400 text-orange-600 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono whitespace-nowrap">
+                                <span><?= htmlspecialchars($danhSachGoi[2] ?? 'Codex Plus') ?></span>
                             </div>
                             <svg width="40" height="38" viewBox="0 0 32 32" class="drop-shadow-sm">
                                 <rect x="10" y="6" width="12" height="6" fill="#ea580c"/>
@@ -910,11 +1077,11 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                         </div>
                     </div>
 
-                    <!-- 4. OPENCODE (Robot xanh lá) + MÁY IN / SCANNER -->
+                    <!-- 4. OPENCODE (Robot xanh lá CHẠY QUA LẠI CẮM MÁY IN) -->
                     <div class="flex items-end gap-2.5">
-                        <div class="flex flex-col items-center">
-                            <div class="animate-bubble-float-2 bg-white border border-green-500 text-green-700 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono">
-                                <span>OpenAI</span>
+                        <div class="flex flex-col items-center animate-patrol-2 cursor-pointer">
+                            <div class="animate-bubble-float-2 bg-white border border-green-500 text-green-700 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono whitespace-nowrap">
+                                <span><?= htmlspecialchars($danhSachGoi[3] ?? 'OpenCode') ?></span>
                             </div>
                             <svg width="38" height="38" viewBox="0 0 32 32" class="drop-shadow-sm">
                                 <rect x="7" y="8" width="18" height="15" fill="#15803d"/>
@@ -934,11 +1101,11 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                         </div>
                     </div>
 
-                    <!-- 5. DEEPSEEK HARNESS (Nhân vật tóc xanh dương) + GHẾ SOFA -->
+                    <!-- 5. DEEPSEEK HARNESS (Nhân vật tóc xanh dương CẮM MÁY LÀM VIỆC) -->
                     <div class="flex items-end gap-3">
-                        <div class="flex flex-col items-center">
-                            <div class="animate-bubble-float-3 bg-white border border-blue-500 text-blue-700 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono">
-                                <span>DeepSeek R1</span>
+                        <div class="flex flex-col items-center cursor-pointer">
+                            <div class="animate-bubble-float-3 bg-white border border-blue-500 text-blue-700 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono whitespace-nowrap">
+                                <span><?= htmlspecialchars($danhSachGoi[4] ?? 'DeepSeek R1') ?></span>
                             </div>
                             <svg width="40" height="38" viewBox="0 0 32 32" class="drop-shadow-sm">
                                 <rect x="9" y="6" width="14" height="6" fill="#1d4ed8"/>
@@ -952,8 +1119,12 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                             </svg>
                         </div>
 
-                        <div class="w-16 h-10 bg-indigo-200 border border-indigo-300 rounded-t-sm p-1 flex flex-col justify-between">
+                        <div class="w-16 h-10 bg-indigo-200 border border-indigo-300 rounded-t-sm p-1 flex flex-col justify-between relative">
                             <div class="w-full h-3 bg-indigo-300 rounded-xs"></div>
+                            <!-- Laptop cắm sạc trên bàn -->
+                            <div class="w-6 h-4 bg-gray-800 border border-gray-600 rounded-xs self-center flex items-center justify-center text-[6px] text-cyan-300 animate-typing">
+                                &gt;_
+                            </div>
                             <div class="flex justify-between">
                                 <span class="w-2 h-3 bg-amber-900"></span>
                                 <span class="w-2 h-3 bg-amber-900"></span>
@@ -969,7 +1140,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                 </div>
 
                 <!-- BĂNG SÀN GỖ / PLINTH TÍM NHẠT PHẢN CHIẾU TÊN MASCOT (CHUẨN ẢNH 1) -->
-                <div class="w-full min-w-[760px] bg-[#e9d5ff]/70 border-t border-purple-300/80 px-6 py-2 flex items-center justify-between text-xs font-bold text-gray-800 font-sans">
+                <div class="w-full min-w-[820px] bg-[#e9d5ff]/70 border-t border-purple-300/80 px-6 py-2 flex items-center justify-between text-xs font-bold text-gray-800 font-sans">
                     <div class="w-24 text-center">Pi</div>
                     <div class="w-28 text-center">Codex</div>
                     <div class="w-36 text-center">Claude Code</div>
@@ -978,7 +1149,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                 </div>
 
                 <!-- CHÂN TƯỜNG SỌC GỖ DỌC CHUẨN ẢNH 1 -->
-                <div class="w-full min-w-[760px] h-4 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 border-t border-gray-300 flex">
+                <div class="w-full min-w-[820px] h-4 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 border-t border-gray-300 flex">
                     <?php for ($i = 0; $i < 40; $i++): ?>
                         <div class="flex-1 border-r border-gray-300/60 h-full"></div>
                     <?php endfor; ?>
