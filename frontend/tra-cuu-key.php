@@ -211,7 +211,7 @@ $keyTuUrl = htmlspecialchars(trim($_GET['key'] ?? ''));
                 </h3>
 
                 <p class="text-xs text-gray-300 leading-relaxed">
-                    Sử dụng Base URL chính thức của shop để kết nối vào Cursor IDE, Cline, Và các :
+                    Sử dụng Base URL chính thức của shop để kết nối vào Cursor IDE, Cline, Và các AI Agent Khác:
                 </p>
 
                 <div class="space-y-3">
