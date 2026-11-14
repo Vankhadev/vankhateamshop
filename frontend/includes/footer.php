@@ -14,22 +14,39 @@ $daDangNhapFooter = !empty($_SESSION['user_id']);
 $curUri = $_SERVER['REQUEST_URI'] ?? '/';
 ?>
 <footer class="border-t border-gray-800 bg-[#0F172A] py-8 pb-24 lg:pb-8 text-center text-xs text-gray-400 mt-auto">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
-        <div class="flex flex-wrap items-center justify-center gap-4 text-xs">
-            <a href="https://zalo.me/<?= htmlspecialchars($soZaloFooter) ?>" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 transition flex items-center gap-1.5 font-semibold">
-                <i class="fas fa-comment-dots"></i> Hotline Zalo: <?= htmlspecialchars($soZaloFooter) ?>
-            </a>
-            <span class="text-gray-700">|</span>
-            <a href="<?= htmlspecialchars($teleFooter) ?>" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:text-sky-300 transition flex items-center gap-1.5 font-semibold">
-                <i class="fab fa-telegram"></i> Hỗ Trợ Telegram
-            </a>
-            <span class="text-gray-700">|</span>
-            <a href="/chinh-sach" class="text-gray-400 hover:text-white transition">Chính Sách Bảo Hành</a>
-            <span class="text-gray-700">|</span>
-            <a href="/docs" class="text-gray-400 hover:text-white transition">Buyer API Docs</a>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 text-left">
+            <div>
+                <h2 class="text-sm font-black tracking-wider text-white uppercase mb-3">Hỗ trợ</h2>
+                <div class="space-y-2 text-xs">
+                    <a href="https://zalo.me/<?= htmlspecialchars($soZaloFooter) ?>" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 transition flex items-center gap-1.5 font-semibold">
+                        <i class="fas fa-comment-dots w-4"></i> Hotline Zalo: <?= htmlspecialchars($soZaloFooter) ?>
+                    </a>
+                    <a href="<?= htmlspecialchars($teleFooter) ?>" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:text-sky-300 transition flex items-center gap-1.5 font-semibold">
+                        <i class="fab fa-telegram w-4"></i> Hỗ Trợ Telegram
+                    </a>
+                    <a href="/docs" class="text-gray-400 hover:text-white transition flex items-center gap-1.5"><i class="fas fa-book w-4"></i> Buyer API Docs</a>
+                </div>
+            </div>
+            <div>
+                <h2 class="text-sm font-black tracking-wider text-white uppercase mb-3">Pháp lý</h2>
+                <div class="grid grid-cols-1 gap-2 text-xs">
+                    <a href="/dieu-khoan-su-dung" class="text-gray-400 hover:text-white transition">Điều khoản sử dụng</a>
+                    <a href="/quy-che-hoat-dong" class="text-gray-400 hover:text-white transition">Quy chế hoạt động</a>
+                    <a href="/chinh-sach-thanh-toan" class="text-gray-400 hover:text-white transition">Chính sách thanh toán</a>
+                    <a href="/chinh-sach-cung-cap-san-pham" class="text-gray-400 hover:text-white transition">Chính sách cung cấp sản phẩm</a>
+                    <a href="/bao-hanh-hoan-tien" class="text-gray-400 hover:text-white transition">Bảo hành & hoàn tiền</a>
+                    <a href="/dieu-khoan-dai-ly" class="text-gray-400 hover:text-white transition">Điều khoản đại lý</a>
+                    <a href="/chinh-sach-bao-mat" class="text-gray-400 hover:text-white transition">Chính sách bảo mật</a>
+                </div>
+            </div>
+            <div class="lg:text-right">
+                <h2 class="text-sm font-black tracking-wider text-white uppercase mb-3">Thông tin</h2>
+                <p class="text-xs leading-relaxed text-gray-400">Hệ thống cung cấp API AI và phần mềm bản quyền 24/7. Vui lòng đọc kỹ chính sách trước khi sử dụng dịch vụ.</p>
+            </div>
         </div>
-        <p class="font-medium text-gray-400 text-[11px]">
-            &copy; 2026 <span class="text-white font-bold"><?= htmlspecialchars($tenWebsiteFooter) ?></span> - Hệ Thống Cung Cấp API AI & Phần Mềm Bản Quyền 24/7. All rights reserved.
+        <p class="font-medium text-gray-400 text-[11px] text-center mt-8 pt-4 border-t border-gray-800">
+            &copy; 2026 <span class="text-white font-bold"><?= htmlspecialchars($tenWebsiteFooter) ?></span> - All rights reserved.
         </p>
     </div>
 </footer>

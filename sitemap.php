@@ -80,13 +80,15 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
         <priority>0.8</priority>
     </url>
 
-    <!-- Chính sách bảo hành & Hoàn tiền -->
-    <url>
-        <loc><?= $baseUrl ?>/chinh-sach</loc>
-        <lastmod><?= $ngayHomNay ?></lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.7</priority>
-    </url>
+    <!-- Trung tâm chính sách pháp lý -->
+    <?php foreach (['dieu-khoan-su-dung', 'quy-che-hoat-dong', 'chinh-sach-thanh-toan', 'chinh-sach-cung-cap-san-pham', 'bao-hanh-hoan-tien', 'dieu-khoan-dai-ly', 'chinh-sach-bao-mat'] as $duongDanChinhSach): ?>
+        <url>
+            <loc><?= $baseUrl ?>/<?= $duongDanChinhSach ?></loc>
+            <lastmod><?= $ngayHomNay ?></lastmod>
+            <changefreq>monthly</changefreq>
+            <priority>0.7</priority>
+        </url>
+    <?php endforeach; ?>
 
     <!-- Trang Đăng nhập -->
     <url>

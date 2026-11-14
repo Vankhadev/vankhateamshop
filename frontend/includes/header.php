@@ -139,9 +139,17 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                                 <i class="fas fa-book-bookmark text-amber-400 w-4 text-center"></i>
                                 <span>Tài Liệu API & Tích Hợp</span>
                             </a>
-                            <a href="/chinh-sach" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
+                            <a href="/bao-hanh-hoan-tien" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
                                 <i class="fas fa-shield-halved text-green-400 w-4 text-center"></i>
-                                <span>Chính Sách Bảo Hành</span>
+                                <span>Bảo hành & hoàn tiền</span>
+                            </a>
+                            <a href="/dieu-khoan-su-dung" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
+                                <i class="fas fa-file-contract text-blue-400 w-4 text-center"></i>
+                                <span>Điều khoản sử dụng</span>
+                            </a>
+                            <a href="/chinh-sach-bao-mat" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
+                                <i class="fas fa-lock text-purple-400 w-4 text-center"></i>
+                                <span>Chính sách bảo mật</span>
                             </a>
                         </div>
                     </div>

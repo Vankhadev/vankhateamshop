@@ -27,13 +27,14 @@
         <priority>0.8</priority>
     </url>
 
-    <!-- Chính sách bảo hành & Hoàn tiền -->
-    <url>
-        <loc>https://tiemai.io.vn/chinh-sach</loc>
-        <lastmod>2026-11-13</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.7</priority>
-    </url>
+    <!-- Trung tâm chính sách pháp lý -->
+    <url><loc>https://tiemai.io.vn/dieu-khoan-su-dung</loc><lastmod>2026-11-14</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+    <url><loc>https://tiemai.io.vn/quy-che-hoat-dong</loc><lastmod>2026-11-14</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+    <url><loc>https://tiemai.io.vn/chinh-sach-thanh-toan</loc><lastmod>2026-11-14</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+    <url><loc>https://tiemai.io.vn/chinh-sach-cung-cap-san-pham</loc><lastmod>2026-11-14</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+    <url><loc>https://tiemai.io.vn/bao-hanh-hoan-tien</loc><lastmod>2026-11-14</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+    <url><loc>https://tiemai.io.vn/dieu-khoan-dai-ly</loc><lastmod>2026-11-14</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+    <url><loc>https://tiemai.io.vn/chinh-sach-bao-mat</loc><lastmod>2026-11-14</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
 
     <!-- Trang Đăng nhập -->
     <url>
