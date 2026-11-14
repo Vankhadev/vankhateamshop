@@ -326,3 +326,15 @@ INSERT INTO `coupons` (`code`, `discount_type`, `discount_value`, `min_order_amo
 -- 8. Thông báo mẫu hiển thị trang chủ
 INSERT INTO `announcements` (`title`, `content`, `type`, `is_active`) VALUES
 ('Chào Mừng Bạn Đến Với VanKha Team Shop', 'Hệ thống tự động giao key 24/7 qua VietQR. Nhập mã CHAOMUNG10 để được giảm ngay 10% cho đơn hàng đầu tiên!', 'SUCCESS', 1);
+
+-- 9. Bảng lưu trữ mã nạp tiền ví ngẫu nhiên (tiemai + 5 số)
+CREATE TABLE IF NOT EXISTS `wallet_deposit_codes` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` BIGINT UNSIGNED NOT NULL,
+    `code` VARCHAR(50) NOT NULL UNIQUE,
+    `amount` DECIMAL(15,2) DEFAULT 0,
+    `status` ENUM('PENDING','COMPLETED','EXPIRED') DEFAULT 'PENDING',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_user_id` (`user_id`),
+    INDEX `idx_code` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

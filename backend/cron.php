@@ -125,18 +125,78 @@ if (!empty($sepayToken) && $sepayToken !== 'YOUR_SEPAY_API_TOKEN' && $sepayToken
                     'body'        => json_encode($tx, JSON_UNESCAPED_UNICODE)
                 ]);
 
-                // Nếu là giao dịch mới bổ sung thành công -> Kích hoạt xử lý đơn
+                // Nếu là giao dịch mới bổ sung thành công -> Kích hoạt xử lý đơn hoặc nạp ví
                 if ($insertStmt->rowCount() > 0 && ((int)($tx['amount_in'] ?? 0)) > 0) {
                     $noiDung = $tx['transaction_content'] ?? ($tx['content'] ?? '');
-                    if (preg_match('/(VK[A-Z0-9]{4,16})/i', $noiDung, $mDon)) {
-                        $maDon = strtoupper($mDon[1]);
-                        $tienNhan = (float)($tx['amount_in'] ?? 0);
-                        $upd = $pdo->prepare("UPDATE `orders` SET `status` = 'PAID', `paid_at` = NOW() WHERE `order_code` = ? AND `status` = 'PENDING' AND `total_amount` <= ?");
-                        $upd->execute([$maDon, $tienNhan]);
+                    $tienNhan = (float)($tx['amount_in'] ?? 0);
+
+                    // 1. Kiểm tra nạp tiền ví (tiemai + 5 số ngẫu nhiên hoặc NAPQUY...)
+                    $daNapVi = false;
+                    if (preg_match('/(?:tiemai)(\d{5})(?!\d)/i', $noiDung, $mNapVi)) {
+                        $codeNap = 'tiemai' . $mNapVi[1];
+                        $stmtFind = $pdo->prepare("SELECT `user_id` FROM `wallet_deposit_codes` WHERE LOWER(`code`) = LOWER(?) ORDER BY `id` DESC LIMIT 1");
+                        $stmtFind->execute([$codeNap]);
+                        $uid = $stmtFind->fetchColumn();
+                        if ($uid) {
+                            $pdo->beginTransaction();
+                            try {
+                                $stmtUser = $pdo->prepare("SELECT `id`, `balance` FROM `users` WHERE `id` = ? FOR UPDATE");
+                                $stmtUser->execute([$uid]);
+                                $u = $stmtUser->fetch();
+                                if ($u) {
+                                    $soDuCu = (float)$u['balance'];
+                                    $soDuMoi = $soDuCu + $tienNhan;
+                                    $pdo->prepare("UPDATE `users` SET `balance` = ? WHERE `id` = ?")->execute([$soDuMoi, $uid]);
+                                    $pdo->prepare("INSERT INTO `transactions` (`user_id`, `type`, `amount`, `balance_before`, `balance_after`, `note`) VALUES (?, 'DEPOSIT', ?, ?, ?, ?)")
+                                        ->execute([$uid, $tienNhan, $soDuCu, $soDuMoi, "Nạp tiền bù qua Cron VietQR (Mã GD SePay: {$txId})"]);
+                                    $pdo->prepare("UPDATE `wallet_deposit_codes` SET `status` = 'COMPLETED', `amount` = ? WHERE LOWER(`code`) = LOWER(?)")
+                                        ->execute([$tienNhan, $codeNap]);
+                                    $pdo->commit();
+                                    $daNapVi = true;
+                                } else {
+                                    $pdo->rollBack();
+                                }
+                            } catch (Exception $e) {
+                                if ($pdo->inTransaction()) $pdo->rollBack();
+                            }
+                        }
+                    } elseif (preg_match('/(?:NAPQUY|NAP)(\d+)/i', $noiDung, $mNapOld)) {
+                        $uid = (int)$mNapOld[1];
+                        $pdo->beginTransaction();
+                        try {
+                            $stmtUser = $pdo->prepare("SELECT `id`, `balance` FROM `users` WHERE `id` = ? FOR UPDATE");
+                            $stmtUser->execute([$uid]);
+                            $u = $stmtUser->fetch();
+                            if ($u) {
+                                $soDuCu = (float)$u['balance'];
+                                $soDuMoi = $soDuCu + $tienNhan;
+                                $pdo->prepare("UPDATE `users` SET `balance` = ? WHERE `id` = ?")->execute([$soDuMoi, $uid]);
+                                $pdo->prepare("INSERT INTO `transactions` (`user_id`, `type`, `amount`, `balance_before`, `balance_after`, `note`) VALUES (?, 'DEPOSIT', ?, ?, ?, ?)")
+                                    ->execute([$uid, $tienNhan, $soDuCu, $soDuMoi, "Nạp tiền bù qua Cron VietQR (Mã GD SePay: {$txId})"]);
+                                $pdo->commit();
+                                $daNapVi = true;
+                            } else {
+                                $pdo->rollBack();
+                            }
+                        } catch (Exception $e) {
+                            if ($pdo->inTransaction()) $pdo->rollBack();
+                        }
+                    }
+
+                    // 2. Nếu không phải nạp ví, kiểm tra thanh toán đơn hàng (tiemai... hoặc VK...)
+                    if (!$daNapVi && preg_match('/(tiemai\d{16}|tiemai[a-z0-9]{16}|VK[A-Z0-9]{4,16})/i', $noiDung, $mDon)) {
+                        $maDon = $mDon[1];
+                        $upd = $pdo->prepare("UPDATE `orders` SET `status` = 'PAID', `paid_at` = NOW() WHERE (LOWER(`order_code`) = LOWER(?) OR `order_code` = ?) AND `status` = 'PENDING' AND `total_amount` <= ?");
+                        $upd->execute([$maDon, $maDon, $tienNhan]);
                         if ($upd->rowCount() > 0) {
+                            // Lấy mã đơn chính xác
+                            $stmtGetCode = $pdo->prepare("SELECT `order_code` FROM `orders` WHERE LOWER(`order_code`) = LOWER(?) LIMIT 1");
+                            $stmtGetCode->execute([$maDon]);
+                            $realMaDon = $stmtGetCode->fetchColumn() ?: $maDon;
+
                             require_once __DIR__ . '/dispatcher.php';
                             $boDieuPhoi = new BoDieuPhoiDonHang($pdo);
-                            $boDieuPhoi->xuLyDonHang($maDon);
+                            $boDieuPhoi->xuLyDonHang($realMaDon);
                         }
                     }
                     $soGiaoDichBu++;

@@ -27,8 +27,17 @@ if (!$user) {
     exit;
 }
 
-// Tạo mã nạp tiền ngẫu nhiên cho tài khoản này (vd: NAPQUY2 hoặc NAPQUY289)
-$maNapTien = 'NAPQUY' . $user['id'] . (rand(1, 10) > 5 ? rand(10, 99) : '');
+// Tạo mã nạp tiền ngẫu nhiên chuẩn tiemai + 5 số ngẫu nhiên từ 0 đến 9 (VD: tiemai58291)
+$maNapTien = 'tiemai' . sprintf('%05d', mt_rand(10000, 99999));
+try {
+    $stmtCode = $pdo->prepare("INSERT INTO `wallet_deposit_codes` (`user_id`, `code`, `status`) VALUES (?, ?, 'PENDING')");
+    $stmtCode->execute([$user['id'], $maNapTien]);
+} catch (Exception $e) {
+    // Nếu trùng mã ngẫu nhiên thì sinh mã khác
+    $maNapTien = 'tiemai' . sprintf('%05d', mt_rand(10000, 99999));
+    $stmtCode = $pdo->prepare("INSERT INTO `wallet_deposit_codes` (`user_id`, `code`, `status`) VALUES (?, ?, 'PENDING')");
+    $stmtCode->execute([$user['id'], $maNapTien]);
+}
 ?>
 <!DOCTYPE html>
 <html lang="vi">

@@ -75,8 +75,8 @@ switch ($hanhDong) {
 
         $ipKhach = layIpNguoiDung();
         $userId = $_SESSION['user_id'] ?? null;
-        // Sinh mã nội dung chuyển khoản ngẫu nhiên (vd: VK839210 hoặc VK7B92A4)
-        $maDonHang = 'VK' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
+        // Sinh mã đơn hàng chuẩn tiemai + 16 chữ số ngẫu nhiên (VD: tiemai9284710385920184)
+        $maDonHang = 'tiemai' . sprintf('%08d%08d', mt_rand(10000000, 99999999), mt_rand(10000000, 99999999));
 
         $stmtTaoDon = $pdo->prepare("
             INSERT INTO `orders` (`order_code`, `user_id`, `product_id`, `customer_email`, `quantity`, `total_amount`, `status`, `ip_address`)
@@ -169,8 +169,8 @@ switch ($hanhDong) {
             $soDuMoi = $soDuCu - $giaTien;
             $pdo->prepare("UPDATE `users` SET `balance` = ? WHERE `id` = ?")->execute([$soDuMoi, $userId]);
 
-            // Tạo mã đơn hàng
-            $maDonHang = 'VK' . rand(100000, 999999);
+            // Tạo mã đơn hàng chuẩn tiemai + 16 chữ số ngẫu nhiên
+            $maDonHang = 'tiemai' . sprintf('%08d%08d', mt_rand(10000000, 99999999), mt_rand(10000000, 99999999));
             $ipKhach = layIpNguoiDung();
 
             // Tạo đơn hàng trạng thái PAID để giao ngay
@@ -573,8 +573,8 @@ switch ($hanhDong) {
             exit;
         }
 
-        // 3. Nếu Key có định dạng API chuẩn (sk-..., vk_..., gzsk_...) hoặc độ dài >= 14 ký tự
-        if (strlen($keyCanCheck) >= 14 && (str_starts_with($keyCanCheck, 'sk-') || str_starts_with($keyCanCheck, 'vk_') || str_starts_with($keyCanCheck, 'gzsk_') || str_starts_with($keyCanCheck, 'cur-') || str_starts_with($keyCanCheck, 'VK'))) {
+        // 3. Nếu Key có định dạng API chuẩn (sk-..., vk_..., gzsk_..., tiemai...) hoặc độ dài >= 14 ký tự
+        if (strlen($keyCanCheck) >= 14 && (str_starts_with($keyCanCheck, 'sk-') || str_starts_with($keyCanCheck, 'vk_') || str_starts_with($keyCanCheck, 'gzsk_') || str_starts_with($keyCanCheck, 'cur-') || str_starts_with($keyCanCheck, 'tiemai') || str_starts_with($keyCanCheck, 'VK'))) {
             $shortKey = substr($keyCanCheck, 0, 12);
             $stmtCount = $pdo->prepare("SELECT COUNT(*) FROM `api_logs` WHERE `api_key_used` LIKE ?");
             $stmtCount->execute(["%$shortKey%"]);

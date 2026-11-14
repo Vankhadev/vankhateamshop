@@ -126,25 +126,42 @@ try {
         $noiDungChuyenKhoan = trim($data['content'] ?? '');
         $maThanhToanSepay = trim($data['code'] ?? '');
 
-        // Trích xuất mã đơn hàng VKxxxxxx hoặc mã nạp ví NAPQUYxxxx / NAPxxxx
+        // Trích xuất mã đơn hàng (tiemai... hoặc VK...) hoặc mã nạp ví (tiemai + 5 số hoặc NAPQUY...)
         $maDonTimThay = null;
         $userIdNap = null;
+        $codeNapViUsed = null;
 
-        // Ưu tiên kiểm tra trường code do SePay trích xuất tự động
-        if (!empty($maThanhToanSepay)) {
-            if (preg_match('/^(VK[A-Z0-9]{4,16})$/i', $maThanhToanSepay, $m)) {
-                $maDonTimThay = strtoupper($m[1]);
-            } elseif (preg_match('/^(?:NAPQUY|NAP)(\d+)$/i', $maThanhToanSepay, $m)) {
-                $userIdNap = (int)$m[1];
+        // 1. Kiểm tra mã nạp ví chuẩn mới: tiemai + đúng 5 số ngẫu nhiên (VD: tiemai58291)
+        if (preg_match('/(?:tiemai)(\d{5})(?!\d)/i', $noiDungChuyenKhoan, $mNap) || preg_match('/^(?:tiemai)(\d{5})$/i', $maThanhToanSepay, $mNap)) {
+            $codeNapViUsed = 'tiemai' . $mNap[1];
+            $stmtFind = $pdo->prepare("SELECT `user_id` FROM `wallet_deposit_codes` WHERE LOWER(`code`) = LOWER(?) ORDER BY `id` DESC LIMIT 1");
+            $stmtFind->execute([$codeNapViUsed]);
+            $foundUid = $stmtFind->fetchColumn();
+            if ($foundUid) {
+                $userIdNap = (int)$foundUid;
             }
         }
 
-        // Nếu trường code không khớp, quét tìm trực tiếp trong nội dung chuyển khoản gốc (content)
-        if (!$maDonTimThay && !$userIdNap) {
-            if (preg_match('/(VK[A-Z0-9]{4,16})/i', $noiDungChuyenKhoan, $matches)) {
-                $maDonTimThay = strtoupper($matches[1]);
+        // 2. Fallback kiểm tra mã nạp ví kiểu cũ (NAPQUYxxxx hoặc NAPxxxx)
+        if (!$userIdNap) {
+            if (!empty($maThanhToanSepay) && preg_match('/^(?:NAPQUY|NAP)(\d+)$/i', $maThanhToanSepay, $m)) {
+                $userIdNap = (int)$m[1];
             } elseif (preg_match('/(?:NAPQUY|NAP)(\d+)/i', $noiDungChuyenKhoan, $napMatches)) {
                 $userIdNap = (int)$napMatches[1];
+            }
+        }
+
+        // 3. Nếu không phải nạp ví, kiểm tra mã đơn hàng: tiemai + 16 ký tự/số HOẶC mã đơn cũ VKxxxxxx
+        if (!$userIdNap) {
+            if (!empty($maThanhToanSepay)) {
+                if (preg_match('/^(tiemai\d{16}|tiemai[a-z0-9]{16}|VK[A-Z0-9]{4,16})$/i', $maThanhToanSepay, $m)) {
+                    $maDonTimThay = $m[1];
+                }
+            }
+            if (!$maDonTimThay) {
+                if (preg_match('/(tiemai\d{16}|tiemai[a-z0-9]{16}|VK[A-Z0-9]{4,16})/i', $noiDungChuyenKhoan, $matches)) {
+                    $maDonTimThay = $matches[1];
+                }
             }
         }
 
@@ -178,6 +195,12 @@ try {
                         "Nạp tiền tự động VietQR {$data['gateway']} (Mã GD SePay: {$data['id']})"
                     ]);
 
+                    // 3. Nếu dùng mã nạp ví ngẫu nhiên tiemai + 5 số, cập nhật trạng thái đã nạp
+                    if ($codeNapViUsed) {
+                        $pdo->prepare("UPDATE `wallet_deposit_codes` SET `status` = 'COMPLETED', `amount` = ? WHERE LOWER(`code`) = LOWER(?)")
+                            ->execute([$soTienChuyen, $codeNapViUsed]);
+                    }
+
                     $pdo->commit();
 
                     // Bắn thông báo Telegram cho Admin
@@ -197,7 +220,7 @@ try {
         }
 
         // ========================================================
-        // TRƯỜNG HỢP B: THANH TOÁN ĐƠN HÀNG TRỰC TIẾP (VK...)
+        // TRƯỜNG HỢP B: THANH TOÁN ĐƠN HÀNG TRỰC TIẾP (tiemai... hoặc VK...)
         // ========================================================
         if ($maDonTimThay && $soTienChuyen > 0) {
             // Câu lệnh UPDATE ATOMIC: Chỉ đổi status từ PENDING sang PAID nếu số tiền nhận đủ hoặc thừa
@@ -205,7 +228,7 @@ try {
             $stmtUpdateDon = $pdo->prepare("
                 UPDATE `orders` 
                 SET `status` = 'PAID', `paid_at` = NOW() 
-                WHERE `order_code` = :code 
+                WHERE (LOWER(`order_code`) = LOWER(:code) OR `order_code` = :code)
                   AND `status` = 'PENDING' 
                   AND `total_amount` <= :amount
             ");
@@ -216,8 +239,13 @@ try {
 
             // Nếu cập nhật thành công (rowCount > 0), gọi bộ điều phối để mua/giao Key ngay
             if ($stmtUpdateDon->rowCount() > 0) {
+                // Lấy lại order_code chính xác trong DB
+                $stmtGetRealCode = $pdo->prepare("SELECT `order_code` FROM `orders` WHERE LOWER(`order_code`) = LOWER(?) LIMIT 1");
+                $stmtGetRealCode->execute([$maDonTimThay]);
+                $realCode = $stmtGetRealCode->fetchColumn() ?: $maDonTimThay;
+
                 $boDieuPhoi = new BoDieuPhoiDonHang($pdo);
-                $ketQuaGiaoKey = $boDieuPhoi->xuLyDonHang($maDonTimThay);
+                $ketQuaGiaoKey = $boDieuPhoi->xuLyDonHang($realCode);
 
                 // Bắn thông báo Telegram cho Admin
                 $noiDungTele = "⚡ <b>ĐƠN HÀNG MỚI ĐÃ THANH TOÁN VIETQR!</b>\n";

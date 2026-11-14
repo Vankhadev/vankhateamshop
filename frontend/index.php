@@ -154,6 +154,64 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
         .animate-marquee-track:hover {
             animation-play-state: paused;
         }
+
+        /* Marquee 2 chiều đối xứng */
+        @keyframes marqueeL2R {
+            0% { transform: translateX(-50%); }
+            100% { transform: translateX(0); }
+        }
+        @keyframes marqueeR2L {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .marquee-track-l2r {
+            display: flex;
+            width: max-content;
+            animation: marqueeL2R 30s linear infinite;
+        }
+        .marquee-track-r2l {
+            display: flex;
+            width: max-content;
+            animation: marqueeR2L 30s linear infinite;
+        }
+        .marquee-track-l2r:hover, .marquee-track-r2l:hover {
+            animation-play-state: paused;
+        }
+
+        /* Hiệu ứng nhấp nhô bong bóng Pixel */
+        @keyframes pixelFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+        .animate-bubble-float { animation: pixelFloat 2.6s ease-in-out infinite; }
+        .animate-bubble-float-2 { animation: pixelFloat 2.2s ease-in-out infinite 0.5s; }
+        .animate-bubble-float-3 { animation: pixelFloat 2.8s ease-in-out infinite 1s; }
+
+        /* Lửa trại nhấp nháy pixel */
+        @keyframes fireFlicker {
+            0%, 100% { transform: scale(1) translateY(0); filter: brightness(1); }
+            50% { transform: scale(1.08, 0.94) translateY(-2px); filter: brightness(1.25); }
+        }
+        .animate-fire {
+            animation: fireFlicker 0.45s ease-in-out infinite;
+            transform-origin: bottom center;
+        }
+
+        /* Ngôi sao lấp lánh */
+        @keyframes starBlink {
+            0%, 100% { opacity: 0.2; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.3); }
+        }
+        .star-blink-1 { animation: starBlink 3.2s infinite ease-in-out; }
+        .star-blink-2 { animation: starBlink 2.4s infinite ease-in-out 0.8s; }
+        .star-blink-3 { animation: starBlink 2.8s infinite ease-in-out 1.5s; }
+
+        /* Vầng trăng phát sáng tỏa nhiệt */
+        @keyframes orbGlow {
+            0%, 100% { box-shadow: 0 0 35px rgba(251, 191, 36, 0.4), 0 0 70px rgba(168, 85, 247, 0.25); }
+            50% { box-shadow: 0 0 55px rgba(251, 191, 36, 0.65), 0 0 100px rgba(168, 85, 247, 0.45); }
+        }
+        .animate-orb-glow { animation: orbGlow 3.5s ease-in-out infinite; }
     </style>
 </head>
 <body x-data="ungDungBanHang()" class="min-h-screen flex flex-col antialiased">
@@ -188,64 +246,336 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
         </div>
     <?php endif; ?>
 
-    <!-- BANNER CHÍNH (HERO SECTION) -->
-    <section class="relative overflow-hidden py-14 lg:py-20 border-b border-gray-800/80">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-            
-            <div class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-900/30 border border-blue-500/30 text-blue-400 text-xs font-medium mb-6">
-                <span class="w-2 h-2 rounded-full bg-green-400 animate-ping"></span>
-                <span>Hệ Thống Tự Động Giao Key 24/7 Qua VietQR</span>
+    <!-- BANNER CHÍNH (HERO SECTION CHUẨN PIXEL NIGHT CAMPSITE THEO ẢNH 2) -->
+    <section class="relative overflow-hidden bg-[#060913] border-b border-gray-800/80 pt-8 sm:pt-14 pb-0">
+        <!-- Bầu trời đêm & Các ngôi sao lấp lánh (Twinkle Stars) -->
+        <div class="absolute inset-0 pointer-events-none overflow-hidden">
+            <div class="absolute top-6 left-[12%] w-1.5 h-1.5 bg-white rounded-full star-blink-1"></div>
+            <div class="absolute top-14 left-[28%] w-1 h-1 bg-amber-200 rounded-full star-blink-2"></div>
+            <div class="absolute top-8 left-[45%] w-1.5 h-1.5 bg-cyan-200 rounded-full star-blink-3"></div>
+            <div class="absolute top-20 left-[62%] w-1 h-1 bg-purple-200 rounded-full star-blink-1"></div>
+            <div class="absolute top-10 left-[78%] w-1.5 h-1.5 bg-white rounded-full star-blink-2"></div>
+            <div class="absolute top-28 left-[90%] w-1 h-1 bg-amber-100 rounded-full star-blink-3"></div>
+            <div class="absolute top-36 left-[8%] w-1 h-1 bg-blue-300 rounded-full star-blink-2"></div>
+        </div>
+
+        <!-- Quả cầu phát sáng Glowing Orb (Mặt trăng AI) trên góc phải với luồng tia sáng chiếu xuống -->
+        <div class="absolute top-6 right-6 sm:right-28 z-10 hidden md:block pointer-events-none">
+            <div class="relative">
+                <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-amber-300 via-white to-amber-100 animate-orb-glow flex items-center justify-center p-1.5">
+                    <div class="w-full h-full rounded-full bg-[#0d1222] flex items-center justify-center border-2 border-amber-300/80 shadow-inner">
+                        <i class="fas fa-sparkles text-amber-400 text-xl sm:text-2xl animate-pulse"></i>
+                    </div>
+                </div>
+                <!-- Các tia sáng màu pastel chiếu xuống đáy cảnh -->
+                <svg class="absolute top-20 right-10 w-[480px] h-[260px] pointer-events-none opacity-40" viewBox="0 0 480 260" fill="none">
+                    <path d="M 440 0 L 40 250" stroke="#F59E0B" stroke-width="1.2" stroke-dasharray="3 3"/>
+                    <path d="M 440 0 L 160 250" stroke="#10B981" stroke-width="1.2"/>
+                    <path d="M 440 0 L 290 250" stroke="#8B5CF6" stroke-width="1.2" stroke-dasharray="4 2"/>
+                </svg>
+            </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20">
+            <!-- NỘI DUNG VĂN BẢN HERO SECTION -->
+            <div class="max-w-2xl text-left space-y-3.5 sm:space-y-4">
+                <!-- Tag AI API MARKETPLACE -->
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-900/90 border border-gray-700/80 text-gray-300 text-[11px] font-bold uppercase tracking-wider shadow-sm">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                    <span>AI API MARKETPLACE</span>
+                </div>
+
+                <!-- Tiêu đề lớn -->
+                <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.12]">
+                    API AI chính hãng<br>
+                    <span class="text-amber-400">Mua là dùng ngay</span>
+                </h1>
+
+                <!-- Mô tả -->
+                <p class="text-xs sm:text-sm text-gray-400 max-w-xl leading-relaxed">
+                    Chuyên API AI chính hãng Cursor, Claude, Codex, Gemini... giá rẻ, giao ngay.
+                </p>
+
+                <!-- Nút hành động -->
+                <div class="flex flex-wrap items-center gap-3 pt-1">
+                    <a href="#san-pham" class="px-6 py-2.5 sm:py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-gray-950 font-black text-xs sm:text-sm transition duration-200 shadow-lg shadow-amber-500/25 flex items-center gap-2">
+                        <i class="fas fa-cart-shopping"></i>
+                        <span>Xem sản phẩm</span>
+                    </a>
+                    <a href="/docs" class="px-5 py-2.5 sm:py-3 rounded-xl bg-[#111827] hover:bg-gray-800 text-gray-200 hover:text-white font-bold text-xs sm:text-sm border border-gray-700 transition duration-200 flex items-center gap-2">
+                        <i class="fas fa-book-open text-blue-400"></i>
+                        <span>Hướng dẫn</span>
+                    </a>
+                    <button type="button" @click="moPopupKiemTraKey = true" class="px-5 py-2.5 sm:py-3 rounded-xl bg-[#111827] hover:bg-gray-800 text-gray-300 hover:text-white font-bold text-xs sm:text-sm border border-gray-700 transition duration-200 flex items-center gap-2">
+                        <i class="fas fa-magnifying-glass text-amber-400"></i>
+                        <span>Kiểm Tra Key</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- DÂY CỜ LỄ HỘI TRANG TRÍ (PENNANT FLAGS STRINGS) -->
+        <div class="w-full relative mt-8 sm:mt-12 overflow-hidden select-none pointer-events-none">
+            <svg class="w-full h-7 sm:h-9" preserveAspectRatio="none" viewBox="0 0 1200 32" fill="none">
+                <path d="M 0 8 Q 300 24, 600 10 T 1200 8" stroke="#475569" stroke-width="1.5" stroke-dasharray="5 3"/>
+                <polygon points="40,9 50,9 45,21" fill="#EF4444"/>
+                <polygon points="90,11 100,11 95,23" fill="#F59E0B"/>
+                <polygon points="140,13 150,13 145,25" fill="#10B981"/>
+                <polygon points="190,15 200,15 195,27" fill="#3B82F6"/>
+                <polygon points="240,16 250,16 245,28" fill="#EC4899"/>
+                <polygon points="290,17 300,17 295,29" fill="#8B5CF6"/>
+                <polygon points="340,16 350,16 345,28" fill="#F59E0B"/>
+                <polygon points="390,15 400,15 395,27" fill="#06B6D4"/>
+                <polygon points="440,14 450,14 445,26" fill="#EF4444"/>
+                <polygon points="490,12 500,12 495,24" fill="#10B981"/>
+                <polygon points="540,11 550,11 545,23" fill="#F59E0B"/>
+                <polygon points="590,10 600,10 595,22" fill="#3B82F6"/>
+                <polygon points="640,11 650,11 645,23" fill="#EC4899"/>
+                <polygon points="690,12 700,12 695,24" fill="#8B5CF6"/>
+                <polygon points="740,14 750,14 745,26" fill="#10B981"/>
+                <polygon points="790,15 800,15 795,27" fill="#F59E0B"/>
+                <polygon points="840,16 850,16 845,28" fill="#EF4444"/>
+                <polygon points="890,16 900,16 895,28" fill="#06B6D4"/>
+                <polygon points="940,15 950,15 945,27" fill="#3B82F6"/>
+                <polygon points="990,14 1000,14 995,26" fill="#F59E0B"/>
+                <polygon points="1040,12 1050,12 1045,24" fill="#10B981"/>
+                <polygon points="1090,11 1100,11 1095,23" fill="#EC4899"/>
+                <polygon points="1140,9 1150,9 1145,21" fill="#8B5CF6"/>
+            </svg>
+        </div>
+
+        <!-- PHÂN CẢNH PIXEL TECH CAMP & LỬA TRẠI DƯỚI ĐÁY HERO SECTION -->
+        <div class="w-full relative overflow-x-auto no-scrollbar pt-2 select-none border-b border-gray-800/80 bg-gradient-to-b from-transparent to-[#0a0e1c]">
+            <div class="min-w-[780px] max-w-7xl mx-auto px-4 sm:px-8 pb-3 flex items-end justify-between gap-4 text-xs font-mono">
+                
+                <!-- 1. CLAUDE CODE (Nhân vật tóc cam + Bàn làm việc laptop) -->
+                <div class="flex flex-col items-center group relative cursor-pointer">
+                    <!-- Bong bóng thoại -->
+                    <div class="animate-bubble-float bg-gray-900 border border-gray-700 text-orange-400 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1.5 flex items-center gap-1">
+                        <i class="fas fa-terminal text-[9px]"></i> Bash
+                    </div>
+                    <!-- Pixel Avatar Claude Code -->
+                    <div class="flex items-end gap-1.5">
+                        <svg width="42" height="42" viewBox="0 0 32 32" class="drop-shadow">
+                            <rect x="10" y="6" width="12" height="6" fill="#ea580c"/>
+                            <rect x="8" y="10" width="16" height="6" fill="#ea580c"/>
+                            <rect x="6" y="14" width="4" height="10" fill="#f97316"/>
+                            <rect x="22" y="14" width="4" height="10" fill="#f97316"/>
+                            <rect x="10" y="12" width="12" height="10" fill="#fed7aa"/>
+                            <rect x="12" y="15" width="2" height="3" fill="#1e293b"/>
+                            <rect x="18" y="15" width="2" height="3" fill="#1e293b"/>
+                            <rect x="10" y="18" width="2" height="1" fill="#f43f5e"/>
+                            <rect x="20" y="18" width="2" height="1" fill="#f43f5e"/>
+                            <rect x="11" y="22" width="10" height="7" fill="#f8fafc"/>
+                            <rect x="14" y="22" width="4" height="7" fill="#ea580c"/>
+                        </svg>
+                        <div class="w-10 h-7 bg-amber-950/80 border border-amber-800 rounded-xs relative flex items-center justify-center p-0.5">
+                            <div class="w-6 h-4 bg-gray-800 border border-gray-600 rounded-xs flex items-center justify-center text-[7px] text-cyan-400">
+                                &gt;_
+                            </div>
+                        </div>
+                    </div>
+                    <span class="text-[11px] text-gray-400 font-sans font-bold mt-1">Claude Code</span>
+                </div>
+
+                <!-- 2. DEEPSEEK HARNESS (Nhân vật tóc xanh dương + Chồng sách/tài liệu) -->
+                <div class="flex flex-col items-center group relative cursor-pointer">
+                    <div class="animate-bubble-float-2 bg-gray-900 border border-blue-600/50 text-blue-400 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1.5 flex items-center gap-1">
+                        <i class="fas fa-book text-[9px]"></i> Read
+                    </div>
+                    <div class="flex items-end gap-1.5">
+                        <svg width="42" height="42" viewBox="0 0 32 32" class="drop-shadow">
+                            <rect x="9" y="6" width="14" height="6" fill="#1d4ed8"/>
+                            <rect x="7" y="10" width="18" height="6" fill="#2563eb"/>
+                            <rect x="6" y="14" width="4" height="11" fill="#3b82f6"/>
+                            <rect x="22" y="14" width="4" height="11" fill="#3b82f6"/>
+                            <rect x="8" y="12" width="2" height="2" fill="#ffffff"/>
+                            <rect x="22" y="12" width="2" height="2" fill="#ffffff"/>
+                            <rect x="10" y="12" width="12" height="10" fill="#fde68a"/>
+                            <rect x="12" y="15" width="2" height="3" fill="#0f172a"/>
+                            <rect x="18" y="15" width="2" height="3" fill="#0f172a"/>
+                            <rect x="11" y="22" width="10" height="7" fill="#1e3a8a"/>
+                        </svg>
+                        <div class="w-8 h-8 bg-amber-900/60 border border-amber-700/80 p-0.5 flex flex-col justify-between rounded-xs">
+                            <div class="h-1.5 bg-blue-500 rounded-xs"></div>
+                            <div class="h-1.5 bg-cyan-400 rounded-xs"></div>
+                            <div class="h-1.5 bg-amber-500 rounded-xs"></div>
+                        </div>
+                    </div>
+                    <span class="text-[11px] text-gray-400 font-sans font-bold mt-1">DeepSeek Harness</span>
+                </div>
+
+                <!-- 3. PI (Nhân vật kỳ nhông hồng Axolotl + Bàn chế tác) -->
+                <div class="flex flex-col items-center group relative cursor-pointer">
+                    <div class="animate-bubble-float-3 bg-gray-900 border border-pink-600/50 text-pink-400 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1.5 flex items-center gap-1">
+                        <i class="fas fa-pen-ruler text-[9px]"></i> Edit
+                    </div>
+                    <div class="flex items-end gap-1.5">
+                        <svg width="44" height="42" viewBox="0 0 34 32" class="drop-shadow">
+                            <rect x="4" y="10" width="4" height="6" fill="#ec4899"/>
+                            <rect x="2" y="12" width="4" height="3" fill="#f43f5e"/>
+                            <rect x="26" y="10" width="4" height="6" fill="#ec4899"/>
+                            <rect x="28" y="12" width="4" height="3" fill="#f43f5e"/>
+                            <rect x="8" y="8" width="18" height="14" fill="#fbcfe8"/>
+                            <rect x="10" y="7" width="14" height="1" fill="#f9a8d4"/>
+                            <rect x="11" y="12" width="3" height="3" fill="#0f172a"/>
+                            <rect x="12" y="13" width="1" height="1" fill="#ffffff"/>
+                            <rect x="20" y="12" width="3" height="3" fill="#0f172a"/>
+                            <rect x="21" y="13" width="1" height="1" fill="#ffffff"/>
+                            <rect x="15" y="17" width="4" height="1" fill="#be185d"/>
+                            <rect x="10" y="22" width="14" height="6" fill="#f472b6"/>
+                            <rect x="8" y="26" width="3" height="3" fill="#ec4899"/>
+                            <rect x="23" y="26" width="3" height="3" fill="#ec4899"/>
+                        </svg>
+                        <div class="w-9 h-6 bg-amber-900/80 border border-amber-700/80 rounded-xs flex items-center justify-center">
+                            <span class="w-4 h-1.5 bg-gray-400 rounded-xs"></span>
+                        </div>
+                    </div>
+                    <span class="text-[11px] text-gray-400 font-sans font-bold mt-1">Pi</span>
+                </div>
+
+                <!-- 4. NGÔI NHÀ GỖ CABIN + KÍNH THIÊN VĂN NHÌN SAO -->
+                <div class="hidden lg:flex items-end gap-3 pb-1 opacity-85">
+                    <div class="w-14 h-12 bg-amber-950 border-2 border-amber-900 rounded-xs relative p-1 shadow-md">
+                        <div class="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0 border-x-[32px] border-x-transparent border-b-[14px] border-b-amber-800"></div>
+                        <div class="w-4 h-4 bg-amber-300 border border-amber-500 rounded-xs mt-3 ml-1 shadow-[0_0_10px_rgba(251,191,36,0.8)]"></div>
+                    </div>
+                    <div class="w-6 h-10 relative flex flex-col items-center">
+                        <div class="w-8 h-2 bg-slate-300 border border-slate-500 -rotate-45 origin-left"></div>
+                        <div class="w-1 h-6 bg-slate-600 mt-2"></div>
+                    </div>
+                </div>
+
+                <!-- 5. LỬA TRẠI PIXEL CAMPFIRE PHÁT SÁNG BẬP BÙNG -->
+                <div class="flex flex-col items-center pb-0.5">
+                    <div class="animate-fire relative w-7 h-8 flex items-center justify-center">
+                        <div class="w-6 h-7 bg-amber-500 rounded-t-full shadow-[0_0_15px_rgba(245,158,11,0.9)]"></div>
+                        <div class="absolute bottom-0 w-3.5 h-4.5 bg-yellow-200 rounded-t-full"></div>
+                    </div>
+                    <div class="w-9 h-2 bg-amber-950 border border-amber-800 rounded-full flex items-center justify-center mt-0.5">
+                        <span class="w-6 h-0.5 bg-amber-900"></span>
+                    </div>
+                </div>
+
+                <!-- 6. CODEX (Nhân vật tóc tím + Server trạm thu phát) -->
+                <div class="flex flex-col items-center group relative cursor-pointer">
+                    <div class="animate-bubble-float bg-gray-900 border border-purple-500/50 text-purple-300 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1.5 flex items-center gap-1">
+                        <i class="fas fa-gauge-high text-[9px]"></i> 95 tok/s
+                    </div>
+                    <div class="flex items-end gap-1.5">
+                        <svg width="42" height="42" viewBox="0 0 32 32" class="drop-shadow">
+                            <rect x="9" y="6" width="14" height="6" fill="#7e22ce"/>
+                            <rect x="7" y="10" width="18" height="6" fill="#9333ea"/>
+                            <rect x="6" y="14" width="4" height="10" fill="#a855f7"/>
+                            <rect x="22" y="14" width="4" height="10" fill="#a855f7"/>
+                            <rect x="7" y="6" width="3" height="3" fill="#ffffff"/>
+                            <rect x="22" y="6" width="3" height="3" fill="#ffffff"/>
+                            <rect x="10" y="12" width="12" height="10" fill="#fed7aa"/>
+                            <rect x="12" y="15" width="2" height="3" fill="#3b0764"/>
+                            <rect x="18" y="15" width="2" height="3" fill="#3b0764"/>
+                            <rect x="11" y="22" width="10" height="7" fill="#6b21a8"/>
+                        </svg>
+                        <div class="w-7 h-10 bg-slate-900 border border-purple-700/80 p-0.5 flex flex-col justify-between rounded-xs">
+                            <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-ping"></span>
+                            <span class="w-1.5 h-1.5 bg-purple-400 rounded-full"></span>
+                            <span class="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                        </div>
+                    </div>
+                    <span class="text-[11px] text-gray-400 font-sans font-bold mt-1">Codex</span>
+                </div>
+
+                <!-- 7. OPENCODE (Robot terminal đầu vuông xanh lá) -->
+                <div class="flex flex-col items-center group relative cursor-pointer">
+                    <div class="animate-bubble-float-2 bg-gray-900 border border-green-500/50 text-green-400 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1.5 flex items-center gap-1">
+                        <i class="fas fa-bolt text-[9px]"></i> 100 tok/s
+                    </div>
+                    <div class="flex items-end gap-1.5">
+                        <svg width="40" height="42" viewBox="0 0 32 32" class="drop-shadow">
+                            <rect x="7" y="8" width="18" height="15" fill="#15803d"/>
+                            <rect x="9" y="10" width="14" height="11" fill="#166534"/>
+                            <rect x="11" y="13" width="3" height="3" fill="#86efac"/>
+                            <rect x="18" y="13" width="3" height="3" fill="#86efac"/>
+                            <rect x="13" y="18" width="6" height="1.5" fill="#86efac"/>
+                            <rect x="15" y="4" width="2" height="4" fill="#22c55e"/>
+                            <rect x="14" y="3" width="4" height="2" fill="#4ade80"/>
+                            <rect x="10" y="23" width="12" height="6" fill="#14532d"/>
+                        </svg>
+                    </div>
+                    <span class="text-[11px] text-gray-400 font-sans font-bold mt-1">OpenCode</span>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- DẢI NỀN TẢNG ĐỐI TÁC & CÔNG CỤ (MARQUEE 2 CHIỀU ĐỐI XỨNG CHUẨN ẢNH 3) -->
+    <section class="py-9 bg-[#0B0F19] border-b border-gray-800/80 overflow-hidden relative">
+        <div class="max-w-7xl mx-auto px-4 mb-5 text-center">
+            <h2 class="text-[11px] sm:text-xs font-bold uppercase tracking-[0.25em] text-gray-400">
+                HOẠT ĐỘNG VỚI CÁC NHÀ CUNG CẤP VÀ CÔNG CỤ
+            </h2>
+        </div>
+
+        <!-- Màng gradient mờ dần 2 bên mép màn hình chống chói -->
+        <div class="absolute left-0 top-0 bottom-0 w-14 sm:w-28 bg-gradient-to-r from-[#0B0F19] to-transparent z-10 pointer-events-none"></div>
+        <div class="absolute right-0 top-0 bottom-0 w-14 sm:w-28 bg-gradient-to-l from-[#0B0F19] to-transparent z-10 pointer-events-none"></div>
+
+        <div class="space-y-3">
+            <!-- HÀNG 1: CHẠY TỪ PHẢI SANG TRÁI (CÁC NHÀ CUNG CẤP AI) -->
+            <div class="flex overflow-hidden">
+                <div class="marquee-track-l2r flex items-center gap-3">
+                    <?php 
+                    $nhaCungCapAI = [
+                        ['ten' => 'DeepSeek',   'icon' => 'fa-solid fa-brain',          'color' => '#3B82F6'],
+                        ['ten' => 'Qwen',       'icon' => 'fa-solid fa-microchip',      'color' => '#8B5CF6'],
+                        ['ten' => 'KIMI',       'icon' => 'fa-solid fa-moon',           'color' => '#06B6D4'],
+                        ['ten' => 'MINIMAX',    'icon' => 'fa-solid fa-wave-square',    'color' => '#F43F5E'],
+                        ['ten' => '智谱·AI',     'icon' => 'fa-solid fa-robot',          'color' => '#38BDF8'],
+                        ['ten' => 'Mistral AI', 'icon' => 'fa-solid fa-fire-flame-curved','color' => '#F97316'],
+                        ['ten' => 'Grok',       'icon' => 'fa-solid fa-slash',          'color' => '#E2E8F0'],
+                        ['ten' => 'Llama',      'icon' => 'fa-solid fa-infinity',       'color' => '#3B82F6'],
+                        ['ten' => 'OpenAI',     'icon' => 'fa-solid fa-circle-notch',   'color' => '#10B981'],
+                        ['ten' => 'Gemini',     'icon' => 'fa-solid fa-sparkles',       'color' => '#F59E0B'],
+                    ];
+                    // Lặp 2 lần để tạo chu kỳ marquee liên tục không giật
+                    for ($k = 0; $k < 2; $k++):
+                        foreach ($nhaCungCapAI as $ncc): ?>
+                            <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gray-900/80 border border-gray-800 hover:border-gray-700 text-gray-200 text-xs font-semibold whitespace-nowrap shadow-sm transition">
+                                <i class="<?= $ncc['icon'] ?>" style="color: <?= $ncc['color'] ?>"></i>
+                                <span><?= $ncc['ten'] ?></span>
+                            </div>
+                        <?php endforeach; 
+                    endfor; ?>
+                </div>
             </div>
 
-            <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight mb-5 leading-tight">
-                Kho Cung Cấp <span class="mau-gradient">API AI Lập Trình</span><br>Tốc Độ Cao & Ổn Định Nhất
-            </h1>
-            
-            <p class="max-w-2xl mx-auto text-sm sm:text-base text-gray-400 mb-8 leading-relaxed">
-                Tự động kết nối đa nguồn dự phòng, bảo vệ dữ liệu với Cloudflare WAF, quét mã VietQR nhận Key sau 2 giây. Hỗ trợ đầy đủ Cursor, Claude 3.5 Sonnet, DeepSeek R1 & V3.
-            </p>
-
-            <div class="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold">
-                <a href="#san-pham" class="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold hover:shadow-lg hover:shadow-blue-500/25 transition">
-                    <i class="fas fa-bolt mr-1.5"></i> Mua API Tự Động Ngay
-                </a>
-                <button @click="moPopupKiemTraKey = true" class="px-6 py-3 rounded-xl bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700 hover:text-white transition">
-                    <i class="fas fa-magnifying-glass mr-1.5"></i> Kiểm Tra Trạng Thái Key
-                </button>
-            </div>
-
-            <!-- Cam kết chất lượng -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12 max-w-4xl mx-auto text-left">
-                <div class="bg-gray-900/60 border border-gray-800/80 p-4 rounded-xl flex items-center space-x-3">
-                    <div class="text-blue-400 text-2xl"><i class="fas fa-shield-halved"></i></div>
-                    <div>
-                        <div class="text-xs font-bold text-white">Bảo Mật Cloudflare</div>
-                        <div class="text-[11px] text-gray-400">Chống DDoS & SSL 100%</div>
-                    </div>
-                </div>
-                <div class="bg-gray-900/60 border border-gray-800/80 p-4 rounded-xl flex items-center space-x-3">
-                    <div class="text-green-400 text-2xl"><i class="fas fa-qrcode"></i></div>
-                    <div>
-                        <div class="text-xs font-bold text-white">VietQR Tự Động</div>
-                        <div class="text-[11px] text-gray-400">Giao key tức thì sau 2s</div>
-                    </div>
-                </div>
-                <div class="bg-gray-900/60 border border-gray-800/80 p-4 rounded-xl flex items-center space-x-3">
-                    <div class="text-amber-400 text-2xl"><i class="fas fa-network-wired"></i></div>
-                    <div>
-                        <div class="text-xs font-bold text-white">Đa Nguồn Dự Phòng</div>
-                        <div class="text-[11px] text-gray-400">Tự động fallback khi hết hàng</div>
-                    </div>
-                </div>
-                <div class="bg-gray-900/60 border border-gray-800/80 p-4 rounded-xl flex items-center space-x-3">
-                    <div class="text-purple-400 text-2xl"><i class="fas fa-hand-holding-dollar"></i></div>
-                    <div>
-                        <div class="text-xs font-bold text-white">Hoàn Tiền Vào Ví</div>
-                        <div class="text-[11px] text-gray-400">Tự hoàn 100% nếu sự cố</div>
-                    </div>
+            <!-- HÀNG 2: CHẠY THEO CHIỀU NGƯỢC LẠI (CÁC CÔNG CỤ / AI AGENT) -->
+            <div class="flex overflow-hidden">
+                <div class="marquee-track-r2l flex items-center gap-3">
+                    <?php 
+                    $congCuAI = [
+                        ['ten' => 'Codex',         'icon' => 'fa-solid fa-code',             'color' => '#818CF8'],
+                        ['ten' => 'Claude Code',   'icon' => 'fa-solid fa-terminal',         'color' => '#FB923C'],
+                        ['ten' => 'Cline',         'icon' => 'fa-solid fa-headset',          'color' => '#38BDF8'],
+                        ['ten' => 'Windsurf',      'icon' => 'fa-solid fa-wind',             'color' => '#2DD4BF'],
+                        ['ten' => 'Kilo Code',     'icon' => 'fa-solid fa-layer-group',      'color' => '#FACC15'],
+                        ['ten' => 'Roo Code',      'icon' => 'fa-solid fa-compass',          'color' => '#F472B6'],
+                        ['ten' => 'OpenCode',      'icon' => 'fa-solid fa-laptop-code',      'color' => '#4ADE80'],
+                        ['ten' => 'Cherry Studio', 'icon' => 'fa-solid fa-cubes',            'color' => '#F43F5E'],
+                        ['ten' => 'Obsidian',      'icon' => 'fa-solid fa-gem',              'color' => '#C084FC'],
+                        ['ten' => 'Cursor',        'icon' => 'fa-solid fa-square-full',      'color' => '#60A5FA'],
+                    ];
+                    // Lặp 2 lần để tạo chu kỳ marquee liên tục không giật
+                    for ($k = 0; $k < 2; $k++):
+                        foreach ($congCuAI as $cc): ?>
+                            <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gray-900/80 border border-gray-800 hover:border-gray-700 text-gray-200 text-xs font-semibold whitespace-nowrap shadow-sm transition">
+                                <i class="<?= $cc['icon'] ?>" style="color: <?= $cc['color'] ?>"></i>
+                                <span><?= $cc['ten'] ?></span>
+                            </div>
+                        <?php endforeach; 
+                    endfor; ?>
                 </div>
             </div>
-
         </div>
     </section>
 
@@ -366,6 +696,297 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
             <?php endforeach; ?>
         </div>
 
+    </section>
+
+    <!-- PHÂN ĐOẠN ĐƠN HÀNG TRỰC TIẾP PIXEL SHOWCASE TRÊN FOOTER (THEO ẢNH 1) -->
+    <section class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full border-t border-gray-800/80">
+        <!-- Tiêu đề giới thiệu -->
+        <div class="space-y-3 mb-6 text-left">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold uppercase tracking-wider">
+                <span class="w-2 h-2 bg-cyan-400 rounded-xs"></span>
+                <span>Đơn hàng trực tiếp</span>
+            </div>
+            <h2 class="text-2xl sm:text-4xl font-black text-white tracking-tight">
+                Mỗi đơn đang giao là một nhân vật pixel
+            </h2>
+            <p class="text-xs sm:text-sm text-gray-400 max-w-2xl leading-relaxed">
+                Bong bóng trên mỗi nhân vật cho biết loại API khách vừa mua. Key được giao tự động ngay sau khi thanh toán.
+            </p>
+        </div>
+
+        <!-- KHUNG PHÒNG LÀM VIỆC PIXEL ROOM SHOWCASE -->
+        <div class="border border-gray-800 rounded-3xl bg-[#0e1320] p-4 sm:p-7 shadow-2xl overflow-hidden relative">
+            
+            <!-- Huy hiệu trạng thái trên thanh header phòng -->
+            <div class="flex items-center justify-between border-b border-gray-800/80 pb-3 mb-3">
+                <div class="flex items-center gap-2 text-xs font-bold">
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <span class="text-emerald-400">Đang giao • 5 đơn hàng</span>
+                </div>
+                <div class="text-[11px] text-gray-400 font-mono flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                    <span>Tự động giao trong 2 giây</span>
+                </div>
+            </div>
+
+            <!-- PHÒNG LÀM VIỆC PIXEL INTERIOR NỀN SÁNG ẤM ÁP / HIỆN ĐẠI CHUẨN ẢNH 1 -->
+            <div class="w-full bg-[#f4ecd8] text-gray-900 rounded-2xl overflow-x-auto no-scrollbar relative pt-2 pb-0 border border-amber-200/60 shadow-inner">
+                
+                <!-- DÂY CỜ LỄ HỘI TREO TRÊN TRẦN PHÒNG -->
+                <div class="w-full min-w-[760px] h-7 relative select-none pointer-events-none mb-1">
+                    <svg class="w-full h-7" preserveAspectRatio="none" viewBox="0 0 1000 28" fill="none">
+                        <path d="M 0 6 Q 250 18, 500 8 T 1000 6" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4 3"/>
+                        <polygon points="30,7 40,7 35,17" fill="#EF4444"/>
+                        <polygon points="75,9 85,9 80,19" fill="#F59E0B"/>
+                        <polygon points="120,11 130,11 125,21" fill="#10B981"/>
+                        <polygon points="165,12 175,12 170,22" fill="#3B82F6"/>
+                        <polygon points="210,13 220,13 215,23" fill="#EC4899"/>
+                        <polygon points="255,13 265,13 260,23" fill="#8B5CF6"/>
+                        <polygon points="300,12 310,12 305,22" fill="#F59E0B"/>
+                        <polygon points="345,11 355,11 350,21" fill="#06B6D4"/>
+                        <polygon points="390,9 400,9 395,19" fill="#EF4444"/>
+                        <polygon points="435,8 445,8 440,18" fill="#10B981"/>
+                        <polygon points="480,7 490,7 485,17" fill="#F59E0B"/>
+                        <polygon points="525,8 535,8 530,18" fill="#3B82F6"/>
+                        <polygon points="570,9 580,9 575,19" fill="#EC4899"/>
+                        <polygon points="615,11 625,11 620,21" fill="#8B5CF6"/>
+                        <polygon points="660,12 670,12 665,22" fill="#10B981"/>
+                        <polygon points="705,13 715,13 710,23" fill="#F59E0B"/>
+                        <polygon points="750,13 760,13 755,23" fill="#EF4444"/>
+                        <polygon points="795,12 805,12 800,22" fill="#06B6D4"/>
+                        <polygon points="840,11 850,11 845,21" fill="#3B82F6"/>
+                        <polygon points="885,9 895,9 890,19" fill="#F59E0B"/>
+                        <polygon points="930,8 940,8 935,18" fill="#10B981"/>
+                        <polygon points="975,7 985,7 980,17" fill="#EC4899"/>
+                    </svg>
+                </div>
+
+                <!-- CẢNH NỀN VĂN PHÒNG (TRANH TREO TƯỜNG, ĐỒNG HỒ, BẢNG TRẮNG, CỬA SỔ) -->
+                <div class="w-full min-w-[760px] h-12 relative flex items-center justify-between px-6 opacity-80 pointer-events-none select-none">
+                    <div class="w-8 h-6 bg-white border border-gray-400 p-0.5 rounded-xs shadow-xs">
+                        <div class="w-full h-full bg-emerald-200"></div>
+                    </div>
+                    <div class="w-20 h-10 bg-sky-100/90 border border-sky-300 rounded-xs p-1 flex items-end justify-between gap-1 shadow-xs">
+                        <div class="w-4 h-7 bg-sky-300 rounded-xs"></div>
+                        <div class="w-4 h-5 bg-sky-400 rounded-xs"></div>
+                        <div class="w-4 h-8 bg-sky-300 rounded-xs"></div>
+                    </div>
+                    <div class="w-5 h-5 bg-white border-2 border-gray-800 rounded-xs flex items-center justify-center font-bold text-[8px]">
+                        10:10
+                    </div>
+                    <div class="w-8 h-6 bg-white border border-amber-600 p-0.5 rounded-xs shadow-xs">
+                        <div class="w-full h-1 bg-amber-500 mb-1"></div>
+                        <div class="w-4 h-1 bg-gray-400"></div>
+                    </div>
+                    <div class="w-20 h-10 bg-sky-100/90 border border-sky-300 rounded-xs p-1 flex items-end justify-between gap-1 shadow-xs">
+                        <div class="w-4 h-6 bg-sky-400 rounded-xs"></div>
+                        <div class="w-4 h-8 bg-sky-300 rounded-xs"></div>
+                        <div class="w-4 h-5 bg-sky-300 rounded-xs"></div>
+                    </div>
+                    <div class="w-9 h-7 bg-white border border-gray-400 p-1 flex items-end justify-between gap-0.5 rounded-xs shadow-xs">
+                        <div class="w-1.5 h-3 bg-red-400"></div>
+                        <div class="w-1.5 h-5 bg-blue-500"></div>
+                        <div class="w-1.5 h-4 bg-emerald-500"></div>
+                    </div>
+                    <div class="w-16 h-10 bg-white border border-gray-400 p-1 rounded-xs shadow-xs flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="w-3 h-2 bg-blue-500 rounded-xs"></span>
+                            <span class="w-4 h-0.5 bg-gray-400"></span>
+                            <span class="w-3 h-2 bg-amber-500 rounded-xs"></span>
+                        </div>
+                        <div class="w-4 h-2 bg-purple-500 rounded-xs self-center"></div>
+                    </div>
+                    <div class="w-6 h-8 flex flex-col items-center justify-end">
+                        <i class="fas fa-trophy text-amber-500 text-base"></i>
+                        <span class="w-4 h-1 bg-amber-800 rounded-xs"></span>
+                    </div>
+                </div>
+
+                <!-- HÀNG CÁC MASCOT PIXEL VÀ VẬT DỤNG VĂN PHÒNG -->
+                <div class="w-full min-w-[760px] flex items-end justify-between px-6 pt-2 pb-1 relative z-10">
+                    
+                    <!-- 1. CỬA RA VÀO + PI (Kỳ nhông hồng) -->
+                    <div class="flex items-end gap-3">
+                        <div class="w-7 h-16 bg-amber-800/90 border border-amber-950 rounded-t-xs relative">
+                            <span class="w-1.5 h-1.5 bg-amber-300 rounded-full absolute right-1 top-8"></span>
+                        </div>
+
+                        <div class="flex flex-col items-center">
+                            <div class="animate-bubble-float bg-white border border-pink-400 text-pink-600 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono">
+                                <span>Bash</span>
+                            </div>
+                            <svg width="40" height="38" viewBox="0 0 34 32" class="drop-shadow-sm">
+                                <rect x="4" y="10" width="4" height="6" fill="#ec4899"/>
+                                <rect x="2" y="12" width="4" height="3" fill="#f43f5e"/>
+                                <rect x="26" y="10" width="4" height="6" fill="#ec4899"/>
+                                <rect x="28" y="12" width="4" height="3" fill="#f43f5e"/>
+                                <rect x="8" y="8" width="18" height="14" fill="#fbcfe8"/>
+                                <rect x="11" y="12" width="3" height="3" fill="#0f172a"/>
+                                <rect x="20" y="12" width="3" height="3" fill="#0f172a"/>
+                                <rect x="15" y="17" width="4" height="1" fill="#be185d"/>
+                                <rect x="10" y="22" width="14" height="6" fill="#f472b6"/>
+                                <rect x="8" y="26" width="3" height="3" fill="#ec4899"/>
+                                <rect x="23" y="26" width="3" height="3" fill="#ec4899"/>
+                            </svg>
+                        </div>
+
+                        <div class="w-11 h-9 bg-amber-900 border border-amber-950 p-1 flex items-center justify-center rounded-xs">
+                            <div class="w-7 h-5 bg-gray-900 border border-gray-700 rounded-xs flex items-center justify-center text-[7px] text-green-400 font-mono">
+                                &gt;_
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. KỆ SÁCH + CODEX (Nhân vật tóc tím) -->
+                    <div class="flex items-end gap-2.5">
+                        <div class="w-10 h-16 bg-amber-900 border border-amber-950 p-1 flex flex-col justify-between rounded-xs">
+                            <div class="flex gap-0.5"><span class="w-1.5 h-3 bg-blue-600"></span><span class="w-1.5 h-3 bg-red-600"></span><span class="w-1.5 h-3 bg-yellow-500"></span><span class="w-1.5 h-3 bg-green-600"></span></div>
+                            <div class="flex gap-0.5"><span class="w-1.5 h-3 bg-purple-600"></span><span class="w-1.5 h-3 bg-pink-600"></span><span class="w-1.5 h-3 bg-cyan-600"></span><span class="w-1.5 h-3 bg-amber-600"></span></div>
+                            <div class="flex gap-0.5"><span class="w-1.5 h-3 bg-emerald-600"></span><span class="w-1.5 h-3 bg-blue-500"></span><span class="w-1.5 h-3 bg-rose-500"></span></div>
+                        </div>
+
+                        <div class="flex flex-col items-center">
+                            <div class="animate-bubble-float-2 bg-white border border-purple-400 text-purple-700 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono">
+                                <span>Bash</span>
+                            </div>
+                            <svg width="40" height="38" viewBox="0 0 32 32" class="drop-shadow-sm">
+                                <rect x="9" y="6" width="14" height="6" fill="#7e22ce"/>
+                                <rect x="7" y="10" width="18" height="6" fill="#9333ea"/>
+                                <rect x="6" y="14" width="4" height="10" fill="#a855f7"/>
+                                <rect x="22" y="14" width="4" height="10" fill="#a855f7"/>
+                                <rect x="7" y="6" width="3" height="3" fill="#ffffff"/>
+                                <rect x="22" y="6" width="3" height="3" fill="#ffffff"/>
+                                <rect x="10" y="12" width="12" height="10" fill="#fed7aa"/>
+                                <rect x="12" y="15" width="2" height="3" fill="#3b0764"/>
+                                <rect x="18" y="15" width="2" height="3" fill="#3b0764"/>
+                                <rect x="11" y="22" width="10" height="7" fill="#6b21a8"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Bàn làm việc đứng giữa phòng -->
+                    <div class="w-12 h-8 bg-amber-900/90 border border-amber-950 flex flex-col justify-between p-1 rounded-xs">
+                        <span class="w-4 h-1 bg-amber-700 self-center"></span>
+                        <div class="flex justify-between">
+                            <span class="w-1 h-4 bg-amber-950"></span>
+                            <span class="w-1 h-4 bg-amber-950"></span>
+                        </div>
+                    </div>
+
+                    <!-- 3. CLAUDE CODE (Nhân vật tóc cam) + TỦ SERVER RACK -->
+                    <div class="flex items-end gap-2.5">
+                        <div class="w-10 h-10 bg-gray-900 border border-gray-700 p-1 flex items-center justify-center rounded-xs">
+                            <div class="w-7 h-6 bg-blue-600 rounded-xs flex items-center justify-center text-[7px] text-white font-mono">
+                                AI
+                            </div>
+                        </div>
+
+                        <div class="w-8 h-18 bg-slate-900 border border-slate-950 p-1 flex flex-col justify-between rounded-xs">
+                            <span class="w-2 h-1 bg-green-400 rounded-full animate-ping"></span>
+                            <span class="w-2 h-1 bg-blue-400 rounded-full"></span>
+                            <span class="w-2 h-1 bg-amber-400 rounded-full"></span>
+                            <span class="w-2 h-1 bg-green-400 rounded-full"></span>
+                            <span class="w-2 h-1 bg-cyan-400 rounded-full"></span>
+                        </div>
+
+                        <div class="flex flex-col items-center">
+                            <div class="animate-bubble-float bg-white border border-orange-400 text-orange-600 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono">
+                                <span>Claude 3.5</span>
+                            </div>
+                            <svg width="40" height="38" viewBox="0 0 32 32" class="drop-shadow-sm">
+                                <rect x="10" y="6" width="12" height="6" fill="#ea580c"/>
+                                <rect x="8" y="10" width="16" height="6" fill="#ea580c"/>
+                                <rect x="6" y="14" width="4" height="10" fill="#f97316"/>
+                                <rect x="22" y="14" width="4" height="10" fill="#f97316"/>
+                                <rect x="10" y="12" width="12" height="10" fill="#fed7aa"/>
+                                <rect x="12" y="15" width="2" height="3" fill="#1e293b"/>
+                                <rect x="18" y="15" width="2" height="3" fill="#1e293b"/>
+                                <rect x="11" y="22" width="10" height="7" fill="#f8fafc"/>
+                                <rect x="14" y="22" width="4" height="7" fill="#ea580c"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- 4. OPENCODE (Robot xanh lá) + MÁY IN / SCANNER -->
+                    <div class="flex items-end gap-2.5">
+                        <div class="flex flex-col items-center">
+                            <div class="animate-bubble-float-2 bg-white border border-green-500 text-green-700 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono">
+                                <span>OpenAI</span>
+                            </div>
+                            <svg width="38" height="38" viewBox="0 0 32 32" class="drop-shadow-sm">
+                                <rect x="7" y="8" width="18" height="15" fill="#15803d"/>
+                                <rect x="9" y="10" width="14" height="11" fill="#166534"/>
+                                <rect x="11" y="13" width="3" height="3" fill="#86efac"/>
+                                <rect x="18" y="13" width="3" height="3" fill="#86efac"/>
+                                <rect x="13" y="18" width="6" height="1.5" fill="#86efac"/>
+                                <rect x="15" y="4" width="2" height="4" fill="#22c55e"/>
+                                <rect x="14" y="3" width="4" height="2" fill="#4ade80"/>
+                                <rect x="10" y="23" width="12" height="6" fill="#14532d"/>
+                            </svg>
+                        </div>
+
+                        <div class="w-9 h-7 bg-slate-200 border border-slate-400 p-0.5 rounded-xs flex flex-col justify-between">
+                            <span class="w-6 h-1 bg-white self-center border border-slate-300"></span>
+                            <span class="w-7 h-1.5 bg-slate-400 self-center"></span>
+                        </div>
+                    </div>
+
+                    <!-- 5. DEEPSEEK HARNESS (Nhân vật tóc xanh dương) + GHẾ SOFA -->
+                    <div class="flex items-end gap-3">
+                        <div class="flex flex-col items-center">
+                            <div class="animate-bubble-float-3 bg-white border border-blue-500 text-blue-700 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono">
+                                <span>DeepSeek R1</span>
+                            </div>
+                            <svg width="40" height="38" viewBox="0 0 32 32" class="drop-shadow-sm">
+                                <rect x="9" y="6" width="14" height="6" fill="#1d4ed8"/>
+                                <rect x="7" y="10" width="18" height="6" fill="#2563eb"/>
+                                <rect x="6" y="14" width="4" height="11" fill="#3b82f6"/>
+                                <rect x="22" y="14" width="4" height="11" fill="#3b82f6"/>
+                                <rect x="10" y="12" width="12" height="10" fill="#fde68a"/>
+                                <rect x="12" y="15" width="2" height="3" fill="#0f172a"/>
+                                <rect x="18" y="15" width="2" height="3" fill="#0f172a"/>
+                                <rect x="11" y="22" width="10" height="7" fill="#1e3a8a"/>
+                            </svg>
+                        </div>
+
+                        <div class="w-16 h-10 bg-indigo-200 border border-indigo-300 rounded-t-sm p-1 flex flex-col justify-between">
+                            <div class="w-full h-3 bg-indigo-300 rounded-xs"></div>
+                            <div class="flex justify-between">
+                                <span class="w-2 h-3 bg-amber-900"></span>
+                                <span class="w-2 h-3 bg-amber-900"></span>
+                            </div>
+                        </div>
+
+                        <div class="w-5 h-9 flex flex-col items-center justify-end pb-0.5">
+                            <i class="fas fa-seedling text-emerald-600 text-sm"></i>
+                            <span class="w-3.5 h-3.5 bg-amber-800 rounded-b-xs"></span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- BĂNG SÀN GỖ / PLINTH TÍM NHẠT PHẢN CHIẾU TÊN MASCOT (CHUẨN ẢNH 1) -->
+                <div class="w-full min-w-[760px] bg-[#e9d5ff]/70 border-t border-purple-300/80 px-6 py-2 flex items-center justify-between text-xs font-bold text-gray-800 font-sans">
+                    <div class="w-24 text-center">Pi</div>
+                    <div class="w-28 text-center">Codex</div>
+                    <div class="w-36 text-center">Claude Code</div>
+                    <div class="w-32 text-center">OpenCode</div>
+                    <div class="w-40 text-center">DeepSeek Harness</div>
+                </div>
+
+                <!-- CHÂN TƯỜNG SỌC GỖ DỌC CHUẨN ẢNH 1 -->
+                <div class="w-full min-w-[760px] h-4 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 border-t border-gray-300 flex">
+                    <?php for ($i = 0; $i < 40; $i++): ?>
+                        <div class="flex-1 border-r border-gray-300/60 h-full"></div>
+                    <?php endfor; ?>
+                </div>
+
+            </div>
+
+        </div>
     </section>
 
     <!-- POPUP THANH TOÁN VIETQR TỰ ĐỘNG (MODAL) -->
