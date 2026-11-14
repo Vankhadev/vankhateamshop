@@ -79,7 +79,7 @@ $cacMuc = array (
       1 => 'Website: https://tiemai.io.vn',
       2 => 'Email xử lý khiếu nại: vankhaqc@gmail.com',
       3 => 'Telegram trực tiếp: @Vankhateam ',
-      4 => 'Zalo bảo hành: 0847154088 (https://zalo.me/0904045075)',
+      4 => 'Zalo bảo hành: 0847154088 (https://zalo.me/0847154088)',
       5 => 'Tiệm AI cam kết xử lý công tâm, nhanh gọn và đặt quyền lợi khách hàng lên hàng đầu.',
     ),
   ),

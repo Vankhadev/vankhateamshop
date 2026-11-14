@@ -56,7 +56,7 @@ if (isset($pdo)) {
         <!-- Bố cục 5 cột chuẩn xác theo thiết kế -->
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 lg:gap-6 text-left">
             
-            <!-- Cột 1: Thương hiệu & Giới thiệu (Không có hộ kinh doanh / MST) -->
+            <!-- Cột 1: Thương hiệu & Giới thiệu -->
             <div class="space-y-3 sm:col-span-2 md:col-span-3 lg:col-span-1">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 flex-shrink-0">
@@ -148,7 +148,7 @@ if (isset($pdo)) {
         <!-- Dòng bản quyền chân trang (Giữ nguyên theo đúng yêu cầu) -->
         <div class="mt-12 pt-6 border-t border-gray-800/80 flex flex-col md:flex-row items-center justify-between gap-4 text-gray-400 text-[11px]">
             <p class="text-center md:text-left leading-relaxed">
-                &copy; 2026 Tiemai.io.vn - Cung Cấp Api Ai Agent - Hệ Thống Cung Cấp API AI & Phần Mềm Bản Quyền 24/7. All rights reserved.
+                © 2026 Tiemai.io.vn - Cung Cấp Api Ai Agent - Hệ Thống Cung Cấp API AI & Phần Mềm Bản Quyền 24/7. All rights reserved.
             </p>
             <div class="flex items-center gap-4 text-xs font-medium">
                 <a href="/chinh-sach-bao-mat" class="text-gray-400 hover:text-white transition">Chính sách</a>

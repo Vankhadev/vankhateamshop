@@ -87,7 +87,7 @@ $cacMuc = array (
       1 => 'Website: https://tiemai.io.vn',
       2 => 'Email: vankhaqc@gmail.com',
       3 => 'Telegram hỗ trợ: @Vankhateam ',
-      4 => 'Zalo / Hotline: 0847154088 (https://zalo.me/0904045075)',
+      4 => 'Zalo / Hotline: 0847154088 (https://zalo.me/0847154088)',
       5 => 'Khung giờ làm việc: 08:30 – 24:00 hàng ngày (kể cả Thứ 7, Chủ Nhật và ngày Lễ).',
     ),
   ),
