@@ -241,27 +241,51 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
         .animate-shoot-spark-3 { animation: shootUpSparkles 1.8s ease-out infinite 1.2s; }
         .animate-shoot-spark-4 { animation: shootUpSparkles 2.2s ease-out infinite 0.9s; }
 
-        /* Mascot đi tuần tra qua lại trong phòng làm việc dưới */
-        @keyframes mascotPatrol1 {
-            0% { transform: translateX(0) scaleX(1); }
-            35% { transform: translateX(110px) scaleX(1); }
-            40% { transform: translateX(110px) scaleX(-1); }
-            45% { transform: translateX(110px) scaleX(-1); }
-            80% { transform: translateX(0) scaleX(-1); }
-            85% { transform: translateX(0) scaleX(1); }
-            100% { transform: translateX(0) scaleX(1); }
+        /* Hero Mascots di chuyển chạy qua lại trong khu cắm trại */
+        @keyframes heroWalkClaude {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(40px); }
         }
-        @keyframes mascotPatrol2 {
-            0% { transform: translateX(0) scaleX(-1); }
-            30% { transform: translateX(-120px) scaleX(-1); }
-            35% { transform: translateX(-120px) scaleX(1); }
-            50% { transform: translateX(-50px) scaleX(1); }
-            85% { transform: translateX(0) scaleX(1); }
-            90% { transform: translateX(0) scaleX(-1); }
-            100% { transform: translateX(0) scaleX(-1); }
+        @keyframes heroWalkDeepSeek {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(-35px); }
         }
-        .animate-patrol-1 { animation: mascotPatrol1 12s ease-in-out infinite; }
-        .animate-patrol-2 { animation: mascotPatrol2 15s ease-in-out infinite 1.5s; }
+        @keyframes heroWalkPi {
+            0%, 100% { transform: translateX(0) translateY(0); }
+            25% { transform: translateX(25px) translateY(-2px); }
+            50% { transform: translateX(50px) translateY(0); }
+            75% { transform: translateX(25px) translateY(-2px); }
+        }
+        @keyframes heroWalkCodex {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(-30px); }
+        }
+        @keyframes heroWalkOpenCode {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(35px); }
+        }
+        .animate-hero-claude { animation: heroWalkClaude 7s ease-in-out infinite; }
+        .animate-hero-deepseek { animation: heroWalkDeepSeek 8.5s ease-in-out infinite; }
+        .animate-hero-pi { animation: heroWalkPi 6s ease-in-out infinite; }
+        .animate-hero-codex { animation: heroWalkCodex 9s ease-in-out infinite; }
+        .animate-hero-opencode { animation: heroWalkOpenCode 7.5s ease-in-out infinite; }
+
+        /* Mascot đi tuần tra qua lại trong phòng làm việc dưới (KHÔNG DÙNG scaleX ĐỂ TRÁNH LẬT CHỮ) */
+        @keyframes roomPatrol1 {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(95px); }
+        }
+        @keyframes roomPatrol2 {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(-85px); }
+        }
+        @keyframes roomPatrol3 {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(70px); }
+        }
+        .animate-room-patrol-1 { animation: roomPatrol1 10s ease-in-out infinite; }
+        .animate-room-patrol-2 { animation: roomPatrol2 12s ease-in-out infinite 1s; }
+        .animate-room-patrol-3 { animation: roomPatrol3 9s ease-in-out infinite 0.5s; }
 
         /* Mascot gõ phím / cắm máy tính liên tục */
         @keyframes mascotTyping {
@@ -324,27 +348,102 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
             <div class="absolute top-36 left-[8%] w-1 h-1 bg-blue-300 rounded-full star-blink-2"></div>
         </div>
 
-        <!-- Quả cầu phát sáng Glowing Orb (Mặt trăng AI) trên góc phải với luồng tia sáng chiếu xuống -->
-        <div class="absolute top-6 right-6 sm:right-24 z-10 hidden md:block pointer-events-none">
-            <div class="relative">
-                <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-amber-300 via-white to-amber-100 animate-orb-glow flex items-center justify-center p-1.5">
-                    <div class="w-full h-full rounded-full bg-[#0d1222] flex items-center justify-center border-2 border-amber-300/80 shadow-inner">
-                        <i class="fas fa-sparkles text-amber-400 text-xl sm:text-2xl animate-pulse"></i>
+        <!-- Quả cầu phát sáng Glowing Orb (Mặt trăng AI) trên góc phải CHỨA LOGO WEB VÀ NHẬN REQUEST BẮN TỚI -->
+        <div class="absolute top-4 right-4 sm:top-6 sm:right-20 z-20 hidden md:block pointer-events-none select-none">
+            <div class="relative flex flex-col items-center">
+                <!-- Vòng tròn hào quang chứa LOGO WEB -->
+                <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-amber-400 via-amber-200 to-amber-500 animate-orb-glow flex items-center justify-center p-1 shadow-[0_0_55px_rgba(251,191,36,0.65)]">
+                    <div class="w-full h-full rounded-full bg-[#0a0f1d] flex flex-col items-center justify-center border-2 border-amber-300/80 shadow-inner overflow-hidden relative">
+                        <!-- Logo Icon VK Gradient -->
+                        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-amber-500 flex items-center justify-center text-white font-black text-xs shadow-md shadow-blue-500/50 mb-0.5">
+                            VK
+                        </div>
+                        <span class="text-[11px] font-black tracking-widest text-amber-300 font-mono">TIỆM AI</span>
+                        <span class="text-[7.5px] font-bold text-emerald-400 tracking-wider font-mono">200 OK • API</span>
+                        <!-- Vòng xung ánh sáng bên trong -->
+                        <div class="absolute inset-0 rounded-full border border-amber-400/30 animate-ping pointer-events-none"></div>
                     </div>
                 </div>
-                <!-- Các tia laser năng lượng bắn kết nối giữa quả cầu và các nhân vật bên dưới -->
-                <svg class="absolute top-16 right-8 w-[640px] h-[340px] pointer-events-none opacity-60" viewBox="0 0 640 340" fill="none">
-                    <!-- Tia bắn từ Claude Code (vàng cam) -->
-                    <path d="M 600 10 L 40 330" stroke="#F59E0B" stroke-width="1.8" class="animate-laser-pulse"/>
-                    <!-- Tia bắn từ DeepSeek (xanh dương) -->
-                    <path d="M 600 10 L 170 330" stroke="#38BDF8" stroke-width="1.6" class="animate-laser-pulse-fast"/>
-                    <!-- Tia bắn từ Pi (hồng tím) -->
-                    <path d="M 600 10 L 290 330" stroke="#EC4899" stroke-width="1.5" class="animate-laser-pulse"/>
-                    <!-- Tia bắn từ Lửa trại (vàng rực) -->
-                    <path d="M 600 10 L 420 330" stroke="#FBBF24" stroke-width="2" class="animate-laser-pulse-fast"/>
-                    <!-- Tia bắn từ Codex / OpenCode (tím & xanh lá) -->
-                    <path d="M 600 10 L 530 330" stroke="#A855F7" stroke-width="1.6" class="animate-laser-pulse"/>
-                    <path d="M 600 10 L 610 330" stroke="#4ADE80" stroke-width="1.5" class="animate-laser-pulse-fast"/>
+
+                <!-- Tia laser & các REQUEST BAY VÚT TỪ MASCOT LÊN VÒNG TRÒN -->
+                <svg class="absolute top-14 right-8 w-[680px] h-[360px] pointer-events-none opacity-90" viewBox="0 0 680 360" fill="none">
+                    <!-- Các đường ray dẫn hướng -->
+                    <path d="M 40 340 L 610 30" stroke="#F59E0B" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.35"/>
+                    <path d="M 160 340 L 610 30" stroke="#38BDF8" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.35"/>
+                    <path d="M 280 340 L 610 30" stroke="#EC4899" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.35"/>
+                    <path d="M 410 340 L 610 30" stroke="#FBBF24" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.45"/>
+                    <path d="M 510 340 L 610 30" stroke="#A855F7" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.35"/>
+                    <path d="M 600 340 L 610 30" stroke="#4ADE80" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.35"/>
+
+                    <!-- REQUEST 1 TỪ CLAUDE CODE: POST /chat -->
+                    <g>
+                        <circle r="4" fill="#F59E0B" filter="drop-shadow(0 0 5px #F59E0B)">
+                            <animateMotion dur="2.4s" repeatCount="indefinite" path="M 40 340 L 610 30"/>
+                        </circle>
+                        <rect width="66" height="15" rx="4" fill="#0f172a" stroke="#F59E0B" stroke-width="1" opacity="0.95" x="-33" y="-22">
+                            <animateMotion dur="2.4s" repeatCount="indefinite" path="M 40 340 L 610 30"/>
+                        </rect>
+                        <text font-size="7.5" fill="#FDE68A" font-weight="bold" font-family="monospace" text-anchor="middle" y="-12">
+                            POST /chat
+                            <animateMotion dur="2.4s" repeatCount="indefinite" path="M 40 340 L 610 30"/>
+                        </text>
+                    </g>
+
+                    <!-- REQUEST 2 TỪ DEEPSEEK: GET /models -->
+                    <g>
+                        <circle r="4" fill="#38BDF8" filter="drop-shadow(0 0 5px #38BDF8)">
+                            <animateMotion dur="2.8s" repeatCount="indefinite" path="M 160 340 L 610 30" begin="0.8s"/>
+                        </circle>
+                        <rect width="68" height="15" rx="4" fill="#0f172a" stroke="#38BDF8" stroke-width="1" opacity="0.95" x="-34" y="-22">
+                            <animateMotion dur="2.8s" repeatCount="indefinite" path="M 160 340 L 610 30" begin="0.8s"/>
+                        </rect>
+                        <text font-size="7.5" fill="#BAE6FD" font-weight="bold" font-family="monospace" text-anchor="middle" y="-12">
+                            GET /models
+                            <animateMotion dur="2.8s" repeatCount="indefinite" path="M 160 340 L 610 30" begin="0.8s"/>
+                        </text>
+                    </g>
+
+                    <!-- REQUEST 3 TỪ PI: tokens:400 -->
+                    <g>
+                        <circle r="4" fill="#EC4899" filter="drop-shadow(0 0 5px #EC4899)">
+                            <animateMotion dur="2.2s" repeatCount="indefinite" path="M 280 340 L 610 30" begin="1.4s"/>
+                        </circle>
+                        <rect width="64" height="15" rx="4" fill="#0f172a" stroke="#EC4899" stroke-width="1" opacity="0.95" x="-32" y="-22">
+                            <animateMotion dur="2.2s" repeatCount="indefinite" path="M 280 340 L 610 30" begin="1.4s"/>
+                        </rect>
+                        <text font-size="7.5" fill="#FBCFE8" font-weight="bold" font-family="monospace" text-anchor="middle" y="-12">
+                            tokens:400
+                            <animateMotion dur="2.2s" repeatCount="indefinite" path="M 280 340 L 610 30" begin="1.4s"/>
+                        </text>
+                    </g>
+
+                    <!-- REQUEST 4 TỪ CODEX: 200 OK -->
+                    <g>
+                        <circle r="4" fill="#A855F7" filter="drop-shadow(0 0 5px #A855F7)">
+                            <animateMotion dur="2.6s" repeatCount="indefinite" path="M 510 340 L 610 30" begin="0.4s"/>
+                        </circle>
+                        <rect width="52" height="15" rx="4" fill="#0f172a" stroke="#A855F7" stroke-width="1" opacity="0.95" x="-26" y="-22">
+                            <animateMotion dur="2.6s" repeatCount="indefinite" path="M 510 340 L 610 30" begin="0.4s"/>
+                        </rect>
+                        <text font-size="7.5" fill="#E9D5FF" font-weight="bold" font-family="monospace" text-anchor="middle" y="-12">
+                            200 OK
+                            <animateMotion dur="2.6s" repeatCount="indefinite" path="M 510 340 L 610 30" begin="0.4s"/>
+                        </text>
+                    </g>
+
+                    <!-- REQUEST 5 TỪ OPENCODE: Bearer vk_... -->
+                    <g>
+                        <circle r="4" fill="#4ADE80" filter="drop-shadow(0 0 5px #4ADE80)">
+                            <animateMotion dur="2.5s" repeatCount="indefinite" path="M 600 340 L 610 30" begin="1.1s"/>
+                        </circle>
+                        <rect width="64" height="15" rx="4" fill="#0f172a" stroke="#4ADE80" stroke-width="1" opacity="0.95" x="-32" y="-22">
+                            <animateMotion dur="2.5s" repeatCount="indefinite" path="M 600 340 L 610 30" begin="1.1s"/>
+                        </rect>
+                        <text font-size="7.5" fill="#BBF7D0" font-weight="bold" font-family="monospace" text-anchor="middle" y="-12">
+                            Bearer vk
+                            <animateMotion dur="2.5s" repeatCount="indefinite" path="M 600 340 L 610 30" begin="1.1s"/>
+                        </text>
+                    </g>
                 </svg>
             </div>
         </div>
@@ -421,8 +520,8 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
         <div class="w-full relative overflow-x-auto no-scrollbar pt-2 select-none border-b border-gray-800/80 bg-gradient-to-b from-transparent to-[#0a0e1c]">
             <div class="min-w-[780px] max-w-7xl mx-auto px-4 sm:px-8 pb-3 flex items-end justify-between gap-4 text-xs font-mono">
                 
-                <!-- 1. CLAUDE CODE (Nhân vật tóc cam + Bàn làm việc laptop + Hạt bắn hiệu ứng) -->
-                <div class="flex flex-col items-center group relative cursor-pointer">
+                <!-- 1. CLAUDE CODE (Nhân vật tóc cam + Bàn làm việc laptop + Hạt bắn hiệu ứng + Di chuyển qua lại) -->
+                <div class="flex flex-col items-center group relative cursor-pointer animate-hero-claude">
                     <!-- Hạt năng lượng pixel bắn vút lên trên -->
                     <div class="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center">
                         <span class="animate-shoot-spark-1 text-amber-400 font-bold text-xs select-none">✦</span>
@@ -456,8 +555,8 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                     <span class="text-[11px] text-gray-400 font-sans font-bold mt-1">Claude Code</span>
                 </div>
 
-                <!-- 2. DEEPSEEK HARNESS (Nhân vật tóc xanh dương + Chồng sách/tài liệu + Hạt bắn hiệu ứng) -->
-                <div class="flex flex-col items-center group relative cursor-pointer">
+                <!-- 2. DEEPSEEK HARNESS (Nhân vật tóc xanh dương + Chồng sách/tài liệu + Hạt bắn hiệu ứng + Di chuyển qua lại) -->
+                <div class="flex flex-col items-center group relative cursor-pointer animate-hero-deepseek">
                     <!-- Hạt năng lượng pixel bắn vút lên trên -->
                     <div class="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center">
                         <span class="animate-shoot-spark-2 text-cyan-400 font-bold text-xs select-none">✦</span>
@@ -488,8 +587,8 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                     <span class="text-[11px] text-gray-400 font-sans font-bold mt-1">DeepSeek Harness</span>
                 </div>
 
-                <!-- 3. PI (Nhân vật kỳ nhông hồng Axolotl + Bàn chế tác + Hạt bắn hiệu ứng) -->
-                <div class="flex flex-col items-center group relative cursor-pointer">
+                <!-- 3. PI (Nhân vật kỳ nhông hồng Axolotl + Bàn chế tác + Hạt bắn hiệu ứng + Di chuyển qua lại) -->
+                <div class="flex flex-col items-center group relative cursor-pointer animate-hero-pi">
                     <!-- Hạt năng lượng pixel bắn vút lên trên -->
                     <div class="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center">
                         <span class="animate-shoot-spark-3 text-pink-400 font-bold text-xs select-none">✦</span>
@@ -550,8 +649,8 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                     </div>
                 </div>
 
-                <!-- 6. CODEX (Nhân vật tóc tím + Server trạm thu phát + Hạt bắn hiệu ứng) -->
-                <div class="flex flex-col items-center group relative cursor-pointer">
+                <!-- 6. CODEX (Nhân vật tóc tím + Server trạm thu phát + Hạt bắn hiệu ứng + Di chuyển qua lại) -->
+                <div class="flex flex-col items-center group relative cursor-pointer animate-hero-codex">
                     <!-- Hạt năng lượng pixel bắn vút lên trên -->
                     <div class="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center">
                         <span class="animate-shoot-spark-4 text-purple-300 font-bold text-xs select-none">✦</span>
@@ -582,8 +681,8 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                     <span class="text-[11px] text-gray-400 font-sans font-bold mt-1">Codex</span>
                 </div>
 
-                <!-- 7. OPENCODE (Robot terminal đầu vuông xanh lá + Hạt bắn hiệu ứng) -->
-                <div class="flex flex-col items-center group relative cursor-pointer">
+                <!-- 7. OPENCODE (Robot terminal đầu vuông xanh lá + Hạt bắn hiệu ứng + Di chuyển qua lại) -->
+                <div class="flex flex-col items-center group relative cursor-pointer animate-hero-opencode">
                     <!-- Hạt năng lượng pixel bắn vút lên trên -->
                     <div class="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center">
                         <span class="animate-shoot-spark-1 text-green-300 font-bold text-xs select-none">✦</span>
@@ -824,13 +923,13 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
 
     <!-- PHÂN ĐOẠN ĐƠN HÀNG TRỰC TIẾP PIXEL SHOWCASE TRÊN FOOTER (THEO ẢNH 1 & CHẠY QUA LẠI CẮM MÁY TÍNH) -->
     <?php
-    // Truy vấn số đơn hàng đang dùng thực tế từ Database
+    // Truy vấn các đơn hàng thực tế đang hoạt động / đã hoàn thành từ Database
     try {
         $stmtLive = $pdo->query("
-            SELECT o.id, o.order_code, o.status, o.created_at, p.name AS product_name
+            SELECT o.id, o.order_code, o.status, o.total_amount, o.created_at, p.name AS product_name
             FROM `orders` o
             LEFT JOIN `products` p ON o.product_id = p.id
-            WHERE o.status IN ('COMPLETED', 'PAID')
+            WHERE o.status IN ('COMPLETED', 'PAID', 'PROCESSING')
             ORDER BY o.id DESC
             LIMIT 12
         ");
@@ -838,19 +937,34 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
     } catch (Exception $e) {
         $danhSachDonHangDangDung = [];
     }
-    // Số nhân vật trong phòng tương ứng với số đơn hàng thực tế (tối thiểu 5)
-    $soLuongDonDangDung = max(5, count($danhSachDonHangDangDung));
-    
-    // Mảng tên các gói hiển thị trên bong bóng nhân vật
-    $danhSachGoi = [];
-    foreach ($danhSachDonHangDangDung as $dh) {
-        $tenRutGon = !empty($dh['product_name']) ? preg_replace('/^API\s+/i', '', $dh['product_name']) : 'API Key';
-        $danhSachGoi[] = $tenRutGon;
+
+    // Danh sách 5 đơn hàng mẫu nếu Database mới tạo chưa có nhiều đơn
+    $danhSachHienThi = $danhSachDonHangDangDung;
+    $mauDonHangMacDinh = [
+        ['order_code' => 'VK987346', 'product_name' => 'API Claude 10$ Max'],
+        ['order_code' => 'VK982708', 'product_name' => 'API Cursor 1 Ngày'],
+        ['order_code' => 'VKTEST9022', 'product_name' => 'API Cursor 1 Ngày'],
+        ['order_code' => 'VK229224', 'product_name' => 'API Gemini 10$'],
+        ['order_code' => 'VK883190', 'product_name' => 'API Codex Plus'],
+    ];
+    $idxM = 0;
+    while (count($danhSachHienThi) < 5) {
+        $danhSachHienThi[] = $mauDonHangMacDinh[$idxM % count($mauDonHangMacDinh)];
+        $idxM++;
     }
-    $macDinhGoi = ['Cursor 1 Ngày', 'Claude 10$ Max', 'Codex Plus', 'OpenCode Pro', 'DeepSeek R1', 'Gemini 10$'];
-    while (count($danhSachGoi) < 5) {
-        $danhSachGoi[] = $macDinhGoi[count($danhSachGoi) % count($macDinhGoi)];
+
+    // Chuẩn bị dữ liệu 5 slot nhân vật trong phòng
+    $slotsMascot = [];
+    for ($i = 0; $i < 5; $i++) {
+        $dhCur = $danhSachHienThi[$i] ?? $mauDonHangMacDinh[$i];
+        $maDon = !empty($dhCur['order_code']) ? $dhCur['order_code'] : ('VK' . rand(100000, 999999));
+        $tenGoi = !empty($dhCur['product_name']) ? preg_replace('/^API\s+/i', '', $dhCur['product_name']) : 'API Key';
+        $slotsMascot[$i] = [
+            'ma' => $maDon,
+            'ten' => $tenGoi
+        ];
     }
+    $soLuongDonDangDung = count($danhSachDonHangDangDung) > 0 ? count($danhSachDonHangDangDung) : 5;
     ?>
     <section class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full border-t border-gray-800/80">
         <!-- Tiêu đề giới thiệu -->
@@ -975,10 +1089,18 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                             <span class="w-1.5 h-1.5 bg-amber-300 rounded-full absolute right-1 top-8"></span>
                         </div>
 
-                        <!-- Pi đi tuần tra qua lại từ cửa tới bàn máy tính -->
-                        <div class="flex flex-col items-center animate-patrol-1 cursor-pointer">
-                            <div class="animate-bubble-float bg-white border border-pink-400 text-pink-600 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono whitespace-nowrap">
-                                <span><?= htmlspecialchars($danhSachGoi[0] ?? 'Cursor 1 Ngày') ?></span>
+                        <!-- Pi đi tuần tra qua lại từ cửa tới bàn máy tính (chỉ dịch chuyển ngang translateX không lật chữ) -->
+                        <div class="flex flex-col items-center animate-room-patrol-1 cursor-pointer">
+                            <div class="animate-bubble-float bg-white/95 border border-pink-400 text-gray-800 font-bold px-2 py-1 rounded-md text-[10px] shadow-sm mb-1 flex flex-col items-center font-mono whitespace-nowrap">
+                                <div class="flex items-center gap-1 text-pink-600 font-bold">
+                                    <span>#<?= htmlspecialchars($slotsMascot[0]['ma']) ?></span>
+                                    <span class="text-gray-300">•</span>
+                                    <span><?= htmlspecialchars($slotsMascot[0]['ten']) ?></span>
+                                </div>
+                                <div class="flex items-center gap-1 text-[8.5px] text-emerald-600 font-semibold mt-0.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span>Đang sài</span>
+                                </div>
                             </div>
                             <svg width="40" height="38" viewBox="0 0 34 32" class="drop-shadow-sm">
                                 <rect x="4" y="10" width="4" height="6" fill="#ec4899"/>
@@ -1005,7 +1127,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                         </div>
                     </div>
 
-                    <!-- 2. KỆ SÁCH + CODEX (Nhân vật tóc tím) -->
+                    <!-- 2. KỆ SÁCH + CODEX (Nhân vật tóc tím - Chạy qua lại kiểm tra tài liệu) -->
                     <div class="flex items-end gap-2.5">
                         <div class="w-10 h-16 bg-amber-900 border border-amber-950 p-1 flex flex-col justify-between rounded-xs">
                             <div class="flex gap-0.5"><span class="w-1.5 h-3 bg-blue-600"></span><span class="w-1.5 h-3 bg-red-600"></span><span class="w-1.5 h-3 bg-yellow-500"></span><span class="w-1.5 h-3 bg-green-600"></span></div>
@@ -1013,9 +1135,17 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                             <div class="flex gap-0.5"><span class="w-1.5 h-3 bg-emerald-600"></span><span class="w-1.5 h-3 bg-blue-500"></span><span class="w-1.5 h-3 bg-rose-500"></span></div>
                         </div>
 
-                        <div class="flex flex-col items-center">
-                            <div class="animate-bubble-float-2 bg-white border border-purple-400 text-purple-700 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono whitespace-nowrap">
-                                <span><?= htmlspecialchars($danhSachGoi[1] ?? 'Claude 10$') ?></span>
+                        <div class="flex flex-col items-center animate-room-patrol-2 cursor-pointer">
+                            <div class="animate-bubble-float-2 bg-white/95 border border-purple-400 text-gray-800 font-bold px-2 py-1 rounded-md text-[10px] shadow-sm mb-1 flex flex-col items-center font-mono whitespace-nowrap">
+                                <div class="flex items-center gap-1 text-purple-700 font-bold">
+                                    <span>#<?= htmlspecialchars($slotsMascot[1]['ma']) ?></span>
+                                    <span class="text-gray-300">•</span>
+                                    <span><?= htmlspecialchars($slotsMascot[1]['ten']) ?></span>
+                                </div>
+                                <div class="flex items-center gap-1 text-[8.5px] text-emerald-600 font-semibold mt-0.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span>Đang sài</span>
+                                </div>
                             </div>
                             <svg width="40" height="38" viewBox="0 0 32 32" class="drop-shadow-sm">
                                 <rect x="9" y="6" width="14" height="6" fill="#7e22ce"/>
@@ -1058,10 +1188,18 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                             <span class="w-2 h-1 bg-cyan-400 rounded-full"></span>
                         </div>
 
-                        <!-- Claude Code đang ngồi cắm máy làm việc -->
+                        <!-- Claude Code đang ngồi cắm máy làm việc gõ phím -->
                         <div class="flex flex-col items-center animate-typing cursor-pointer">
-                            <div class="animate-bubble-float bg-white border border-orange-400 text-orange-600 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono whitespace-nowrap">
-                                <span><?= htmlspecialchars($danhSachGoi[2] ?? 'Codex Plus') ?></span>
+                            <div class="animate-bubble-float bg-white/95 border border-orange-400 text-gray-800 font-bold px-2 py-1 rounded-md text-[10px] shadow-sm mb-1 flex flex-col items-center font-mono whitespace-nowrap">
+                                <div class="flex items-center gap-1 text-orange-600 font-bold">
+                                    <span>#<?= htmlspecialchars($slotsMascot[2]['ma']) ?></span>
+                                    <span class="text-gray-300">•</span>
+                                    <span><?= htmlspecialchars($slotsMascot[2]['ten']) ?></span>
+                                </div>
+                                <div class="flex items-center gap-1 text-[8.5px] text-emerald-600 font-semibold mt-0.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span>Đang cắm máy</span>
+                                </div>
                             </div>
                             <svg width="40" height="38" viewBox="0 0 32 32" class="drop-shadow-sm">
                                 <rect x="10" y="6" width="12" height="6" fill="#ea580c"/>
@@ -1077,11 +1215,19 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                         </div>
                     </div>
 
-                    <!-- 4. OPENCODE (Robot xanh lá CHẠY QUA LẠI CẮM MÁY IN) -->
+                    <!-- 4. OPENCODE (Robot xanh lá CHẠY QUA LẠI CẮM MÁY IN - KHÔNG LẬT CHỮ) -->
                     <div class="flex items-end gap-2.5">
-                        <div class="flex flex-col items-center animate-patrol-2 cursor-pointer">
-                            <div class="animate-bubble-float-2 bg-white border border-green-500 text-green-700 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono whitespace-nowrap">
-                                <span><?= htmlspecialchars($danhSachGoi[3] ?? 'OpenCode') ?></span>
+                        <div class="flex flex-col items-center animate-room-patrol-3 cursor-pointer">
+                            <div class="animate-bubble-float-2 bg-white/95 border border-green-500 text-gray-800 font-bold px-2 py-1 rounded-md text-[10px] shadow-sm mb-1 flex flex-col items-center font-mono whitespace-nowrap">
+                                <div class="flex items-center gap-1 text-green-700 font-bold">
+                                    <span>#<?= htmlspecialchars($slotsMascot[3]['ma']) ?></span>
+                                    <span class="text-gray-300">•</span>
+                                    <span><?= htmlspecialchars($slotsMascot[3]['ten']) ?></span>
+                                </div>
+                                <div class="flex items-center gap-1 text-[8.5px] text-emerald-600 font-semibold mt-0.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span>Đang sài</span>
+                                </div>
                             </div>
                             <svg width="38" height="38" viewBox="0 0 32 32" class="drop-shadow-sm">
                                 <rect x="7" y="8" width="18" height="15" fill="#15803d"/>
@@ -1103,9 +1249,17 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
 
                     <!-- 5. DEEPSEEK HARNESS (Nhân vật tóc xanh dương CẮM MÁY LÀM VIỆC) -->
                     <div class="flex items-end gap-3">
-                        <div class="flex flex-col items-center cursor-pointer">
-                            <div class="animate-bubble-float-3 bg-white border border-blue-500 text-blue-700 font-bold px-2 py-0.5 rounded text-[10px] shadow mb-1 flex items-center gap-1 font-mono whitespace-nowrap">
-                                <span><?= htmlspecialchars($danhSachGoi[4] ?? 'DeepSeek R1') ?></span>
+                        <div class="flex flex-col items-center animate-typing cursor-pointer">
+                            <div class="animate-bubble-float-3 bg-white/95 border border-blue-500 text-gray-800 font-bold px-2 py-1 rounded-md text-[10px] shadow-sm mb-1 flex flex-col items-center font-mono whitespace-nowrap">
+                                <div class="flex items-center gap-1 text-blue-700 font-bold">
+                                    <span>#<?= htmlspecialchars($slotsMascot[4]['ma']) ?></span>
+                                    <span class="text-gray-300">•</span>
+                                    <span><?= htmlspecialchars($slotsMascot[4]['ten']) ?></span>
+                                </div>
+                                <div class="flex items-center gap-1 text-[8.5px] text-emerald-600 font-semibold mt-0.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span>Đang cắm máy</span>
+                                </div>
                             </div>
                             <svg width="40" height="38" viewBox="0 0 32 32" class="drop-shadow-sm">
                                 <rect x="9" y="6" width="14" height="6" fill="#1d4ed8"/>
@@ -1139,13 +1293,28 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
 
                 </div>
 
-                <!-- BĂNG SÀN GỖ / PLINTH TÍM NHẠT PHẢN CHIẾU TÊN MASCOT (CHUẨN ẢNH 1) -->
-                <div class="w-full min-w-[820px] bg-[#e9d5ff]/70 border-t border-purple-300/80 px-6 py-2 flex items-center justify-between text-xs font-bold text-gray-800 font-sans">
-                    <div class="w-24 text-center">Pi</div>
-                    <div class="w-28 text-center">Codex</div>
-                    <div class="w-36 text-center">Claude Code</div>
-                    <div class="w-32 text-center">OpenCode</div>
-                    <div class="w-40 text-center">DeepSeek Harness</div>
+                <!-- BĂNG SÀN GỖ / PLINTH TÍM NHẠT PHẢN CHIẾU TÊN MASCOT & MÃ ĐƠN HÀNG THỰC TẾ -->
+                <div class="w-full min-w-[820px] bg-[#e9d5ff]/80 border-t border-purple-300/80 px-6 py-2 flex items-center justify-between text-xs font-bold text-gray-800 font-sans">
+                    <div class="w-28 text-center flex flex-col items-center">
+                        <span class="text-purple-950 font-extrabold">Pi</span>
+                        <span class="text-[9.5px] font-mono text-purple-700 font-semibold">#<?= htmlspecialchars($slotsMascot[0]['ma']) ?></span>
+                    </div>
+                    <div class="w-28 text-center flex flex-col items-center">
+                        <span class="text-purple-950 font-extrabold">Codex</span>
+                        <span class="text-[9.5px] font-mono text-purple-700 font-semibold">#<?= htmlspecialchars($slotsMascot[1]['ma']) ?></span>
+                    </div>
+                    <div class="w-36 text-center flex flex-col items-center">
+                        <span class="text-purple-950 font-extrabold">Claude Code</span>
+                        <span class="text-[9.5px] font-mono text-purple-700 font-semibold">#<?= htmlspecialchars($slotsMascot[2]['ma']) ?></span>
+                    </div>
+                    <div class="w-32 text-center flex flex-col items-center">
+                        <span class="text-purple-950 font-extrabold">OpenCode</span>
+                        <span class="text-[9.5px] font-mono text-purple-700 font-semibold">#<?= htmlspecialchars($slotsMascot[3]['ma']) ?></span>
+                    </div>
+                    <div class="w-40 text-center flex flex-col items-center">
+                        <span class="text-purple-950 font-extrabold">DeepSeek Harness</span>
+                        <span class="text-[9.5px] font-mono text-purple-700 font-semibold">#<?= htmlspecialchars($slotsMascot[4]['ma']) ?></span>
+                    </div>
                 </div>
 
                 <!-- CHÂN TƯỜNG SỌC GỖ DỌC CHUẨN ẢNH 1 -->
