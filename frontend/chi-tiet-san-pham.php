@@ -398,15 +398,6 @@ $seoKeywords = htmlspecialchars($product['name']) . ", mua " . htmlspecialchars(
                             <?= number_format($product['price'], 0, ',', '.') ?> VNĐ
                         </div>
 
-                        <?php if (!empty($product['original_price']) && $product['original_price'] > $product['price']): ?>
-                            <div class="text-sm sm:text-base text-gray-500 line-through font-mono">
-                                <?= number_format($product['original_price'], 0, ',', '.') ?> VNĐ
-                            </div>
-                            <span class="px-2 py-0.5 rounded text-xs font-bold bg-rose-600 text-white">
-                                -<?= $ptGiam ?>%
-                            </span>
-                        <?php endif; ?>
-
                         <span class="ml-auto inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-900/40 text-blue-300 border border-blue-700/50">
                             <i class="fas fa-tag"></i> Giá Đại Lý
                         </span>

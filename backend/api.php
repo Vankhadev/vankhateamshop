@@ -243,7 +243,8 @@ switch ($hanhDong) {
 
     // 4. TRA CỨU SỐ LƯỢT DÙNG (USAGE) & QUOTA CỦA KEY THEO BASE URL
     case 'tra_cuu_key':
-        $keyCanCheck = trim($_GET['key'] ?? '');
+        $keyRaw = trim($_GET['key'] ?? '');
+        $keyCanCheck = ltrim($keyRaw, '#');
         if (empty($keyCanCheck)) {
             echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Vui lòng nhập Key hoặc Mã đơn hàng cần tra cứu']);
             exit;
@@ -256,61 +257,125 @@ switch ($hanhDong) {
 
         // 1. Thử tìm trong bảng đơn hàng đã giao (orders)
         $stmtOrder = $pdo->prepare("
-            SELECT o.*, p.name AS product_name, p.sku AS product_sku, p.supported_models
+            SELECT o.*, p.name AS product_name, p.sku AS product_sku, p.duration_days, p.request_count, p.description AS product_desc, p.supported_models, p.price AS product_price
             FROM `orders` o
             LEFT JOIN `products` p ON o.product_id = p.id
-            WHERE (o.delivered_data LIKE ? OR o.order_code = ? OR o.customer_email = ?)
+            WHERE (o.delivered_data LIKE ? OR o.order_code = ? OR o.order_code = ? OR o.customer_email = ?)
               AND o.status = 'COMPLETED'
             ORDER BY o.id DESC LIMIT 1
         ");
-        $stmtOrder->execute(["%$keyCanCheck%", $keyCanCheck, $keyCanCheck]);
+        $stmtOrder->execute(["%$keyCanCheck%", $keyCanCheck, $keyRaw, $keyCanCheck]);
         $order = $stmtOrder->fetch();
 
         if ($order) {
             $prodName = $order['product_name'] ?? 'Gói API AI Gateway';
             $prodSku = $order['product_sku'] ?? '';
-            
-            // Xác định tổng số lượt request từ tên gói hoặc SKU
-            $tongRequest = 700;
-            if (preg_match('/1500/i', $prodName . ' ' . $prodSku)) {
-                $tongRequest = 1500;
-            } elseif (preg_match('/500/i', $prodName . ' ' . $prodSku)) {
-                $tongRequest = 500;
-            } elseif (preg_match('/300/i', $prodName . ' ' . $prodSku)) {
-                $tongRequest = 300;
-            }
+            $prodDesc = $order['product_desc'] ?? '';
+            $prodReqCount = $order['request_count'] ?? '';
+            $combinedInfo = $prodName . ' ' . $prodSku . ' ' . $prodDesc . ' ' . $prodReqCount;
 
-            // Xác định thời hạn (ngày)
+            // Xác định thời hạn (ngày) chính xác từ cột duration_days hoặc tên/mô tả gói
             $soNgay = 30;
-            if (preg_match('/1\s*ng[àa]y/i', $prodName . ' ' . $prodSku)) {
-                $soNgay = 1;
-            } elseif (preg_match('/3\s*ng[àa]y/i', $prodName . ' ' . $prodSku)) {
-                $soNgay = 3;
-            } elseif (preg_match('/7\s*ng[àa]y/i', $prodName . ' ' . $prodSku)) {
-                $soNgay = 7;
-            } elseif (preg_match('/30\s*ng[àa]y|1\s*th[áa]ng/i', $prodName . ' ' . $prodSku)) {
-                $soNgay = 30;
+            if (!empty($order['duration_days']) && (int)$order['duration_days'] > 0) {
+                $soNgay = (int)$order['duration_days'];
+            } elseif (preg_match('/(\d+)\s*(ng[àa]y|day)/iu', $combinedInfo, $m)) {
+                $soNgay = (int)$m[1];
+            } elseif (preg_match('/(\d+)\s*(th[áa]ng|month)/iu', $combinedInfo, $m)) {
+                $soNgay = (int)$m[1] * 30;
             }
 
             $thoiGianTao = strtotime($order['created_at'] ?? 'now');
             $thoiGianHetHan = $thoiGianTao + ($soNgay * 86400);
             $giayConLai = $thoiGianHetHan - time();
             $ngayConLai = ceil($giayConLai / 86400);
+            $hetHan = ($giayConLai <= 0);
 
-            // Đếm số request thực tế đã dùng qua Gateway từ api_logs
-            $shortKey = substr($keyCanCheck, 0, 10);
-            $stmtCount = $pdo->prepare("
+            // Kiểm tra gói có cơ chế reset 7h AM / hàng ngày hay không
+            $isDailyReset = false;
+            if (preg_match('/reset\s*7h|7h\s*AM|tin\s*nhắn\s*\/\s*ngày|tin\s*nhắn\s*1\s*ngày/iu', $combinedInfo)) {
+                $isDailyReset = true;
+            }
+
+            // Thiết lập hạn mức & thông số chu kỳ
+            if ($isDailyReset) {
+                $resetLuc = '07:00 AM (Hàng ngày)';
+                $tuanChuKy = 'Reset 07:00 AM mỗi ngày';
+                $requestsLimitDisplay = '200 - 400 tin nhắn/ngày';
+                $requestsCapacityNumber = 300;
+                $tokenLimit = 'Không giới hạn (Full Model)';
+                $costLimit = 'Đã bao gồm trọn gói';
+            } elseif (preg_match('/(\d+)\$\s*Credit/iu', $combinedInfo, $mCredit)) {
+                $creditVal = $mCredit[1];
+                $resetLuc = 'Theo chu kỳ gói (' . $soNgay . ' ngày)';
+                $tuanChuKy = 'Gói ' . $soNgay . ' ngày (' . $creditVal . '$ Credit)';
+                $requestsLimitDisplay = $creditVal . '$ Credit';
+                $requestsCapacityNumber = (int)$creditVal * 100;
+                $tokenLimit = 'Theo hạn mức ' . $creditVal . '$';
+                $costLimit = '$' . $creditVal . '.00 USD';
+            } elseif (preg_match('/([\d\.]+)\s*Request/iu', $combinedInfo, $mReq)) {
+                $reqNum = (int)str_replace('.', '', $mReq[1]);
+                $resetLuc = 'Theo chu kỳ gói (' . $soNgay . ' ngày)';
+                $tuanChuKy = 'Gói ' . $soNgay . ' ngày (' . number_format($reqNum) . ' req)';
+                $requestsLimitDisplay = number_format($reqNum) . ' Request';
+                $requestsCapacityNumber = $reqNum;
+                $tokenLimit = 'Không giới hạn (Full Model)';
+                $costLimit = 'Đã bao gồm trọn gói';
+            } else {
+                $resetLuc = 'Theo chu kỳ gói (' . $soNgay . ' ngày)';
+                $tuanChuKy = 'Gói ' . $soNgay . ' ngày';
+                $requestsLimitDisplay = !empty($prodReqCount) ? $prodReqCount : '700 Request';
+                $requestsCapacityNumber = 700;
+                $tokenLimit = 'Không giới hạn (Full Model)';
+                $costLimit = 'Đã bao gồm trọn gói';
+            }
+
+            // Lấy key giao thực tế
+            $actualKey = $keyCanCheck;
+            $deliveredArr = json_decode($order['delivered_data'] ?? '[]', true);
+            if (is_array($deliveredArr) && !empty($deliveredArr)) {
+                $actualKey = trim($deliveredArr[0]);
+            }
+            $shortKey = substr($actualKey, 0, 12);
+
+            // Đếm request đã dùng tổng thể từ api_logs
+            $stmtCountTotal = $pdo->prepare("
                 SELECT COUNT(*) FROM `api_logs` 
                 WHERE (`api_key_used` LIKE ? OR `customer_email` = ?) AND `created_at` >= ?
             ");
-            $stmtCount->execute(["%$shortKey%", $order['customer_email'], $order['created_at']]);
-            $daDung = (int)$stmtCount->fetchColumn();
+            $stmtCountTotal->execute(["%$shortKey%", $order['customer_email'], $order['created_at']]);
+            $daDungTotal = (int)$stmtCountTotal->fetchColumn();
 
-            $conLai = max(0, $tongRequest - $daDung);
-            $hetHan = ($giayConLai <= 0);
+            // Nếu là gói Daily Reset: đếm số request từ mốc 07:00 AM gần nhất
+            if ($isDailyReset) {
+                $nowHour = (int)date('G');
+                if ($nowHour >= 7) {
+                    $lastResetTime = date('Y-m-d 07:00:00');
+                } else {
+                    $lastResetTime = date('Y-m-d 07:00:00', strtotime('-1 day'));
+                }
+                $stmtCountToday = $pdo->prepare("
+                    SELECT COUNT(*) FROM `api_logs` 
+                    WHERE (`api_key_used` LIKE ? OR `customer_email` = ?) AND `created_at` >= ?
+                ");
+                $stmtCountToday->execute(["%$shortKey%", $order['customer_email'], $lastResetTime]);
+                $daDungPeriod = (int)$stmtCountToday->fetchColumn();
+            } else {
+                $daDungPeriod = $daDungTotal;
+            }
 
-            $trangThai = $hetHan ? 'Đã hết hạn' : 'Đang hoạt động';
-            $hanDungText = $hetHan ? 'Hết hạn sử dụng' : ($ngayConLai <= 1 ? (max(1, ceil($giayConLai / 3600)) . ' giờ nữa') : ($ngayConLai . ' ngày nữa'));
+            $conLaiRequest = max(0, $requestsCapacityNumber - $daDungPeriod);
+            $phanTramDung = min(100, round(($daDungPeriod / max(1, $requestsCapacityNumber)) * 100));
+
+            // Định dạng hiển thị thời gian còn lại
+            if ($hetHan) {
+                $hanDungText = 'Đã hết hạn';
+            } elseif ($giayConLai < 86400) {
+                $hours = floor($giayConLai / 3600);
+                $mins = floor(($giayConLai % 3600) / 60);
+                $hanDungText = ($hours > 0 ? "{$hours} giờ " : "") . "{$mins} phút nữa";
+            } else {
+                $hanDungText = $ngayConLai . ' ngày nữa';
+            }
 
             // Danh sách model
             $models = [];
@@ -321,24 +386,92 @@ switch ($hanhDong) {
                 $models = ['claude-3-5-sonnet', 'deepseek-reasoner', 'deepseek-chat', 'gpt-4o', 'cursor-small'];
             }
 
+            // Lịch sử 7 ngày (Daily Usage)
+            $dailyUsage = [];
+            for ($i = 0; $i < 7; $i++) {
+                $dayStamp = strtotime("-$i days");
+                $dayDb = date('Y-m-d', $dayStamp);
+                $dayLabel = ($i === 0) ? 'Hôm nay (' . date('d/m', $dayStamp) . ')' : (($i === 1) ? 'Hôm qua (' . date('d/m', $dayStamp) . ')' : date('d/m/Y', $dayStamp));
+                
+                $stmtDay = $pdo->prepare("
+                    SELECT COUNT(*) FROM `api_logs` 
+                    WHERE (`api_key_used` LIKE ? OR `customer_email` = ?) AND DATE(created_at) = ?
+                ");
+                $stmtDay->execute(["%$shortKey%", $order['customer_email'], $dayDb]);
+                $reqDay = (int)$stmtDay->fetchColumn();
+
+                $dailyUsage[] = [
+                    'date'     => $dayLabel,
+                    'requests' => $reqDay . ' req',
+                    'tokens'   => number_format($reqDay * 1250) . ' tokens',
+                    'cost'     => '0 đ',
+                    'status'   => 'Bình thường'
+                ];
+            }
+
+            // Lấy 10 request gần nhất (Request logs)
+            $stmtLogs = $pdo->prepare("
+                SELECT id, endpoint, model, http_status, latency_ms, created_at
+                FROM `api_logs`
+                WHERE `api_key_used` LIKE ? OR `customer_email` = ?
+                ORDER BY id DESC LIMIT 10
+            ");
+            $stmtLogs->execute(["%$shortKey%", $order['customer_email']]);
+            $logs = $stmtLogs->fetchAll(PDO::FETCH_ASSOC);
+
             echo json_encode([
                 'thanh_cong'       => true,
-                'trang_thai'       => $trangThai,
+                'trang_thai'       => $hetHan ? 'Đã hết hạn' : 'Đang hoạt động',
                 'is_active'        => !$hetHan,
                 'ten_goi'          => $prodName,
                 'ma_don_hang'      => $order['order_code'],
-                'da_dung'          => number_format($daDung) . ' / ' . number_format($tongRequest) . ' Request',
-                'so_luot_da_dung'  => $daDung,
-                'so_luot_tong'     => $tongRequest,
-                'so_luot_con_lai'  => $conLai,
-                'con_lai'          => number_format($conLai) . ' Request',
-                'phan_tram'        => min(100, round(($daDung / max(1, $tongRequest)) * 100)),
-                'han_dung'         => $hanDungText,
+                'key_goc'          => $actualKey,
+                'key_masked'       => (strlen($actualKey) > 12) ? substr($actualKey, 0, 8) . '...' . substr($actualKey, -4) : $actualKey,
+                'gateway'          => 'Gateway',
+                
+                // 3 Cột thống kê chính
+                'requests_val'     => $daDungPeriod . ' / ' . ($isDailyReset ? '200 - 400' : number_format($requestsCapacityNumber)),
+                'requests_sub'     => $isDailyReset ? '200 - 400 tin nhắn/ngày' : $requestsLimitDisplay,
+                'tokens_val'       => number_format($daDungTotal * 1250) . ' Tokens',
+                'tokens_sub'       => 'Không giới hạn tokens',
+                'cost_val'         => $isDailyReset ? '0 đ' : (strpos($requestsLimitDisplay, 'Credit') !== false ? '$0.00 / ' . ($creditVal ?? 10) . '$' : '0 đ'),
+                'cost_sub'         => 'Đã bao gồm trọn gói',
+
+                // Tiến độ & Hết hạn
+                'progress_text'    => $daDungPeriod . ' / ' . ($isDailyReset ? '300' : $requestsCapacityNumber),
+                'phan_tram'        => $phanTramDung,
                 'ngay_het_han'     => date('d/m/Y H:i', $thoiGianHetHan),
+                'han_dung'         => $hanDungText,
+
+                // Thẻ thông tin dưới
+                'con_lai'          => $isDailyReset ? '200 - 400 tin nhắn/ngày' : (number_format($conLaiRequest) . ' Request'),
+                'tuan_chu_ky'      => $tuanChuKy,
+                'reset_luc'        => $resetLuc,
+                'cap_nhat'         => 'Vừa xong',
+                'token_limit'      => $tokenLimit,
+                'cost_limit'       => $costLimit,
+
+                // Dữ liệu cho các tab phụ
+                'daily_usage'      => $dailyUsage,
+                'overage'          => [
+                    'rate_limit'     => '60 requests / phút',
+                    'overage_fee'    => '0 đ (Miễn phí overage)',
+                    'status'         => 'Bình thường',
+                    'tuan_chu_ky'    => $tuanChuKy,
+                    'reset_luc'      => $resetLuc,
+                    'chinh_sach'     => 'Hệ thống tự cân bằng tải và bảo vệ tài khoản, không phát sinh phụ phí ngoài gói'
+                ],
+                'logs'             => $logs,
+
                 'models'           => $models,
                 'base_url'         => $baseUrlWebsite,
                 'chat_endpoint'    => $chatEndpointWebsite,
-                'key_masked'       => substr($keyCanCheck, 0, 8) . '...' . substr($keyCanCheck, -4)
+
+                // Tương thích ngược
+                'da_dung'          => $daDungPeriod . ' / ' . ($isDailyReset ? '200-400' : number_format($requestsCapacityNumber)) . ' Request',
+                'so_luot_da_dung'  => $daDungPeriod,
+                'so_luot_tong'     => $requestsCapacityNumber,
+                'so_luot_con_lai'  => $conLaiRequest
             ], JSON_UNESCAPED_UNICODE);
             exit;
         }
@@ -359,6 +492,34 @@ switch ($hanhDong) {
             $daDungUser = (int)$stmtUserCount->fetchColumn();
 
             $models = ['claude-3-5-sonnet', 'deepseek-reasoner', 'deepseek-chat', 'gpt-4o', 'cursor-small'];
+            $actualKey = $user['api_token'] ?: $keyCanCheck;
+
+            // Daily usage cho user
+            $dailyUsage = [];
+            for ($i = 0; $i < 7; $i++) {
+                $dayStamp = strtotime("-$i days");
+                $dayDb = date('Y-m-d', $dayStamp);
+                $dayLabel = ($i === 0) ? 'Hôm nay (' . date('d/m', $dayStamp) . ')' : (($i === 1) ? 'Hôm qua (' . date('d/m', $dayStamp) . ')' : date('d/m/Y', $dayStamp));
+                $stmtDay = $pdo->prepare("SELECT COUNT(*) FROM `api_logs` WHERE `user_id` = ? AND DATE(created_at) = ?");
+                $stmtDay->execute([$user['id'], $dayDb]);
+                $reqDay = (int)$stmtDay->fetchColumn();
+                $dailyUsage[] = [
+                    'date'     => $dayLabel,
+                    'requests' => $reqDay . ' req',
+                    'tokens'   => number_format($reqDay * 1250) . ' tokens',
+                    'cost'     => '0 đ',
+                    'status'   => 'Bình thường'
+                ];
+            }
+
+            $stmtLogs = $pdo->prepare("
+                SELECT id, endpoint, model, http_status, latency_ms, created_at
+                FROM `api_logs`
+                WHERE `user_id` = ?
+                ORDER BY id DESC LIMIT 10
+            ");
+            $stmtLogs->execute([$user['id']]);
+            $logs = $stmtLogs->fetchAll(PDO::FETCH_ASSOC);
 
             echo json_encode([
                 'thanh_cong'       => true,
@@ -366,26 +527,55 @@ switch ($hanhDong) {
                 'is_active'        => true,
                 'ten_goi'          => $user['is_reseller'] ? 'Tài Khoản Đại Lý API Đối Tác' : 'API Token Thành Viên Shop',
                 'ma_don_hang'      => 'USER-' . $user['id'],
-                'da_dung'          => number_format($daDungUser) . ' Request đã gọi',
-                'so_luot_da_dung'  => $daDungUser,
-                'so_luot_tong'     => 10000,
-                'so_luot_con_lai'  => 10000 - $daDungUser,
-                'con_lai'          => number_format(max(0, 10000 - $daDungUser)) . ' Request',
+                'key_goc'          => $actualKey,
+                'key_masked'       => substr($actualKey, 0, 6) . '...' . substr($actualKey, -4),
+                'gateway'          => 'Gateway',
+                
+                'requests_val'     => number_format($daDungUser) . ' req',
+                'requests_sub'     => 'Không giới hạn (Theo số dư)',
+                'tokens_val'       => number_format($daDungUser * 1250) . ' Tokens',
+                'tokens_sub'       => 'Theo số dư ví',
+                'cost_val'         => number_format($user['balance']) . ' đ',
+                'cost_sub'         => 'Số dư khả dụng',
+
+                'progress_text'    => number_format($daDungUser) . ' / Không giới hạn',
                 'phan_tram'        => min(100, round(($daDungUser / 10000) * 100)),
-                'han_dung'         => 'Vĩnh viễn theo số dư ví',
-                'ngay_het_han'     => 'Theo số dư ví (' . number_format($user['balance']) . ' đ)',
+                'ngay_het_han'     => 'Vĩnh viễn (Theo số dư)',
+                'han_dung'         => 'Theo số dư ví',
+
+                'con_lai'          => number_format($user['balance']) . ' đ số dư',
+                'tuan_chu_ky'      => 'Vĩnh viễn theo số dư ví',
+                'reset_luc'        => 'Theo số dư tài khoản',
+                'cap_nhat'         => 'Vừa xong',
+                'token_limit'      => 'Không giới hạn (Full Model)',
+                'cost_limit'       => number_format($user['balance']) . ' đ',
+
+                'daily_usage'      => $dailyUsage,
+                'overage'          => [
+                    'rate_limit'     => '120 requests / phút',
+                    'overage_fee'    => '0 đ',
+                    'status'         => 'Bình thường',
+                    'tuan_chu_ky'    => 'Không giới hạn chu kỳ',
+                    'reset_luc'      => 'Theo số dư ví',
+                    'chinh_sach'     => 'Trừ trực tiếp số dư ví theo từng lượt gọi'
+                ],
+                'logs'             => $logs,
+
                 'models'           => $models,
                 'base_url'         => $baseUrlWebsite,
                 'chat_endpoint'    => $chatEndpointWebsite,
-                'key_masked'       => substr($keyCanCheck, 0, 6) . '...' . substr($keyCanCheck, -4)
+
+                'da_dung'          => number_format($daDungUser) . ' Request đã gọi',
+                'so_luot_da_dung'  => $daDungUser,
+                'so_luot_tong'     => 10000,
+                'so_luot_con_lai'  => 10000 - $daDungUser
             ], JSON_UNESCAPED_UNICODE);
             exit;
         }
 
-        // 3. Nếu Key có định dạng API chuẩn (sk-..., vk_..., gzsk_...) hoặc độ dài >= 16 ký tự
+        // 3. Nếu Key có định dạng API chuẩn (sk-..., vk_..., gzsk_...) hoặc độ dài >= 14 ký tự
         if (strlen($keyCanCheck) >= 14 && (str_starts_with($keyCanCheck, 'sk-') || str_starts_with($keyCanCheck, 'vk_') || str_starts_with($keyCanCheck, 'gzsk_') || str_starts_with($keyCanCheck, 'cur-') || str_starts_with($keyCanCheck, 'VK'))) {
-            // Đếm xem key này đã gọi lần nào qua Gateway chưa
-            $shortKey = substr($keyCanCheck, 0, 10);
+            $shortKey = substr($keyCanCheck, 0, 12);
             $stmtCount = $pdo->prepare("SELECT COUNT(*) FROM `api_logs` WHERE `api_key_used` LIKE ?");
             $stmtCount->execute(["%$shortKey%"]);
             $daDung = (int)$stmtCount->fetchColumn();
@@ -393,24 +583,80 @@ switch ($hanhDong) {
             $tongRequest = 700;
             $conLai = max(0, $tongRequest - $daDung);
 
+            $dailyUsage = [];
+            for ($i = 0; $i < 7; $i++) {
+                $dayStamp = strtotime("-$i days");
+                $dayDb = date('Y-m-d', $dayStamp);
+                $dayLabel = ($i === 0) ? 'Hôm nay (' . date('d/m', $dayStamp) . ')' : (($i === 1) ? 'Hôm qua (' . date('d/m', $dayStamp) . ')' : date('d/m/Y', $dayStamp));
+                $stmtDay = $pdo->prepare("SELECT COUNT(*) FROM `api_logs` WHERE `api_key_used` LIKE ? AND DATE(created_at) = ?");
+                $stmtDay->execute(["%$shortKey%", $dayDb]);
+                $reqDay = (int)$stmtDay->fetchColumn();
+                $dailyUsage[] = [
+                    'date'     => $dayLabel,
+                    'requests' => $reqDay . ' req',
+                    'tokens'   => number_format($reqDay * 1250) . ' tokens',
+                    'cost'     => '0 đ',
+                    'status'   => 'Bình thường'
+                ];
+            }
+
+            $stmtLogs = $pdo->prepare("
+                SELECT id, endpoint, model, http_status, latency_ms, created_at
+                FROM `api_logs`
+                WHERE `api_key_used` LIKE ?
+                ORDER BY id DESC LIMIT 10
+            ");
+            $stmtLogs->execute(["%$shortKey%"]);
+            $logs = $stmtLogs->fetchAll(PDO::FETCH_ASSOC);
+
             echo json_encode([
                 'thanh_cong'       => true,
                 'trang_thai'       => 'Đang hoạt động',
                 'is_active'        => true,
                 'ten_goi'          => 'Gói Kết Nối AI Gateway Cursor / Claude',
                 'ma_don_hang'      => 'KEY-ONLINE',
-                'da_dung'          => number_format($daDung) . ' / ' . number_format($tongRequest) . ' Request',
-                'so_luot_da_dung'  => $daDung,
-                'so_luot_tong'     => $tongRequest,
-                'so_luot_con_lai'  => $conLai,
-                'con_lai'          => number_format($conLai) . ' Request',
+                'key_goc'          => $keyCanCheck,
+                'key_masked'       => substr($keyCanCheck, 0, 8) . '...' . substr($keyCanCheck, -4),
+                'gateway'          => 'Gateway',
+                
+                'requests_val'     => $daDung . ' / ' . number_format($tongRequest),
+                'requests_sub'     => number_format($tongRequest) . ' Request',
+                'tokens_val'       => number_format($daDung * 1250) . ' Tokens',
+                'tokens_sub'       => 'Không giới hạn tokens',
+                'cost_val'         => '0 đ',
+                'cost_sub'         => 'Đã bao gồm trọn gói',
+
+                'progress_text'    => $daDung . ' / ' . number_format($tongRequest),
                 'phan_tram'        => min(100, round(($daDung / $tongRequest) * 100)),
+                'ngay_het_han'     => date('d/m/Y', strtotime('+30 days')),
                 'han_dung'         => 'Còn hạn sử dụng',
-                'ngay_het_han'     => date('d/m/Y', strtotime('+28 days')),
+
+                'con_lai'          => number_format($conLai) . ' Request',
+                'tuan_chu_ky'      => 'Gói 30 ngày',
+                'reset_luc'        => 'Theo chu kỳ gói',
+                'cap_nhat'         => 'Vừa xong',
+                'token_limit'      => 'Không giới hạn (Full Model)',
+                'cost_limit'       => 'Đã bao gồm trọn gói',
+
+                'daily_usage'      => $dailyUsage,
+                'overage'          => [
+                    'rate_limit'     => '60 requests / phút',
+                    'overage_fee'    => '0 đ',
+                    'status'         => 'Bình thường',
+                    'tuan_chu_ky'    => 'Gói 30 ngày',
+                    'reset_luc'      => 'Theo chu kỳ gói',
+                    'chinh_sach'     => 'Hệ thống tự động cân bằng tải và bảo vệ tài khoản'
+                ],
+                'logs'             => $logs,
+
                 'models'           => ['claude-3-5-sonnet', 'deepseek-reasoner', 'deepseek-chat', 'gpt-4o', 'cursor-small'],
                 'base_url'         => $baseUrlWebsite,
                 'chat_endpoint'    => $chatEndpointWebsite,
-                'key_masked'       => substr($keyCanCheck, 0, 8) . '...' . substr($keyCanCheck, -4)
+
+                'da_dung'          => number_format($daDung) . ' / ' . number_format($tongRequest) . ' Request',
+                'so_luot_da_dung'  => $daDung,
+                'so_luot_tong'     => $tongRequest,
+                'so_luot_con_lai'  => $conLai
             ], JSON_UNESCAPED_UNICODE);
             exit;
         }

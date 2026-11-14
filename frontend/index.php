@@ -337,9 +337,6 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                         <div class="mb-4">
                             <div class="flex items-baseline gap-2">
                                 <span class="text-2xl font-black text-white"><?= number_format($p['price'], 0, ',', '.') ?>đ</span>
-                                <?php if ($p['original_price'] && $p['original_price'] > $p['price']): ?>
-                                    <span class="text-xs text-gray-500 line-through"><?= number_format($p['original_price'], 0, ',', '.') ?>đ</span>
-                                <?php endif; ?>
                             </div>
                             <span class="text-[11px] text-gray-400">Thời hạn sử dụng: <?= $p['duration_days'] ?> ngày</span>
                         </div>

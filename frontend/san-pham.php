@@ -271,9 +271,6 @@ if ($daDangNhap) {
                         <div class="flex items-baseline justify-between mb-3">
                             <div>
                                 <span class="text-lg font-black text-amber-400 font-mono" x-text="dinhDangTien(sp.price)"></span>
-                                <template x-if="sp.original_price > sp.price">
-                                    <span class="text-xs text-gray-500 line-through ml-1.5" x-text="dinhDangTien(sp.original_price)"></span>
-                                </template>
                             </div>
                             <span class="text-[10px] text-green-400 font-semibold bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/30">
                                 Sẵn sàng giao

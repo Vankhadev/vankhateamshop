@@ -210,9 +210,6 @@ foreach ($softwares as $p) {
                                     <span class="text-xs text-gray-400 block">Giá thanh toán:</span>
                                     <div class="text-xl font-black text-emerald-400" x-text="dinhDangTien(sp.price)"></div>
                                 </div>
-                                <template x-if="sp.original_price && sp.original_price > sp.price">
-                                    <span class="text-xs text-gray-500 line-through" x-text="dinhDangTien(sp.original_price)"></span>
-                                </template>
                             </div>
 
                             <div class="grid grid-cols-2 gap-2">
