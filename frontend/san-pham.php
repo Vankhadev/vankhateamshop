@@ -25,12 +25,14 @@ if (!$selectedCatId && !empty($_GET['category_slug'])) {
     }
 }
 
-// Lấy toàn bộ sản phẩm đang hoạt động kèm tên danh mục
+// Lấy toàn bộ sản phẩm đang hoạt động kèm tên danh mục (Tự động ẩn sản phẩm hết hàng: stock <= 0)
 $sqlProducts = "
-    SELECT p.*, c.name AS category_name, c.slug AS category_slug 
+    SELECT p.*, c.name AS category_name, c.slug AS category_slug,
+           COALESCE((SELECT m.stock FROM `supplier_product_mappings` m WHERE m.product_id = p.id AND m.is_active = 1 ORDER BY m.priority ASC LIMIT 1), 999) AS stock 
     FROM `products` p
     JOIN `categories` c ON p.category_id = c.id
     WHERE p.is_active = 1
+    HAVING (stock IS NULL OR stock > 0)
     ORDER BY p.is_hot DESC, p.id ASC
 ";
 $products = $pdo->query($sqlProducts)->fetchAll();

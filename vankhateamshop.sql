@@ -86,6 +86,7 @@ CREATE TABLE `products` (
     `request_count` VARCHAR(100) NULL COMMENT 'Thông số: 700 Request, 200-400 msgs/ngày...',
     `duration_days` INT NOT NULL DEFAULT 30 COMMENT 'Thời hạn tính theo ngày',
     `features` JSON NULL COMMENT 'Mảng tính năng hiển thị',
+    `supported_models` TEXT NULL COMMENT 'Danh sách model AI hỗ trợ (JSON hoặc comma-separated)',
     `is_hot` TINYINT(1) NOT NULL DEFAULT 0,
     `is_active` TINYINT(1) NOT NULL DEFAULT 1,
     `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,

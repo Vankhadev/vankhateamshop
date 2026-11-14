@@ -39,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $supplierSku = trim($_POST['supplier_sku'] ?? '');
         $costPrice = (float)($_POST['cost_price'] ?? 0);
         $description = trim($_POST['description'] ?? '');
+        $supportedModels = trim($_POST['supported_models'] ?? '');
 
         if (empty($name) || empty($sku) || $categoryId <= 0 || $price <= 0) {
             $thongBao = "Vui lòng điền đủ Tên, SKU, Danh mục và Giá bán!";
@@ -53,10 +54,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $pdo->beginTransaction();
                 $stmt = $pdo->prepare("
                     INSERT INTO `products` 
-                    (`category_id`, `sku`, `name`, `slug`, `image`, `price`, `original_price`, `request_count`, `duration_days`, `description`, `is_hot`, `is_active`)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                    (`category_id`, `sku`, `name`, `slug`, `image`, `price`, `original_price`, `request_count`, `duration_days`, `description`, `supported_models`, `is_hot`, `is_active`)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
                 ");
-                $stmt->execute([$categoryId, $sku, $name, $slug, $image, $price, $originalPrice, $requestCount, $durationDays, $description, $isHot]);
+                $stmt->execute([$categoryId, $sku, $name, $slug, $image, $price, $originalPrice, $requestCount, $durationDays, $description, $supportedModels, $isHot]);
                 $newProductId = $pdo->lastInsertId();
 
                 if (!empty($supplierSku)) {
@@ -72,6 +73,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $thongBao = "Lỗi khi thêm sản phẩm: " . $e->getMessage();
                 $loaiThongBao = "error";
             }
+        }
+    }
+
+    // 1b. Cập nhật Model AI cho sản phẩm
+    if ($action === 'cap_nhat_models_san_pham') {
+        $productId = (int)$_POST['product_id'];
+        $models = trim($_POST['supported_models'] ?? '');
+
+        try {
+            $stmt = $pdo->prepare("UPDATE `products` SET `supported_models` = ? WHERE `id` = ?");
+            $stmt->execute([$models, $productId]);
+            $thongBao = "Đã cập nhật danh sách Model AI cho gói sản phẩm thành công!";
+            $loaiThongBao = "success";
+        } catch (Exception $e) {
+            $thongBao = "Lỗi khi lưu Model AI: " . $e->getMessage();
+            $loaiThongBao = "error";
         }
     }
 
@@ -242,6 +259,9 @@ $allProductIds = array_map(fn($p) => (int)$p['id'], $products);
                 <a href="/admin/nha-cung-cap" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-purple-600/30">
                     <i class="fas fa-boxes-stacked"></i> Nhập Từ Kho NCC
                 </a>
+                <button type="button" @click="moModalCron = true" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-amber-600/30">
+                    <i class="fas fa-clock"></i> Lệnh Cron cPanel
+                </button>
                 <button @click="moModalThem = true" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-blue-600/30">
                     <i class="fas fa-plus"></i> Thêm Sản Phẩm Mới
                 </button>
@@ -391,6 +411,10 @@ $allProductIds = array_map(fn($p) => (int)$p['id'], $products);
 
                                 <td class="py-3.5 px-3 text-center">
                                     <div class="flex items-center justify-center gap-1.5">
+                                        <button type="button" @click="moSuaModel(<?= htmlspecialchars(json_encode($p, JSON_UNESCAPED_UNICODE)) ?>)" class="px-2 py-1.5 rounded-lg bg-indigo-950/70 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-700/60 font-bold text-xs transition flex items-center gap-1 shadow-sm" title="Cấu hình Model AI cho gói này">
+                                            <i class="fas fa-microchip text-indigo-400"></i> Model
+                                        </button>
+
                                         <button form="<?= $formId ?>" type="submit" class="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition shadow-md shadow-amber-600/30" title="Lưu chỉnh sửa">
                                             <i class="fas fa-floppy-disk"></i>
                                         </button>
@@ -480,6 +504,11 @@ $allProductIds = array_map(fn($p) => (int)$p['id'], $products);
                     </div>
 
                     <div>
+                        <label class="block text-gray-300 font-bold mb-1">Model AI Hỗ Trợ (cách nhau bởi dấu phẩy)</label>
+                        <input type="text" name="supported_models" placeholder="VD: claude-3-5-sonnet, gpt-4o, deepseek-reasoner, cursor-small" class="w-full px-3 py-2 rounded-xl bg-gray-950 border border-gray-700 text-amber-400 font-mono focus:border-amber-500 focus:outline-none">
+                    </div>
+
+                    <div>
                         <label class="block text-gray-300 font-bold mb-1">Link Ảnh Đại Diện (URL)</label>
                         <input type="text" name="image" placeholder="https://cdn-icons-png.flaticon.com/..." class="w-full px-3 py-2 rounded-xl bg-gray-950 border border-gray-700 text-white focus:border-amber-500 focus:outline-none">
                     </div>
@@ -506,6 +535,128 @@ $allProductIds = array_map(fn($p) => (int)$p['id'], $products);
             </div>
         </div>
 
+        <!-- MODAL CẤU HÌNH MODEL AI CHO SẢN PHẨM -->
+        <div x-show="moModalModel" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" style="display: none;" x-transition>
+            <div class="bg-gray-900 border border-gray-800 rounded-3xl max-w-lg w-full p-6 relative shadow-2xl space-y-4">
+                <button type="button" @click="moModalModel = false" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+
+                <div class="flex items-center gap-2 border-b border-gray-800 pb-3">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold">
+                        <i class="fas fa-microchip"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-white">Cấu Hình Danh Sách Model AI</h3>
+                        <p class="text-xs text-gray-400 truncate max-w-xs" x-text="sanPhamModel?.name"></p>
+                    </div>
+                </div>
+
+                <form method="POST" action="" class="space-y-4 text-xs">
+                    <input type="hidden" name="action" value="cap_nhat_models_san_pham">
+                    <input type="hidden" name="product_id" :value="sanPhamModel?.id">
+
+                    <div>
+                        <label class="block text-gray-300 font-bold mb-2">Bấm chọn nhanh Model phổ biến:</label>
+                        <div class="flex flex-wrap gap-1.5 mb-3">
+                            <template x-for="m in ['claude-3-5-sonnet', 'claude-3-5-haiku', 'claude-3-opus', 'gpt-4o', 'gpt-4o-mini', 'o1-preview', 'o3-mini', 'deepseek-reasoner', 'deepseek-chat', 'cursor-small', 'gemini-1.5-pro', 'gemini-2.0-flash', 'grok-2']" :key="m">
+                                <button type="button" @click="themNhanhModel(m)" class="px-2.5 py-1 rounded-lg bg-gray-950 hover:bg-indigo-600/30 text-gray-300 hover:text-indigo-300 border border-gray-800 hover:border-indigo-500/50 text-[11px] font-mono transition flex items-center gap-1">
+                                    <i class="fas fa-plus text-[9px] text-indigo-400"></i>
+                                    <span x-text="m"></span>
+                                </button>
+                            </template>
+                        </div>
+
+                        <label class="block text-gray-300 font-bold mb-1">Danh sách Model (cách nhau bởi dấu phẩy hoặc dòng):</label>
+                        <textarea name="supported_models" x-model="chuoiModels" rows="4" placeholder="VD: claude-3-5-sonnet, gpt-4o, deepseek-reasoner, deepseek-chat, cursor-small" class="w-full px-3 py-2.5 rounded-xl bg-gray-950 border border-gray-700 text-amber-300 font-mono focus:border-indigo-500 focus:outline-none"></textarea>
+                        <p class="text-[11px] text-gray-400 mt-1">Danh sách model này sẽ xuất hiện ở bảng chi tiết tính năng của gói ngoài trang sản phẩm để khách hàng biết gói hỗ trợ những AI nào.</p>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-3 border-t border-gray-800">
+                        <button type="button" @click="moModalModel = false" class="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold transition">
+                            Hủy
+                        </button>
+                        <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition shadow-lg shadow-indigo-600/30 flex items-center gap-1.5">
+                            <i class="fas fa-floppy-disk"></i> Lưu Cấu Hình Model
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL HƯỚNG DẪN CRON JOB CPANEL & LINUX -->
+        <div x-show="moModalCron" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" style="display: none;" x-transition>
+            <div class="bg-gray-900 border border-gray-800 rounded-3xl max-w-xl w-full p-6 relative shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+                <button type="button" @click="moModalCron = false" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+
+                <div class="flex items-center gap-2 border-b border-gray-800 pb-3">
+                    <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-white">Hướng Dẫn Cài Đặt Cron Job cPanel & VPS</h3>
+                        <p class="text-xs text-gray-400">Tự động cập nhật kho, giá vốn & tự thêm sản phẩm mới từ đối tác</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3 text-xs text-gray-300">
+                    <div class="p-3 bg-amber-950/30 border border-amber-800/60 rounded-2xl text-amber-300 text-[11px] leading-relaxed">
+                        <i class="fas fa-circle-info mr-1"></i> Cron Job là các tác vụ chạy ngầm tự động định kỳ (ví dụ mỗi phút) giúp hệ thống luôn đồng bộ kho hàng, giá vốn, tự nhập sản phẩm mới và tự động ẩn khi đối tác hết hàng mà bạn không cần phải thao tác thủ công.
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="font-bold text-white">Các bước thiết lập trong cPanel:</div>
+                        <ol class="list-decimal list-inside space-y-1.5 text-gray-300 pl-1 leading-relaxed">
+                            <li>Đăng nhập vào tài khoản <strong>cPanel</strong> của bạn.</li>
+                            <li>Trong mục <strong>Advanced (Nâng cao)</strong>, nhấp vào <strong>Cron Jobs</strong>.</li>
+                            <li>Trong phần <strong>Add New Cron Job</strong>:
+                                <ul class="list-disc list-inside pl-4 mt-1 text-gray-400 space-y-0.5">
+                                    <li>Chọn <em>Common Settings:</em> <strong>Once Per Minute (* * * * *)</strong> để cron chạy mỗi phút.</li>
+                                    <li>Trong trường <em>Command</em>, sao chép và dán 1 trong các lệnh bên dưới:</li>
+                                </ul>
+                            </li>
+                        </ol>
+                    </div>
+
+                    <!-- LỆNH 1: CRON ĐỒNG BỘ KHO, GIÁ & SẢN PHẨM MỚI -->
+                    <div class="p-3.5 bg-gray-950 rounded-2xl border border-gray-800 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-emerald-400 flex items-center gap-1.5">
+                                <i class="fas fa-arrows-rotate"></i> Lệnh 1: Đồng bộ kho, giá & tự thêm sản phẩm mới
+                            </span>
+                            <button type="button" @click="navigator.clipboard.writeText('curl -s &quot;https://tiemai.io.vn/backend/cron_sync.php?secret=VK_CRON_SECRET_2026&quot; >/dev/null 2>&1'); alert('Đã sao chép lệnh Cron 1!')" class="px-2.5 py-1 rounded bg-blue-600/30 hover:bg-blue-600 text-blue-300 hover:text-white font-bold transition flex items-center gap-1">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                        <code class="block font-mono text-[11px] text-amber-300 bg-gray-900 p-2.5 rounded-xl border border-gray-800 break-all select-all">curl -s "https://tiemai.io.vn/backend/cron_sync.php?secret=VK_CRON_SECRET_2026" >/dev/null 2>&1</code>
+                        <div class="text-[10px] text-gray-500">Khuyên dùng chạy mỗi phút (* * * * *) hoặc mỗi 5 phút (*/5 * * * *).</div>
+                    </div>
+
+                    <!-- LỆNH 2: CRON TOÀN DIỆN HỆ THỐNG -->
+                    <div class="p-3.5 bg-gray-950 rounded-2xl border border-gray-800 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-blue-400 flex items-center gap-1.5">
+                                <i class="fas fa-shield-halved"></i> Lệnh 2: Cron tổng hợp (Kho, SePay ACB, Hủy đơn treo quá 2h)
+                            </span>
+                            <button type="button" @click="navigator.clipboard.writeText('curl -s &quot;https://tiemai.io.vn/backend/cron.php?secret=VK_CRON_SECRET_2026&quot; >/dev/null 2>&1'); alert('Đã sao chép lệnh Cron 2!')" class="px-2.5 py-1 rounded bg-blue-600/30 hover:bg-blue-600 text-blue-300 hover:text-white font-bold transition flex items-center gap-1">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                        <code class="block font-mono text-[11px] text-amber-300 bg-gray-900 p-2.5 rounded-xl border border-gray-800 break-all select-all">curl -s "https://tiemai.io.vn/backend/cron.php?secret=VK_CRON_SECRET_2026" >/dev/null 2>&1</code>
+                        <div class="text-[10px] text-gray-500">Chạy toàn bộ tiến trình quét đơn, đối soát SePay và đồng bộ kho hàng.</div>
+                    </div>
+
+                    <div class="text-right pt-2 border-t border-gray-800">
+                        <button type="button" @click="moModalCron = false" class="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-bold transition">
+                            Đã Hiểu & Đóng
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
             </main>
 
             <footer class="bg-gray-950 border-t border-gray-900 py-4 text-center text-xs text-gray-500 mt-auto">
@@ -519,8 +670,31 @@ $allProductIds = array_map(fn($p) => (int)$p['id'], $products);
             return {
                 danhSachChon: [],
                 moModalThem: false,
+                moModalModel: false,
+                moModalCron: false,
+                sanPhamModel: null,
+                chuoiModels: '',
                 tatCaIds: <?= json_encode($allProductIds) ?>,
                 dangDongBo: false,
+
+                moSuaModel(p) {
+                    this.sanPhamModel = p;
+                    this.chuoiModels = p.supported_models || '';
+                    this.moModalModel = true;
+                },
+
+                themNhanhModel(m) {
+                    let cur = this.chuoiModels.trim();
+                    if (!cur) {
+                        this.chuoiModels = m;
+                    } else {
+                        let arr = cur.split(',').map(s => s.trim());
+                        if (!arr.includes(m)) {
+                            arr.push(m);
+                            this.chuoiModels = arr.join(', ');
+                        }
+                    }
+                },
 
                 chonTatCa(e) {
                     if (e.target.checked) {

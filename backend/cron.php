@@ -151,4 +151,13 @@ if (!empty($sepayToken) && $sepayToken !== 'YOUR_SEPAY_API_TOKEN' && $sepayToken
     }
 }
 
+// 5. TỰ ĐỘNG ĐỒNG BỘ TỒN KHO & GIÁ TỪ NHÀ CUNG CẤP (CRON SYNC)
+echo "-> Đang đồng bộ kho, giá và nhập sản phẩm mới từ nhà cung cấp... ";
+try {
+    define('IN_CRON_MASTER', true);
+    require_once __DIR__ . '/cron_sync.php';
+} catch (Exception $e) {
+    echo "Lỗi đồng bộ kho: " . $e->getMessage() . "\n";
+}
+
 echo "[" . date('Y-m-d H:i:s') . "] HOÀN TẤT CRONJOB THÀNH CÔNG!\n";
