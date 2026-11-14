@@ -255,19 +255,43 @@ switch ($hanhDong) {
         $baseUrlWebsite = $protocol . '://' . $host . '/v1';
         $chatEndpointWebsite = $baseUrlWebsite . '/chat/completions';
 
-        // 1. Thử tìm trong bảng đơn hàng đã giao (orders)
+        // 1. Thử tìm trong bảng đơn hàng (orders)
         $stmtOrder = $pdo->prepare("
             SELECT o.*, p.name AS product_name, p.sku AS product_sku, p.duration_days, p.request_count, p.description AS product_desc, p.supported_models, p.price AS product_price
             FROM `orders` o
             LEFT JOIN `products` p ON o.product_id = p.id
             WHERE (o.delivered_data LIKE ? OR o.order_code = ? OR o.order_code = ? OR o.customer_email = ?)
-              AND o.status = 'COMPLETED'
             ORDER BY o.id DESC LIMIT 1
         ");
         $stmtOrder->execute(["%$keyCanCheck%", $keyCanCheck, $keyRaw, $keyCanCheck]);
         $order = $stmtOrder->fetch();
 
         if ($order) {
+            // Nếu đơn hàng chưa hoàn tất hoặc đã hoàn tiền:
+            if ($order['status'] === 'PROCESSING') {
+                echo json_encode([
+                    'thanh_cong' => false,
+                    'trang_thai' => 'PROCESSING',
+                    'thong_bao'  => 'Đơn hàng #' . $order['order_code'] . ' đã nhận thanh toán thành công và đang chờ hệ thống xuất kho từ đối tác. Vui lòng đợi trong giây lát hoặc liên hệ Admin Zalo/Telegram để được hỗ trợ cấp key ngay!'
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            } elseif ($order['status'] === 'REFUNDED') {
+                echo json_encode([
+                    'thanh_cong' => false,
+                    'trang_thai' => 'REFUNDED',
+                    'thong_bao'  => 'Đơn hàng #' . $order['order_code'] . ' đã được hoàn tiền 100% vào ví tài khoản của bạn do kho hàng đối tác tạm thời hết hàng.'
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            } elseif ($order['status'] === 'PENDING') {
+                echo json_encode([
+                    'thanh_cong' => false,
+                    'trang_thai' => 'PENDING',
+                    'thong_bao'  => 'Đơn hàng #' . $order['order_code'] . ' đang chờ thanh toán VietQR.'
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+
+            // Nếu COMPLETED thì hiển thị chi tiết gói và key:
             $prodName = $order['product_name'] ?? 'Gói API AI Gateway';
             $prodSku = $order['product_sku'] ?? '';
             $prodDesc = $order['product_desc'] ?? '';

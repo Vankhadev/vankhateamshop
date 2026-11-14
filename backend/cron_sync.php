@@ -155,6 +155,13 @@ try {
                     $pdo->prepare("UPDATE `products` SET `price` = ? WHERE `id` = ?")->execute([$giaBanMoi, $existingPid]);
                 }
 
+                // TỰ ĐỘNG ẨN SẢN PHẨM KHI HẾT HÀNG TRÊN KHO ĐỐI TÁC (stock <= 0), MỞ LẠI KHI CÓ HÀNG:
+                if ($stock <= 0) {
+                    $pdo->prepare("UPDATE `products` SET `is_active` = 0 WHERE `id` = ?")->execute([$existingPid]);
+                } else {
+                    $pdo->prepare("UPDATE `products` SET `is_active` = 1 WHERE `id` = ?")->execute([$existingPid]);
+                }
+
                 $supInfo['da_cap_nhat']++;
                 $ketQuaTong['tong_cap_nhat']++;
             } else {
@@ -221,14 +228,15 @@ try {
                     "Bảo hành 100% trong thời gian sử dụng"
                 ], JSON_UNESCAPED_UNICODE);
 
-                // Thêm vào bảng products
+                // Thêm vào bảng products (tự ẩn nếu tồn kho = 0)
+                $isActiveNew = ($stock > 0) ? 1 : 0;
                 $stmtInsP = $pdo->prepare("
                     INSERT INTO `products` 
                     (`category_id`, `sku`, `name`, `slug`, `badge`, `description`, `price`, `original_price`, `request_count`, `duration_days`, `features`, `is_hot`, `is_active`)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
                 ");
                 $stmtInsP->execute([
-                    $catId, $ourSku, $name, $slug, $badge, $it['description'] ?? '', $price, $originalPrice, $requestCount, $duration, $features
+                    $catId, $ourSku, $name, $slug, $badge, $it['description'] ?? '', $price, $originalPrice, $requestCount, $duration, $features, $isActiveNew
                 ]);
                 $newPid = (int)$pdo->lastInsertId();
 

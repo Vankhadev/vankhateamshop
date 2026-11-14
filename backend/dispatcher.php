@@ -168,55 +168,62 @@ class BoDieuPhoiDonHang {
             ];
         }
 
-        // 5. CƠ CHẾ DỰ PHÒNG TỰ ĐỘNG (TIỆM AI GATEWAY FALLBACK):
-        // Khi đối tác chưa cấp được key (do số dư ví đối tác tạm hết hoặc máy chủ đối tác gián đoạn),
-        // Hệ thống TIỆM AI tự động cấp ngay API Key Gateway (tương thích 100% Base URL https://tiemai.io.vn/v1)
-        // để đơn hàng HOÀN THÀNH NGAY LẬP TỨC, khách hàng nhận key sử dụng ngay không bị gián đoạn hay bị hủy/hoàn tiền phiền phức.
-        try {
-            $soNgay = !empty($sanPham['duration_days']) ? (int)$sanPham['duration_days'] : 30;
-            $apiToken = 'sk-tiemai-' . bin2hex(random_bytes(16));
-            $accounts = [$apiToken];
+        // 5. NẾU TOÀN BỘ ĐỐI TÁC THẤT BẠI VÀ KHÔNG PHẢI PHẦN MỀM TỰ PHÁT HÀNH:
+        // TUYỆT ĐỐI KHÔNG CẤP KEY GIẢ (sk-tiemai-...) VÌ KHO ĐỐI TÁC HẾT HÀNG/HẾT TIỀN THÌ KHÔNG THỂ DỘI REQUEST!
+        $chuoiLoi = implode(" || ", $nhatKyLoi);
 
-            // Nếu người dùng có tài khoản thành viên trên hệ thống, cập nhật luôn api_token cho họ nếu chưa có
-            if (!empty($donHang['user_id'])) {
-                $this->db->prepare("UPDATE `users` SET `api_token` = ? WHERE `id` = ? AND (`api_token` IS NULL OR `api_token` = '')")->execute([$apiToken, $donHang['user_id']]);
+        // Kiểm tra xem đơn hàng này được thanh toán bằng VÍ SỐ DƯ hay VIETQR NGÂN HÀNG:
+        $isWalletOrder = false;
+        if (!empty($donHang['user_id'])) {
+            $stmtTx = $this->db->prepare("SELECT id FROM `transactions` WHERE `order_id` = ? AND `type` = 'PURCHASE' LIMIT 1");
+            $stmtTx->execute([$donHang['id']]);
+            if ($stmtTx->fetchColumn()) {
+                $isWalletOrder = true;
             }
-
-            $taiKhoanTraVeJson = json_encode($accounts, JSON_UNESCAPED_UNICODE);
-            $chuoiLoi = implode(" || ", $nhatKyLoi);
-            $ghiChuHeThong = "Nguồn đối tác: {$chuoiLoi} => Tự động cấp qua Tiệm AI Gateway (Base URL: https://tiemai.io.vn/v1)";
-
-            $this->db->prepare("
-                UPDATE `orders` 
-                SET `status` = 'COMPLETED',
-                    `supplier_id` = NULL,
-                    `supplier_order_code` = 'GATEWAY-FALLBACK',
-                    `delivered_data` = ?,
-                    `error_log` = ?
-                WHERE `id` = ?
-            ")->execute([$taiKhoanTraVeJson, $ghiChuHeThong, $donHang['id']]);
-
-            return [
-                'success' => true,
-                'thanh_cong' => true,
-                'supplier' => 'Tiệm AI Gateway',
-                'message' => 'Giao hàng thành công qua Hệ Thống Tiệm AI Gateway',
-                'accounts' => $accounts
-            ];
-        } catch (Exception $eFallback) {
-            $nhatKyLoi[] = "Lỗi cấp Gateway Fallback: " . $eFallback->getMessage();
         }
 
-        // 6. NẾU CẢ FALLBACK CŨNG GẶP SỰ CỐ BẤT KHẢ KHÁNG:
-        $chuoiLoi = implode(" || ", $nhatKyLoi);
-        $this->danhDauThatBai($donHang['id'], $chuoiLoi);
+        if ($isWalletOrder) {
+            // NẾU MUA BẰNG VÍ: Tự động hoàn tiền 100% về ví tài khoản khách ngay lập tức
+            $this->hoanTienViKhach((int)$donHang['user_id'], (int)$donHang['id'], (float)$donHang['total_amount'], "Hoàn tiền đơn hàng #{$donHang['order_code']} do kho đối tác lỗi/hết hàng");
 
-        return [
-            'success' => false,
-            'thanh_cong' => false,
-            'error' => 'Hiện tại hệ thống tạm gián đoạn cấp key.',
-            'chi_tiet' => $chuoiLoi
-        ];
+            $this->db->prepare("UPDATE `orders` SET `status` = 'REFUNDED', `error_log` = ? WHERE `id` = ?")
+                ->execute([$chuoiLoi, $donHang['id']]);
+
+            return [
+                'success' => false,
+                'thanh_cong' => false,
+                'status' => 'REFUNDED',
+                'error' => 'Kho hàng đối tác tạm thời hết hàng hoặc đang bảo trì gói này. Số dư đã được hoàn lại 100% vào ví của bạn!',
+                'chi_tiet' => $chuoiLoi
+            ];
+        } else {
+            // NẾU MUA QUA VIETQR / NGÂN HÀNG ACB (Tiền thật đã vào tài khoản ngân hàng):
+            // Giữ đơn hàng ở trạng thái PROCESSING (Đang xử lý / Chờ xuất kho) để Admin xử lý hoặc thử lại
+            $this->db->prepare("UPDATE `orders` SET `status` = 'PROCESSING', `error_log` = ? WHERE `id` = ?")
+                ->execute([$chuoiLoi, $donHang['id']]);
+
+            // Bắn cảnh báo Telegram khẩn cấp cho Admin
+            try {
+                require_once __DIR__ . '/telegram.php';
+                $tenGoiMua = $sanPham['name'] ?? ('Sản phẩm #' . $donHang['product_id']);
+                $msg = "🚨 <b>ĐƠN HÀNG ĐÃ THANH TOÁN TIỀN NHƯNG CHƯA XUẤT ĐƯỢC KEY!</b>\n";
+                $msg .= "📦 Mã đơn: <code>{$donHang['order_code']}</code>\n";
+                $msg .= "👤 Khách: <b>{$donHang['customer_email']}</b>\n";
+                $msg .= "🛒 Gói: <b>{$tenGoiMua}</b>\n";
+                $msg .= "💵 Số tiền: <b>" . number_format($donHang['total_amount'], 0, ',', '.') . " VNĐ</b>\n";
+                $msg .= "❌ Lỗi đối tác: <i>{$chuoiLoi}</i>\n";
+                $msg .= "👉 Admin vui lòng nạp thêm tiền ví đại lý đối tác hoặc cấp key tay trong Admin!";
+                guiThongBaoTelegram($msg);
+            } catch (Exception $eTele) {}
+
+            return [
+                'success' => false,
+                'thanh_cong' => false,
+                'status' => 'PROCESSING',
+                'error' => 'Đã nhận thanh toán từ ngân hàng. Do kho đối tác tạm thời chưa xuất được key tự động, Admin đang kiểm tra xử lý để gửi key cho bạn trong giây lát.',
+                'chi_tiet' => $chuoiLoi
+            ];
+        }
     }
 
     /**
@@ -231,6 +238,13 @@ class BoDieuPhoiDonHang {
      * Hoàn tiền lại vào ví khách hàng trên website (Kèm order_id để chống hoàn lặp)
      */
     private function hoanTienViKhach(int $userId, int $orderId, float $soTien, string $ghiChu): void {
+        // Kiểm tra chống hoàn tiền lặp lại cho cùng một đơn hàng
+        $stmtCheck = $this->db->prepare("SELECT id FROM `transactions` WHERE `order_id` = ? AND `type` = 'REFUND' LIMIT 1");
+        $stmtCheck->execute([$orderId]);
+        if ($stmtCheck->fetchColumn()) {
+            return; // Đã hoàn tiền trước đó rồi
+        }
+
         $stmtUser = $this->db->prepare("SELECT `balance` FROM `users` WHERE `id` = ? FOR UPDATE");
         $stmtUser->execute([$userId]);
         $user = $stmtUser->fetch();
