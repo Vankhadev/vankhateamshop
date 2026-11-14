@@ -95,6 +95,8 @@ if (!empty($product['original_price']) && $product['original_price'] > $product[
 $siteNameDisplay = layCaiDatHeThong('site_name', SHOP_NAME);
 $soZaloDisplay = layCaiDatHeThong('site_contact_zalo', SHOP_ZALO);
 $teleDisplay = layCaiDatHeThong('site_contact_telegram', SHOP_TELEGRAM);
+// Base URL dùng riêng cho hướng dẫn tích hợp sản phẩm; không hiển thị URL nhà cung cấp đối tác.
+$apiBaseUrl = rtrim(defined('SITE_URL') ? SITE_URL : 'https://tiemai.io.vn', '/');
 $isOutOfStock = (isset($product['stock']) && $product['stock'] !== null && (int)$product['stock'] <= 0);
 
 // Phân loại danh sách Model hỗ trợ theo gói
@@ -540,6 +542,11 @@ $seoKeywords = htmlspecialchars($product['name']) . ", mua " . htmlspecialchars(
                     <i class="fas fa-circle-question"></i>
                     <span>Câu Hỏi Thường Gặp (FAQ)</span>
                 </button>
+
+                <button @click="tabHienTai = 'api'" :class="tabHienTai === 'api' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'bg-gray-900/80 text-gray-400 hover:text-white'" class="px-5 py-2.5 rounded-xl font-bold text-xs transition flex items-center gap-2">
+                    <i class="fas fa-terminal"></i>
+                    <span>Hướng Dẫn Tích Hợp API</span>
+                </button>
             </div>
 
             <!-- NỘI DUNG TAB 1: THÔNG TIN SẢN PHẨM & TÍNH NĂNG -->
@@ -573,7 +580,7 @@ $seoKeywords = htmlspecialchars($product['name']) . ", mua " . htmlspecialchars(
                             <h4 class="font-bold text-white text-xs mb-1 flex items-center gap-1.5 text-emerald-400">
                                 <i class="fas fa-layer-group"></i> Danh sách Model định tuyến của gói
                             </h4>
-                            <p class="text-xs text-gray-400">Được cấu hình sẵn hạ tầng định tuyến chịu tải cao, kiểm tra trạng thái live tại <a href="https://status.gwai.cloud/" target="_blank" class="text-blue-400 hover:underline">status.gwai.cloud</a>.</p>
+                            <p class="text-xs text-gray-400">Được cấu hình sẵn hạ tầng định tuyến chịu tải cao; trạng thái dịch vụ được hệ thống cập nhật và giám sát nội bộ.</p>
                         </div>
                     </div>
 
@@ -736,6 +743,78 @@ $seoKeywords = htmlspecialchars($product['name']) . ", mua " . htmlspecialchars(
                     </div>
                 </div>
 
+            </div>
+
+            <!-- NỘI DUNG TAB 4: HƯỚNG DẪN TÍCH HỢP & SỬ DỤNG API -->
+            <div x-show="tabHienTai === 'api'" class="space-y-6 text-xs sm:text-sm text-gray-300 leading-relaxed" style="display: none;">
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-white mb-2 flex items-center gap-2">
+                            <span class="w-7 h-7 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center text-xs"><i class="fas fa-terminal"></i></span>
+                            <span>Hướng Dẫn Tích Hợp & Sử Dụng API</span>
+                        </h3>
+                        <p class="text-gray-400">Kết nối gói <strong class="text-white"><?= htmlspecialchars($product['name']) ?></strong> với Claude Code, Codex CLI, OpenCode, Gemini CLI, Cline, Roo Code, Cursor hoặc SDK chỉ trong vài bước.</p>
+                    </div>
+                    <a href="/docs" class="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition shadow-lg shadow-blue-600/20">
+                        <i class="fas fa-book-open"></i> Tài liệu đầy đủ
+                    </a>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-blue-950/30 border border-blue-800/60">
+                    <h4 class="font-bold text-blue-300 mb-2 flex items-center gap-2"><i class="fas fa-link"></i> Base URL & API Key</h4>
+                    <p class="text-gray-300 mb-3">Dùng Base URL của website này. Không sử dụng URL hệ thống nhà cung cấp hoặc URL đối tác trong cấu hình client.</p>
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div class="rounded-xl bg-gray-950 border border-gray-800 p-3">
+                            <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">Base URL chuẩn OpenAI-compatible</div>
+                            <code class="text-blue-300 break-all"><?= htmlspecialchars($apiBaseUrl . '/v1') ?></code>
+                        </div>
+                        <div class="rounded-xl bg-gray-950 border border-gray-800 p-3">
+                            <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">API Key</div>
+                            <code class="text-amber-300">sk-your-api-key</code>
+                            <div class="text-[10px] text-gray-500 mt-1">Dán API key được cấp sau khi thanh toán.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-4 rounded-2xl bg-gray-900/60 border border-gray-800">
+                        <h4 class="font-bold text-white mb-2 flex items-center gap-2"><i class="fas fa-terminal text-emerald-400"></i> Kiểm tra kết nối bằng cURL</h4>
+                        <pre class="bg-gray-950 rounded-xl p-3 overflow-x-auto text-[11px] text-blue-300"><code>curl "<?= htmlspecialchars($apiBaseUrl . '/v1/models') ?>" \
+  -H "Authorization: Bearer sk-your-api-key"</code></pre>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-gray-900/60 border border-gray-800">
+                        <h4 class="font-bold text-white mb-2 flex items-center gap-2"><i class="fas fa-code text-purple-400"></i> Gọi Chat Completions</h4>
+                        <pre class="bg-gray-950 rounded-xl p-3 overflow-x-auto text-[11px] text-blue-300"><code>curl "<?= htmlspecialchars($apiBaseUrl . '/v1/chat/completions') ?>" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-your-api-key"</code></pre>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-gray-900/60 border border-gray-800">
+                    <h4 class="font-bold text-white mb-3 flex items-center gap-2"><i class="fas fa-sliders text-amber-400"></i> Quy tắc Base URL theo công cụ</h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="text-gray-400 border-b border-gray-800 text-[11px] uppercase">
+                                <tr><th class="py-2 px-2">Công cụ</th><th class="py-2 px-2">Biến / trường</th><th class="py-2 px-2">Base URL</th></tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-800/60">
+                                <tr><td class="py-2 px-2 text-white font-semibold">Claude Code</td><td class="py-2 px-2 font-mono text-gray-400">ANTHROPIC_BASE_URL</td><td class="py-2 px-2 font-mono text-blue-300 break-all"><?= htmlspecialchars($apiBaseUrl) ?></td></tr>
+                                <tr><td class="py-2 px-2 text-white font-semibold">Gemini CLI</td><td class="py-2 px-2 font-mono text-gray-400">GOOGLE_GEMINI_BASE_URL</td><td class="py-2 px-2 font-mono text-blue-300 break-all"><?= htmlspecialchars($apiBaseUrl) ?></td></tr>
+                                <tr><td class="py-2 px-2 text-white font-semibold">Codex / OpenCode / Cline / Roo Code</td><td class="py-2 px-2 font-mono text-gray-400">base_url / baseURL</td><td class="py-2 px-2 font-mono text-blue-300 break-all"><?= htmlspecialchars($apiBaseUrl . '/v1') ?></td></tr>
+                                <tr><td class="py-2 px-2 text-white font-semibold">Cursor / Continue / OpenAI SDK</td><td class="py-2 px-2 font-mono text-gray-400">apiBase / baseURL</td><td class="py-2 px-2 font-mono text-blue-300 break-all"><?= htmlspecialchars($apiBaseUrl . '/v1') ?></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-amber-950/20 border border-amber-800/50">
+                    <h4 class="font-bold text-amber-300 mb-2 flex items-center gap-2"><i class="fas fa-circle-exclamation"></i> Lưu ý bảo mật</h4>
+                    <ul class="list-disc pl-5 space-y-1 text-xs text-gray-300">
+                        <li>Không gửi API key lên GitHub, ảnh chụp màn hình hoặc mã nguồn công khai.</li>
+                        <li>Claude Code và Gemini CLI dùng domain gốc; Codex, OpenCode, Cline, Roo Code, Cursor và SDK OpenAI dùng hậu tố <code class="text-amber-300">/v1</code>.</li>
+                        <li>Nếu gặp lỗi 401, kiểm tra API key; lỗi 404 thường do đặt sai hậu tố <code class="text-amber-300">/v1</code>.</li>
+                    </ul>
+                </div>
             </div>
 
         </div>
