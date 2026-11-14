@@ -143,6 +143,25 @@ try {
             $stmtMap->execute([$sup['id'], $sku]);
             $existingPid = $stmtMap->fetchColumn();
 
+            $ourSku = 'VK-' . strtoupper(str_replace(['-', ' '], '', $sku));
+
+            // Nếu chưa map với đối tác này, kiểm tra xem trong bảng products đã có sản phẩm này từ đối tác khác chưa
+            if (!$existingPid) {
+                $stmtP = $pdo->prepare("SELECT id FROM `products` WHERE `sku` = ? OR `sku` = ? LIMIT 1");
+                $stmtP->execute([$ourSku, 'VK-' . $sku]);
+                $foundPid = $stmtP->fetchColumn();
+                if ($foundPid) {
+                    $existingPid = $foundPid;
+                    // Tự động liên kết đối tác này vào sản phẩm sẵn có (Đa nguồn cung cấp)
+                    $pdo->prepare("
+                        INSERT INTO `supplier_product_mappings` 
+                        (`product_id`, `supplier_id`, `supplier_sku`, `cost_price`, `stock`, `priority`, `is_active`)
+                        VALUES (?, ?, ?, ?, ?, 1, 1)
+                        ON DUPLICATE KEY UPDATE `cost_price` = VALUES(`cost_price`), `stock` = VALUES(`stock`)
+                    ")->execute([$existingPid, $sup['id'], $sku, $cost, $stock]);
+                }
+            }
+
             if ($existingPid) {
                 // 1. NẾU ĐÃ CÓ: Cập nhật tồn kho (stock) và giá vốn (cost_price)
                 $upMap = $pdo->prepare("UPDATE `supplier_product_mappings` SET `stock` = ?, `cost_price` = ? WHERE `product_id` = ? AND `supplier_id` = ?");
@@ -155,12 +174,11 @@ try {
                     $pdo->prepare("UPDATE `products` SET `price` = ? WHERE `id` = ?")->execute([$giaBanMoi, $existingPid]);
                 }
 
-                // TỰ ĐỘNG ẨN SẢN PHẨM KHI HẾT HÀNG TRÊN KHO ĐỐI TÁC (stock <= 0), MỞ LẠI KHI CÓ HÀNG:
-                if ($stock <= 0) {
-                    $pdo->prepare("UPDATE `products` SET `is_active` = 0 WHERE `id` = ?")->execute([$existingPid]);
-                } else {
-                    $pdo->prepare("UPDATE `products` SET `is_active` = 1 WHERE `id` = ?")->execute([$existingPid]);
-                }
+                // TỰ ĐỘNG CẬP NHẬT TRẠNG THÁI: Nếu BẤT KỲ đối tác nào còn hàng thì sản phẩm mở bán, tất cả hết thì ẩn
+                $stmtStockAny = $pdo->prepare("SELECT COUNT(*) FROM `supplier_product_mappings` WHERE `product_id` = ? AND `is_active` = 1 AND `stock` > 0");
+                $stmtStockAny->execute([$existingPid]);
+                $hasStock = ((int)$stmtStockAny->fetchColumn() > 0);
+                $pdo->prepare("UPDATE `products` SET `is_active` = ? WHERE `id` = ?")->execute([$hasStock ? 1 : 0, $existingPid]);
 
                 $supInfo['da_cap_nhat']++;
                 $ketQuaTong['tong_cap_nhat']++;
@@ -230,26 +248,35 @@ try {
 
                 // Thêm vào bảng products (tự ẩn nếu tồn kho = 0)
                 $isActiveNew = ($stock > 0) ? 1 : 0;
-                $stmtInsP = $pdo->prepare("
-                    INSERT INTO `products` 
-                    (`category_id`, `sku`, `name`, `slug`, `badge`, `description`, `price`, `original_price`, `request_count`, `duration_days`, `features`, `is_hot`, `is_active`)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
-                ");
-                $stmtInsP->execute([
-                    $catId, $ourSku, $name, $slug, $badge, $it['description'] ?? '', $price, $originalPrice, $requestCount, $duration, $features, $isActiveNew
-                ]);
-                $newPid = (int)$pdo->lastInsertId();
+                try {
+                    $stmtInsP = $pdo->prepare("
+                        INSERT INTO `products` 
+                        (`category_id`, `sku`, `name`, `slug`, `badge`, `description`, `price`, `original_price`, `request_count`, `duration_days`, `features`, `is_hot`, `is_active`)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+                    ");
+                    $stmtInsP->execute([
+                        $catId, $ourSku, $name, $slug, $badge, $it['description'] ?? '', $price, $originalPrice, $requestCount, $duration, $features, $isActiveNew
+                    ]);
+                    $newPid = (int)$pdo->lastInsertId();
+                } catch (PDOException $eDup) {
+                    $stmtFindExist = $pdo->prepare("SELECT id FROM `products` WHERE `sku` = ? OR `slug` = ? LIMIT 1");
+                    $stmtFindExist->execute([$ourSku, $slug]);
+                    $newPid = (int)$stmtFindExist->fetchColumn();
+                }
 
-                // Thêm mapping
-                $stmtInsMap = $pdo->prepare("
-                    INSERT INTO `supplier_product_mappings`
-                    (`product_id`, `supplier_id`, `supplier_sku`, `cost_price`, `stock`, `priority`, `is_active`)
-                    VALUES (?, ?, ?, ?, ?, 1, 1)
-                ");
-                $stmtInsMap->execute([$newPid, $sup['id'], $sku, $cost, $stock]);
+                if ($newPid > 0) {
+                    // Thêm mapping
+                    $stmtInsMap = $pdo->prepare("
+                        INSERT INTO `supplier_product_mappings`
+                        (`product_id`, `supplier_id`, `supplier_sku`, `cost_price`, `stock`, `priority`, `is_active`)
+                        VALUES (?, ?, ?, ?, ?, 1, 1)
+                        ON DUPLICATE KEY UPDATE `cost_price` = VALUES(`cost_price`), `stock` = VALUES(`stock`)
+                    ");
+                    $stmtInsMap->execute([$newPid, $sup['id'], $sku, $cost, $stock]);
 
-                $supInfo['da_them_moi']++;
-                $ketQuaTong['tong_them_moi']++;
+                    $supInfo['da_them_moi']++;
+                    $ketQuaTong['tong_them_moi']++;
+                }
             }
         }
 
