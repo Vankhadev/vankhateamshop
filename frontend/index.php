@@ -532,8 +532,8 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
         </div>
 
         <!-- PHÂN CẢNH PIXEL TECH CAMP & LỬA TRẠI DƯỚI ĐÁY HERO SECTION (CÁC MASCOT BẮN HIỆU ỨNG LÊN TRỜI) -->
-        <div class="w-full relative overflow-x-auto no-scrollbar pt-2 select-none border-b border-gray-800/80 bg-gradient-to-b from-transparent to-[#0a0e1c]">
-            <div class="min-w-[780px] max-w-7xl mx-auto px-4 sm:px-8 pb-3 flex items-end justify-between gap-4 text-xs font-mono">
+        <div id="heroCampViewport" class="w-full relative overflow-hidden select-none border-b border-gray-800/80 bg-gradient-to-b from-transparent to-[#0a0e1c]">
+            <div id="heroCampInner" class="w-[820px] max-w-7xl mx-auto px-4 sm:px-8 pb-3 flex items-end justify-between gap-3 text-xs font-mono origin-top-left transition-transform duration-75">
                 
                 <!-- 1. CLAUDE CODE (Nhân vật tóc cam + Bàn làm việc laptop + Hạt bắn hiệu ứng + Di chuyển qua lại) -->
                 <div class="flex flex-col items-center group relative cursor-pointer animate-hero-claude">
