@@ -43,6 +43,7 @@ if (isset($_GET['error'])) {
 
 // Xử lý khi đăng nhập bằng Email & Mật khẩu thông thường
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    batBuocCsrf();
     // 1. Kiểm tra chống Brute-Force mật khẩu (Giới hạn 10 lần/phút)
     if (!kiemTraRateLimit('login_attempt', 10, 60)) {
         $thongBaoLoi = 'Bạn đã thử đăng nhập quá nhiều lần. Vui lòng đợi 1 phút!';
@@ -69,7 +70,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } elseif (isset($user['is_active']) && (int)$user['is_active'] === 0) {
                     $thongBaoLoi = 'Tài khoản của bạn đã bị tạm khóa. Vui lòng liên hệ Admin để mở khóa!';
                 } else {
-                    // Đăng nhập thành công
+                    // Đăng nhập thành công: đổi session ID để chống session fixation.
+                    session_regenerate_id(true);
                     $_SESSION['user_id'] = $user['id'];
                     $_SESSION['user_name'] = $user['name'];
                     $_SESSION['user_email'] = $user['email'];
@@ -163,13 +165,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <!-- FORM ĐĂNG NHẬP TRUYỀN THỐNG -->
         <form method="POST" action="" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(taoCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
             <div>
                 <label class="block text-xs font-semibold text-gray-300 mb-1.5">Địa chỉ Email:</label>
                 <div class="relative">
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
                         <i class="fas fa-envelope text-xs"></i>
                     </span>
-                    <input type="email" name="email" required placeholder="name@example.com" class="w-full pl-9 pr-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white text-xs focus:border-blue-500 focus:outline-none transition">
+                    <input type="email" name="email" autocomplete="email" required placeholder="name@example.com" class="w-full pl-9 pr-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white text-xs focus:border-blue-500 focus:outline-none transition">
                 </div>
             </div>
 
@@ -182,8 +185,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
                         <i class="fas fa-lock text-xs"></i>
                     </span>
-                    <input :type="hienPass ? 'text' : 'password'" name="password" required placeholder="••••••••" class="w-full pl-9 pr-10 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white text-xs focus:border-blue-500 focus:outline-none transition">
-                    <button type="button" @click="hienPass = !hienPass" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-white transition focus:outline-none" title="Hiện/ẩn mật khẩu">
+                    <input :type="hienPass ? 'text' : 'password'" name="password" autocomplete="current-password" required placeholder="••••••••" class="w-full pl-9 pr-10 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white text-xs focus:border-blue-500 focus:outline-none transition">
+                    <button type="button" @click="hienPass = !hienPass" aria-label="Hiện hoặc ẩn mật khẩu" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-white transition focus:outline-none" title="Hiện/ẩn mật khẩu">
                         <i class="fas" :class="hienPass ? 'fa-eye-slash' : 'fa-eye'"></i>
                     </button>
                 </div>

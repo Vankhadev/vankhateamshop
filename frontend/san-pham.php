@@ -35,13 +35,19 @@ $sqlProducts = "
            COALESCE((SELECT m.stock FROM `supplier_product_mappings` m WHERE m.product_id = p.id AND m.is_active = 1 ORDER BY m.priority ASC LIMIT 1), 999) AS stock 
     FROM `products` p
     JOIN `categories` c ON p.category_id = c.id
-    WHERE p.is_active = 1
-    HAVING (stock IS NULL OR stock > 0)
-    ORDER BY c.sort_order ASC, c.id ASC, p.price ASC, p.id ASC
-";
-$products = $pdo->query($sqlProducts)->fetchAll();
+     WHERE p.is_active = 1
+     HAVING (stock IS NULL OR stock > 0)
+     ORDER BY c.sort_order ASC, c.id ASC, p.price ASC, p.id ASC
 
-// Chuẩn bị dữ liệu JSON cho Alpine.js xử lý tìm kiếm và lọc tức thì
+ ";
+ $products = $pdo->query($sqlProducts)->fetchAll();
+ // Nếu đồng bộ tồn kho tạm thời trả 0 toàn bộ, vẫn hiển thị bảng giá.
+ if (empty($products)) {
+     $products = $pdo->query("SELECT p.*, c.name AS category_name, c.slug AS category_slug, 999 AS stock FROM `products` p JOIN `categories` c ON p.category_id = c.id WHERE p.is_active = 1 ORDER BY c.sort_order ASC, c.id ASC, p.price ASC, p.id ASC")->fetchAll();
+ }
+
+ // Chuẩn bị dữ liệu JSON cho Alpine.js xử lý tìm kiếm và lọc tức thì
+
 $sanPhamJs = [];
 foreach ($products as $p) {
     $featuresArr = !empty($p['features']) ? json_decode($p['features'], true) : [];
@@ -613,7 +619,7 @@ if ($daDangNhap) {
                         if (data.tai_khoan && data.tai_khoan.length > 0) {
                             this.keyDaTraVe = data.tai_khoan.join("\n");
                         } else {
-                            this.keyDaTraVe = 'sk-vankha-' + this.maDonHang + '-completed';
+                            this.keyDaTraVe = 'Đơn hàng đã hoàn tất nhưng chưa nhận được dữ liệu giao hàng. Vui lòng liên hệ hỗ trợ.'
                         }
                     } else {
                         this.thongBaoLoiPopup = data.thong_bao || 'Lỗi thanh toán ví!';
@@ -656,7 +662,7 @@ if ($daDangNhap) {
                         if (data.tai_khoan && data.tai_khoan.length > 0) {
                             this.keyDaTraVe = data.tai_khoan.join("\n");
                         } else {
-                            this.keyDaTraVe = 'sk-vankha-' + this.maDonHang + '-completed';
+                            this.keyDaTraVe = 'Đơn hàng đã hoàn tất nhưng chưa nhận được dữ liệu giao hàng. Vui lòng liên hệ hỗ trợ.'
                         }
                     } else if (!isAuto) {
                         alert('Hệ thống chưa nhận được tiền từ ngân hàng. Vui lòng kiểm tra lại nội dung chuyển khoản hoặc thử lại sau vài giây!');

@@ -23,6 +23,7 @@ $loaiThongBao = '';
 
 // Xử lý các thao tác POST của Admin
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    batBuocCsrf();
     $action = $_POST['action'];
 
     // 1. Thêm gói sản phẩm mới
@@ -282,6 +283,7 @@ $allProductIds = array_map(fn($p) => (int)$p['id'], $products);
                 <span>Đã tích chọn <strong class="text-white text-sm" x-text="danhSachChon.length"></strong> sản phẩm</span>
             </div>
             <form method="POST" action="" onsubmit="return confirm('CẢNH BÁO: Bạn có chắc chắn muốn XÓA HÀNG LOẠT tất cả ' + danhSachChon.length + ' sản phẩm đã chọn? Thao tác này sẽ xóa vĩnh viễn và không thể khôi phục!');">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(taoCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="action" value="xoa_hang_loat">
                 <template x-for="id in danhSachChon" :key="id">
                     <input type="hidden" name="ids[]" :value="id">
@@ -330,6 +332,7 @@ $allProductIds = array_map(fn($p) => (int)$p['id'], $products);
                         ?>
                             <!-- FORM RIÊNG LẺ ĐỂ LƯU CẬP NHẬT TỪNG DÒNG -->
                             <form id="<?= $formId ?>" method="POST" action="">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(taoCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                                 <input type="hidden" name="action" value="cap_nhat_san_pham">
                                 <input type="hidden" name="product_id" value="<?= $p['id'] ?>">
                             </form>
@@ -420,6 +423,7 @@ $allProductIds = array_map(fn($p) => (int)$p['id'], $products);
                                         </button>
                                         
                                         <form method="POST" action="" onsubmit="return confirm('Bạn có chắc chắn muốn xóa vĩnh viễn gói \'<?= addslashes($p['name']) ?>\'? Thao tác không thể khôi phục!');" class="inline">
+                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(taoCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                                             <input type="hidden" name="action" value="xoa_san_pham">
                                             <input type="hidden" name="product_id" value="<?= $p['id'] ?>">
                                             <button type="submit" class="px-2.5 py-1.5 rounded-lg bg-red-950/60 hover:bg-red-600 text-red-400 hover:text-white font-bold text-xs transition border border-red-800/80" title="Xóa sản phẩm">
@@ -447,6 +451,7 @@ $allProductIds = array_map(fn($p) => (int)$p['id'], $products);
                 </h3>
 
                 <form method="POST" action="" class="space-y-4 text-xs">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(taoCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                     <input type="hidden" name="action" value="them_san_pham">
 
                     <div>
@@ -553,7 +558,8 @@ $allProductIds = array_map(fn($p) => (int)$p['id'], $products);
                 </div>
 
                 <form method="POST" action="" class="space-y-4 text-xs">
-                    <input type="hidden" name="action" value="cap_nhat_models_san_pham">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(taoCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                        <input type="hidden" name="action" value="cap_nhat_models_san_pham">
                     <input type="hidden" name="product_id" :value="sanPhamModel?.id">
 
                     <div>

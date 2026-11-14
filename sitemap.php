@@ -80,6 +80,14 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
         <priority>0.8</priority>
     </url>
 
+    <!-- Bảng giá Model AI -->
+    <url>
+        <loc><?= $baseUrl ?>/bang-gia-model</loc>
+        <lastmod><?= $ngayHomNay ?></lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.8</priority>
+    </url>
+
     <!-- Trung tâm chính sách pháp lý -->
     <?php foreach (['dieu-khoan-su-dung', 'quy-che-hoat-dong', 'chinh-sach-thanh-toan', 'chinh-sach-cung-cap-san-pham', 'bao-hanh-hoan-tien', 'dieu-khoan-dai-ly', 'chinh-sach-bao-mat'] as $duongDanChinhSach): ?>
         <url>

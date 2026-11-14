@@ -16,6 +16,9 @@ if (!isset($pdo) && file_exists(__DIR__ . '/../../backend/db.php')) {
 if (!defined('SHOP_NAME') && file_exists(__DIR__ . '/../../backend/config.php')) {
     require_once __DIR__ . '/../../backend/config.php';
 }
+if (file_exists(__DIR__ . '/../../backend/security.php')) {
+    require_once __DIR__ . '/../../backend/security.php';
+}
 
 // Tự động phân giải đường dẫn tương đối chuẩn xác
 $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
@@ -103,7 +106,7 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                              x-transition:enter-start="opacity-0 translate-y-1"
                              x-transition:enter-end="opacity-100 translate-y-0"
                              class="absolute left-0 mt-2 w-52 bg-[#1E293B] border border-gray-700/80 rounded-2xl shadow-2xl p-2 z-50 space-y-1 text-xs font-semibold" style="display: none;">
-                            <a href="/san-pham" @click="moMenuApi = false" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
+                            <a href="/bang-gia-model" @click="moMenuApi = false" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
                                 <i class="fas fa-tag text-blue-400 w-4 text-center"></i>
                                 <span>Bảng giá Model</span>
                             </a>
@@ -197,9 +200,12 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                             <a href="/user/dashboard" class="text-xs font-bold text-white hover:text-blue-400 max-w-[90px] truncate whitespace-nowrap">
                                 <?= htmlspecialchars($userHienTai['name']) ?>
                             </a>
-                            <a href="/logout" title="Đăng xuất" class="text-gray-400 hover:text-red-400 text-xs pl-0.5">
-                                <i class="fas fa-right-from-bracket"></i>
-                            </a>
+                            <form method="POST" action="/logout" class="inline">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(function_exists('taoCsrfToken') ? taoCsrfToken() : '', ENT_QUOTES, 'UTF-8') ?>">
+                                <button type="submit" aria-label="Đăng xuất" title="Đăng xuất" class="text-gray-400 hover:text-red-400 text-xs pl-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded">
+                                    <i class="fas fa-right-from-bracket" aria-hidden="true"></i>
+                                </button>
+                            </form>
                         </div>
                     <?php else: ?>
                         <!-- Chưa đăng nhập -> Nút đăng nhập Google trên Desktop -->
@@ -250,9 +256,12 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                                 <i class="fas fa-shield-halved"></i> Admin
                             </a>
                         <?php endif; ?>
-                        <a href="/logout" title="Đăng xuất" class="p-2 rounded-lg bg-red-600/10 text-red-400 hover:bg-red-600/20 text-xs">
-                            <i class="fas fa-right-from-bracket"></i>
-                        </a>
+                        <form method="POST" action="/logout" class="inline">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(function_exists('taoCsrfToken') ? taoCsrfToken() : '', ENT_QUOTES, 'UTF-8') ?>">
+                            <button type="submit" aria-label="Đăng xuất" title="Đăng xuất" class="p-2 rounded-lg bg-red-600/10 text-red-400 hover:bg-red-600/20 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400">
+                                <i class="fas fa-right-from-bracket" aria-hidden="true"></i>
+                            </button>
+                        </form>
                     </div>
                 </div>
 
@@ -288,6 +297,9 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                 </a>
                 <a href="/phan-mem" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-emerald-500 transition">
                     <i class="fas fa-laptop-code text-emerald-400 w-4 text-center"></i> <span>Phần Mềm</span>
+                </a>
+                <a href="/bang-gia-model" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-blue-500 transition">
+                    <i class="fas fa-tag text-blue-400 w-4 text-center"></i> <span>Bảng Giá Model</span>
                 </a>
                 <a href="https://status.gwai.cloud/" target="_blank" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-green-500 transition">
                     <i class="fas fa-wave-square text-green-400 w-4 text-center"></i> <span>Status Model</span>
@@ -409,7 +421,7 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                     </div>
                     <div>
                         <h3 class="text-base font-bold text-white">Trạng Thái Các Model AI</h3>
-                        <p class="text-[11px] text-gray-400">Giám sát thời gian thực & độ trễ mạng</p>
+                        <p class="text-[11px] text-gray-400">Thông tin tham khảo về độ ổn định & độ trễ</p>
                     </div>
                 </div>
                 <button @click="moPopupStatusModel = false" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>

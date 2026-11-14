@@ -22,8 +22,16 @@
     <!-- Tài liệu kết nối Buyer API -->
     <url>
         <loc>https://tiemai.io.vn/docs</loc>
-        <lastmod>2026-11-13</lastmod>
+        <lastmod>2026-11-14</lastmod>
         <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <!-- Bảng giá Model AI -->
+    <url>
+        <loc>https://tiemai.io.vn/bang-gia-model</loc>
+        <lastmod>2026-11-14</lastmod>
+        <changefreq>daily</changefreq>
         <priority>0.8</priority>
     </url>
 

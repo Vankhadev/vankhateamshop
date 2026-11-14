@@ -1,4 +1,13 @@
 <?php
+// Không cho phép chạy công cụ khởi tạo CSDL qua web sau khi triển khai.
+// Chỉ cho phép chạy thủ công từ CLI trong môi trường quản trị.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    header('Content-Type: text/plain; charset=utf-8');
+    echo 'Not Found';
+    exit;
+}
+
 // ========================================================
 // CÔNG CỤ TỰ ĐỘNG KHỞI TẠO CƠ SỞ DỮ LIỆU (DATABASE INITIALIZER)
 // vankhateamshop - 1 Click tự động tạo database & nạp dữ liệu từ vankhateamshop.sql

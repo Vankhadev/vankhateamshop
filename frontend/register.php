@@ -31,6 +31,7 @@ if (!empty($_SESSION['user_id'])) {
 $thongBaoLoi = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    batBuocCsrf();
     // 1. Kiểm tra chống Spam đăng ký (Tối đa 5 lần/phút/IP)
     if (!kiemTraRateLimit('register_attempt', 5, 60)) {
         $thongBaoLoi = 'Bạn đang thao tác quá nhanh. Vui lòng đợi 1 phút trước khi đăng ký tiếp!';
@@ -65,9 +66,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $hash = password_hash($password, PASSWORD_DEFAULT);
                     $apiToken = 'vk_' . bin2hex(random_bytes(24));
 
-                    // Tự động gán quyền Admin cho tài khoản đầu tiên tạo trên hệ thống
-                    $soLuongUserHienTai = (int)$pdo->query("SELECT COUNT(*) FROM `users`")->fetchColumn();
-                    $roleKhoiTao = ($soLuongUserHienTai === 0) ? 'admin' : 'user';
+                    // Đăng ký public luôn là user; Admin phải được tạo qua kênh quản trị an toàn.
+                    $roleKhoiTao = 'user';
 
                     $insertStmt = $pdo->prepare("
                         INSERT INTO `users` (`name`, `email`, `password`, `balance`, `role`, `api_token`, `is_active`)
@@ -76,7 +76,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $insertStmt->execute([$name, $email, $hash, $roleKhoiTao, $apiToken]);
                     $newId = $pdo->lastInsertId();
 
-                    // Đăng nhập luôn cho người dùng
+                    // Đăng nhập luôn cho người dùng sau khi đổi session ID.
+                    session_regenerate_id(true);
                     $_SESSION['user_id'] = $newId;
                     $_SESSION['user_name'] = $name;
                     $_SESSION['user_email'] = $email;
@@ -160,24 +161,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form method="POST" action="" class="space-y-3.5 text-xs">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(taoCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
             <div>
                 <label class="block font-semibold text-gray-300 mb-1">Họ và tên của bạn:</label>
-                <input type="text" name="name" required placeholder="Nguyễn Văn A" class="w-full px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white focus:border-blue-500 focus:outline-none">
+                <input type="text" name="name" autocomplete="name" required placeholder="Nguyễn Văn A" class="w-full px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white focus:border-blue-500 focus:outline-none">
             </div>
 
             <div>
                 <label class="block font-semibold text-gray-300 mb-1">Địa chỉ Email:</label>
-                <input type="email" name="email" required placeholder="name@example.com" class="w-full px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white focus:border-blue-500 focus:outline-none">
+                <input type="email" name="email" autocomplete="email" required placeholder="name@example.com" class="w-full px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white focus:border-blue-500 focus:outline-none">
             </div>
 
             <div>
                 <label class="block font-semibold text-gray-300 mb-1">Mật khẩu (tối thiểu 6 ký tự):</label>
-                <input type="password" name="password" required minlength="6" placeholder="••••••••" class="w-full px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white focus:border-blue-500 focus:outline-none">
+                <input type="password" name="password" autocomplete="new-password" required minlength="6" placeholder="••••••••" class="w-full px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white focus:border-blue-500 focus:outline-none">
             </div>
 
             <div>
                 <label class="block font-semibold text-gray-300 mb-1">Nhập lại mật khẩu:</label>
-                <input type="password" name="password_confirm" required minlength="6" placeholder="••••••••" class="w-full px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white focus:border-blue-500 focus:outline-none">
+                <input type="password" name="password_confirm" autocomplete="new-password" required minlength="6" placeholder="••••••••" class="w-full px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white focus:border-blue-500 focus:outline-none">
             </div>
 
             <!-- Widget CAPTCHA -->

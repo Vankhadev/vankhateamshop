@@ -81,6 +81,8 @@ $routes = [
     '/docs'                  => __DIR__ . '/frontend/docs.php',
     '/docs.php'              => __DIR__ . '/frontend/docs.php',
     '/buyer-api'             => __DIR__ . '/frontend/docs.php',
+    '/bang-gia-model'        => __DIR__ . '/frontend/bang-gia-model.php',
+    '/models-pricing'        => __DIR__ . '/frontend/bang-gia-model.php',
     // Trung tâm chính sách pháp lý (mỗi chính sách 1 trang riêng)
     '/dieu-khoan-su-dung'    => __DIR__ . '/frontend/dieu-khoan-su-dung.php',
     '/dieu-khoan'            => __DIR__ . '/frontend/dieu-khoan-su-dung.php',
@@ -204,5 +206,6 @@ if (file_exists($directFile) && !is_dir($directFile)) {
     return false;
 }
 
-// Mặc định tải trang chủ
-require __DIR__ . '/frontend/index.php';
+// Không nuốt route sai thành trang chủ: trả HTTP 404 để tránh soft-404 và index URL rác.
+http_response_code(404);
+require __DIR__ . '/frontend/404.php';

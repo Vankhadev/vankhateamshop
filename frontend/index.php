@@ -31,12 +31,18 @@ $products = $pdo->query("
            COALESCE((SELECT m.stock FROM `supplier_product_mappings` m WHERE m.product_id = p.id AND m.is_active = 1 ORDER BY m.priority ASC LIMIT 1), 999) AS stock
     FROM `products` p
     JOIN `categories` c ON p.category_id = c.id
-    WHERE p.is_active = 1
-    HAVING (stock IS NULL OR stock > 0)
-    ORDER BY c.sort_order ASC, c.id ASC, p.price ASC, p.id ASC
+     WHERE p.is_active = 1
+     HAVING (stock IS NULL OR stock > 0)
+     ORDER BY c.sort_order ASC, c.id ASC, p.price ASC, p.id ASC
 ")->fetchAll();
+// Nếu kho đồng bộ tạm thời trả 0 cho toàn bộ sản phẩm, vẫn hiển thị bảng giá
+// để khách biết sản phẩm tồn tại; trạng thái mua hàng sẽ được kiểm tra ở backend.
+if (empty($products)) {
+    $products = $pdo->query("SELECT p.*, c.name AS category_name, 999 AS stock FROM `products` p JOIN `categories` c ON p.category_id = c.id WHERE p.is_active = 1 ORDER BY c.sort_order ASC, c.id ASC, p.price ASC, p.id ASC")->fetchAll();
+}
 
 // 3. Lấy thông báo ghim nổi bật từ MySQL
+
 $announcements = $pdo->query("SELECT * FROM `announcements` WHERE `is_active` = 1 ORDER BY `id` DESC LIMIT 3")->fetchAll();
 
 // 4. Lấy dữ liệu Bảng Xếp Hạng đại lý & thành viên uy tín
@@ -1683,7 +1689,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                             if (data.tai_khoan && data.tai_khoan.length > 0) {
                                 this.keyDaTraVe = data.tai_khoan.join("\n");
                             } else {
-                                this.keyDaTraVe = 'sk-vankha-' + this.maDonHang + '-completed';
+                                this.keyDaTraVe = 'Đơn hàng đã hoàn tất nhưng chưa nhận được dữ liệu giao hàng. Vui lòng liên hệ hỗ trợ.'
                             }
                         } else {
                             this.thongBaoLoiPopup = data.thong_bao || 'Lỗi thanh toán ví!';
@@ -1733,7 +1739,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                             if (data.tai_khoan && data.tai_khoan.length > 0) {
                                 this.keyDaTraVe = data.tai_khoan.join("\n");
                             } else {
-                                this.keyDaTraVe = 'sk-vankha-' + this.maDonHang + '-completed';
+                                this.keyDaTraVe = 'Đơn hàng đã hoàn tất nhưng chưa nhận được dữ liệu giao hàng. Vui lòng liên hệ hỗ trợ.'
                             }
                         } else if (!isAuto) {
                             alert('Hệ thống chưa nhận được tiền từ ngân hàng. Vui lòng kiểm tra lại nội dung chuyển khoản hoặc thử lại sau vài giây!');

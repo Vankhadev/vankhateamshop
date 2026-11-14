@@ -52,9 +52,23 @@ try {
         } catch (Exception $e) {}
     }
     $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    $webhookSecretHopLe = !empty($webhookSecret) && $webhookSecret !== 'your_sepay_webhook_secret_here';
+    $apiKeyHopLe = !empty($apiKey) && $apiKey !== 'YOUR_SEPAY_API_KEY';
+
+    // Không được xử lý webhook nếu production chưa có ít nhất một cơ chế xác thực.
+    if (!$webhookSecretHopLe && !$apiKeyHopLe) {
+        http_response_code(503);
+        echo json_encode(['success' => false, 'message' => 'Webhook authentication is not configured']);
+        exit;
+    }
 
     // CÁCH 1: Xác thực bằng HMAC-SHA256 (Khuyến nghị chuẩn Production)
-    if (!empty($signature) && !empty($webhookSecret) && $webhookSecret !== 'your_sepay_webhook_secret_here') {
+    if (!empty($signature)) {
+        if (!$webhookSecretHopLe) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Invalid webhook authentication']);
+            exit;
+        }
         // Chống replay attack: Timestamp lệch quá 5 phút (300 giây) sẽ bị từ chối
         if ($timestamp <= 0 || abs(time() - $timestamp) > 300) {
             http_response_code(401);
@@ -71,9 +85,9 @@ try {
         }
     } 
     // CÁCH 2: Xác thực bằng API Key (Header Authorization: Apikey YOUR_KEY)
-    elseif (!empty($authHeader) && !empty($apiKey) && $apiKey !== 'YOUR_SEPAY_API_KEY') {
+    else {
         $prefix = 'Apikey ';
-        if (!str_starts_with($authHeader, $prefix) || !hash_equals($apiKey, substr($authHeader, strlen($prefix)))) {
+        if (!$apiKeyHopLe || !str_starts_with($authHeader, $prefix) || !hash_equals($apiKey, substr($authHeader, strlen($prefix)))) {
             http_response_code(401);
             echo json_encode(['success' => false, 'message' => 'Unauthorized']);
             exit;

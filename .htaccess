@@ -17,6 +17,9 @@
     RewriteCond %{HTTPS} off
     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
+    # Chặn công cụ khởi tạo CSDL trên production; chỉ chạy từ CLI.
+    RewriteRule ^backend/init_db\.php$ - [R=404,L]
+
     # Chuyển hướng 301 các link thô / cũ sang URL chuẩn đẹp
     RewriteRule ^frontend/index\.php$ / [R=301,L]
     RewriteRule ^frontend/?$ / [R=301,L]
@@ -70,6 +73,8 @@
     RewriteRule ^xep-hang/?$ frontend/bang-xep-hang.php [QSA,L]
     RewriteRule ^docs/?$ frontend/docs.php [QSA,L]
     RewriteRule ^buyer-api/?$ frontend/docs.php [QSA,L]
+    RewriteRule ^bang-gia-model/?$ frontend/bang-gia-model.php [QSA,L]
+    RewriteRule ^models-pricing/?$ frontend/bang-gia-model.php [QSA,L]
     # Trung tâm chính sách pháp lý (mỗi chính sách 1 trang riêng)
     RewriteRule ^dieu-khoan-su-dung/?$ frontend/dieu-khoan-su-dung.php [QSA,L]
     RewriteRule ^dieu-khoan/?$ frontend/dieu-khoan-su-dung.php [QSA,L]

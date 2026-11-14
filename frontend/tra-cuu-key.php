@@ -100,6 +100,7 @@ $keyTuUrl = htmlspecialchars(trim($_GET['key'] ?? ''));
                     <input type="text" x-model="oNhapKey" placeholder="Nhập API Key hoặc Mã đơn hàng (#VK...)" 
                            class="w-full bg-[#0B0F19] border border-gray-700 focus:border-amber-500 rounded-2xl pl-10 pr-10 py-3 text-sm font-mono text-white placeholder-gray-500 focus:outline-none transition">
                     <button type="button" x-show="oNhapKey" @click="oNhapKey = ''; ketQua = null; loi = ''" 
+                            aria-label="Xóa API key đang nhập"
                             class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 p-1">
                         <i class="fas fa-times-circle"></i>
                     </button>

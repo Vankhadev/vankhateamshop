@@ -5,9 +5,15 @@
 // Ghi chú code 100% bằng Tiếng Việt dễ hiểu
 // ========================================================
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+require_once __DIR__ . '/security.php';
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    header('Allow: POST');
+    exit('Method Not Allowed');
 }
+
+batBuocCsrf();
 
 // Xóa tất cả biến session
 $_SESSION = [];

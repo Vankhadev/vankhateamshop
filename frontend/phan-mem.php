@@ -517,7 +517,7 @@ foreach ($softwares as $p) {
                         if (data.tai_khoan && data.tai_khoan.length > 0) {
                             this.thongTinKeyNhanDuoc = data.tai_khoan.join("\n");
                         } else {
-                            this.thongTinKeyNhanDuoc = 'sk-vankha-' + this.maDonHang + '-completed';
+                            this.thongTinKeyNhanDuoc = 'Đơn hàng đã hoàn tất nhưng chưa nhận được dữ liệu giao hàng. Vui lòng liên hệ hỗ trợ.'
                         }
                     } else {
                         this.thongBaoLoiPopup = data.thong_bao || 'Lỗi thanh toán ví!';

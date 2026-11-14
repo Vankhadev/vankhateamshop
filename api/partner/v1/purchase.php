@@ -193,11 +193,17 @@ try {
         } else {
             $deliveredAccounts = [['key' => $ketQuaGiao['delivered_data']]];
         }
-    } else {
-        $deliveredAccounts = [['productItemId' => (string)$orderId, 'key' => 'sk-vankha-' . $maDonHang . '-key-active']];
     }
 
-    // Cập nhật delivered_data vào bản ghi Idem để tái sử dụng
+    // Không tự sinh key giả và không đánh dấu hoàn tất nếu nhà cung cấp chưa giao hàng.
+    if (empty($deliveredAccounts)) {
+        $pdo->prepare("UPDATE `orders` SET `status` = 'PROCESSING' WHERE `order_code` IN (?, ?)")->execute([$maDonHang, $maDonIdem]);
+        http_response_code(502);
+        echo json_encode(['success' => false, 'errorCode' => 'DELIVERY_PENDING', 'detail' => 'Đã nhận đơn và trừ tiền, nhưng sản phẩm đang chờ nhà cung cấp giao.'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // Chỉ đánh dấu hoàn tất khi có dữ liệu giao hàng thực tế.
     $jsonDelivered = json_encode($deliveredAccounts, JSON_UNESCAPED_UNICODE);
     $pdo->prepare("UPDATE `orders` SET `delivered_data` = ?, `status` = 'COMPLETED' WHERE `order_code` IN (?, ?)")->execute([$jsonDelivered, $maDonHang, $maDonIdem]);
 
@@ -207,7 +213,7 @@ try {
         VALUES (?, ?, ?, ?, ?, ?, '/api/partner/v1/purchase.php', ?, 200, ?, ?, ?, NOW())
     ");
     $logStmt->execute([
-        $reseller['id'], $reseller['email'], $reseller['name'], $apiKey, $ipKhach, $isHttps,
+        $reseller['id'], $reseller['email'], $reseller['name'], hash('sha256', $apiKey), $ipKhach, $isHttps,
         $productIdSku, $doTreMs, $inputJson, "Mua thành công đơn {$maDonHang}"
     ]);
 
@@ -227,5 +233,6 @@ try {
 } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     http_response_code(500);
-    echo json_encode(['success' => false, 'errorCode' => 'INTERNAL_ERROR', 'detail' => 'Lỗi hệ thống: ' . $e->getMessage()]);
+    error_log('Partner purchase error: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'errorCode' => 'INTERNAL_ERROR', 'detail' => 'Lỗi hệ thống tạm thời. Vui lòng thử lại sau.']);
 }

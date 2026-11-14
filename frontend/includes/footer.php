@@ -65,7 +65,7 @@ $danhSachSanPhamFooter = [
                 <h3 class="text-xs font-black tracking-wider text-white uppercase mb-4">TÀI NGUYÊN</h3>
                 <ul class="space-y-2.5 text-xs">
                     <li><a href="/docs" class="text-gray-400 hover:text-white transition">API Docs</a></li>
-                    <li><a href="/san-pham" class="text-gray-400 hover:text-white transition">Bảng giá Model</a></li>
+                    <li><a href="/bang-gia-model" class="text-gray-400 hover:text-white transition">Bảng giá Model</a></li>
                     <li><a href="/docs" class="text-gray-400 hover:text-white transition">Blog</a></li>
                     <li><a href="/xep-hang" class="text-gray-400 hover:text-white transition">Bảng Xếp Hạng</a></li>
                     <li><a href="/phan-mem" class="text-gray-400 hover:text-white transition">Phần mềm</a></li>
@@ -94,6 +94,7 @@ $danhSachSanPhamFooter = [
                             <span>TikTok</span>
                         </a>
                     </li>
+
                     <li>
                         <a href="https://zalo.me/<?= htmlspecialchars($soZaloFooter) ?>" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-white transition flex items-center gap-2">
                             <i class="fas fa-comment-dots text-gray-400 w-4 text-center"></i>

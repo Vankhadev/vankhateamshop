@@ -190,7 +190,8 @@ $stmtCheck = $pdo->prepare("
 $stmtCheck->execute([$tokenKhach, $tokenKhach, "%$tokenKhach%", $tokenKhach]);
 $userInfo = $stmtCheck->fetch();
 
-if (!$userInfo && !str_starts_with($tokenKhach, 'sk-') && !str_starts_with($tokenKhach, 'vk_') && !str_starts_with($tokenKhach, 'gzsk_') && !str_starts_with($tokenKhach, 'cur-')) {
+// Không dùng prefix làm bằng chứng xác thực: token phải tồn tại trong CSDL.
+if (!$userInfo) {
     http_response_code(401);
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([

@@ -6,8 +6,18 @@
 // Ghi chú code 100% bằng Tiếng Việt dễ hiểu
 // ========================================================
 
-// Khởi động phiên làm việc (Session) nếu chưa có
+// Khởi động phiên làm việc với cookie an toàn nếu chưa có.
 if (session_status() === PHP_SESSION_NONE) {
+    $httpsDangDung = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (($_SERVER['SERVER_PORT'] ?? '') === '443')
+        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'secure' => $httpsDangDung,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
     session_start();
 }
 

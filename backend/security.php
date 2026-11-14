@@ -47,10 +47,17 @@ function thietLapBaoMatHeaders(): void {
     header('X-Frame-Options: SAMEORIGIN');
     // Chống tự ý đoán định dạng file (chống MIME-sniffing)
     header('X-Content-Type-Options: nosniff');
-    // Bật bảo vệ XSS cơ bản trên trình duyệt cũ
-    header('X-XSS-Protection: 1; mode=block');
     // Bảo vệ thông tin liên kết giới thiệu (Referrer)
     header('Referrer-Policy: strict-origin-when-cross-origin');
+    // Giảm bề mặt tấn công từ các API trình duyệt không cần thiết.
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+    // Chỉ bật HSTS khi request thực sự đi qua HTTPS.
+    $dangDungHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (($_SERVER['SERVER_PORT'] ?? '') === '443')
+        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    if ($dangDungHttps) {
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+    }
 }
 
 /**
@@ -73,11 +80,11 @@ function xacThucCaptcha(string $token, ?string $userIp = null): array {
     $secretKey = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('captcha_secret_key', (defined('CAPTCHA_SECRET_KEY') ? CAPTCHA_SECRET_KEY : '')) : (defined('CAPTCHA_SECRET_KEY') ? CAPTCHA_SECRET_KEY : '');
     $userIp = $userIp ?: layIpNguoiDung();
 
-    // Nếu quản trị viên chưa cấu hình Secret Key thì tự động cho qua để không chặn người dùng
+    // CAPTCHA đã bật nhưng chưa có secret thì phải từ chối an toàn, không tự động cho qua.
     if (empty($secretKey) || $secretKey === 'YOUR_CAPTCHA_SECRET_KEY_HERE') {
         return [
-            'success' => true,
-            'message' => 'CAPTCHA chưa điền Secret Key, tự động thông qua.'
+            'success' => false,
+            'message' => 'Hệ thống CAPTCHA chưa được cấu hình đầy đủ. Vui lòng thử lại sau.'
         ];
     }
 
@@ -154,6 +161,37 @@ function xacThucCaptcha(string $token, ?string $userIp = null): array {
  * 5. Chống Spam / Giới hạn tần suất gọi API (Rate Limiting)
  * Giúp chống bot spam tạo đơn hàng ảo hoặc brute-force mật khẩu.
  */
+function taoCsrfToken(): string {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function kiemTraCsrfToken(?string $token = null): bool {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    $token = $token ?? ($_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''));
+    return !empty($token) && !empty($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+}
+
+function batBuocCsrf(): void {
+    if (!kiemTraCsrfToken()) {
+        http_response_code(403);
+        if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'CSRF token không hợp lệ hoặc đã hết hạn. Vui lòng tải lại trang.'], JSON_UNESCAPED_UNICODE);
+        } else {
+            echo 'Yêu cầu không hợp lệ. Vui lòng tải lại trang và thử lại.';
+        }
+        exit;
+    }
+}
+
 function kiemTraRateLimit(string $hanhDong, int $gioiHanSoLan = 30, int $thoiGianGiay = 60): bool {
     if (session_status() === PHP_SESSION_NONE) {
         session_start();

@@ -214,7 +214,8 @@ switch ($hanhDong) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Lỗi xử lý thanh toán ví: ' . $e->getMessage()]);
+            error_log('Wallet payment error: ' . $e->getMessage());
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Không thể xử lý thanh toán lúc này. Vui lòng thử lại sau.']);
         }
         break;
 
@@ -869,7 +870,8 @@ switch ($hanhDong) {
             ]);
         } catch (Exception $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
-            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Lỗi: ' . $e->getMessage()]);
+            error_log('Admin balance adjustment error: ' . $e->getMessage());
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Không thể cập nhật số dư lúc này. Vui lòng thử lại sau.']);
         }
         break;
 
