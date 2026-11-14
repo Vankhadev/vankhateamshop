@@ -80,14 +80,14 @@ function xacDinhSupportedModelsCron($name, $sku, $catName = '', $desc = '') {
         return 'deepseek-reasoner, deepseek-chat, deepseek-coder, deepseek-r1, deepseek-v3';
     }
 
-    // 7. GEMINI API
+    // 7. GEMINI API (Theo bảng giá model gốc 1gw.gwai.cloud của đối tác)
     if (str_contains($combined, 'gemini')) {
         // Gói nâng tài khoản Google One / Gemini Pixel Pro bằng thẻ Visa không phải API key
         if (str_contains($combined, 'pixel pro') || str_contains($combined, 'thẻ visa') || str_contains($combined, 'nâng')) {
             return null;
         }
-        // Gói API Gemini chính hãng chuẩn Google
-        return 'gemini-2.0-flash, gemini-2.0-flash-thinking-exp, gemini-2.0-pro-exp, gemini-1.5-pro, gemini-1.5-flash, gemini-1.5-flash-8b';
+        // 7 model chuẩn theo bảng giá đối tác 1gw.gwai.cloud
+        return 'gemini-3.8-flash, gemini-4-argon, gemini-4-carbon, gemini-4-hydrogen, nano-banana-2, nano-banana-2-2k, nano-banana-2-4k';
     }
 
     // 8. GLM (Zhipu AI)
