@@ -1436,6 +1436,10 @@ switch ($hanhDong) {
                     $pdo->prepare("UPDATE `products` SET `category_id` = ? WHERE `id` = ? AND (`category_id` = 1009 OR `category_id` IS NULL)")
                         ->execute([$catId, $existingPid]);
                 }
+                if (!empty($it['image'])) {
+                    $pdo->prepare("UPDATE `products` SET `image` = ? WHERE `id` = ? AND (`image` IS NULL OR `image` = '')")
+                        ->execute([$it['image'], $existingPid]);
+                }
                 $demCapNhat++;
             } else {
                 // Kiểm tra xem đã có sản phẩm này trong bảng products (ví dụ từ NCC khác hoặc do admin tạo) chưa
@@ -1452,6 +1456,10 @@ switch ($hanhDong) {
                     if (isset($cats[$catSlug])) {
                         $pdo->prepare("UPDATE `products` SET `category_id` = ? WHERE `id` = ? AND (`category_id` = 1009 OR `category_id` IS NULL)")
                             ->execute([$catId, $targetPid]);
+                    }
+                    if (!empty($it['image'])) {
+                        $pdo->prepare("UPDATE `products` SET `image` = ? WHERE `id` = ? AND (`image` IS NULL OR `image` = '')")
+                            ->execute([$it['image'], $targetPid]);
                     }
                 } else {
                     // Chưa có sản phẩm trong products -> Tạo sản phẩm mới
@@ -1470,13 +1478,14 @@ switch ($hanhDong) {
                         "Bảo hành 100% trong thời gian sử dụng"
                     ], JSON_UNESCAPED_UNICODE);
 
+                    $prodImg = $it['image'] ?? null;
                     $stmtInsP = $pdo->prepare("
                         INSERT INTO `products` 
-                        (`category_id`, `sku`, `name`, `slug`, `badge`, `description`, `price`, `original_price`, `request_count`, `duration_days`, `features`, `is_hot`, `is_active`)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1)
+                        (`category_id`, `sku`, `name`, `slug`, `image`, `badge`, `description`, `price`, `original_price`, `request_count`, `duration_days`, `features`, `is_hot`, `is_active`)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1)
                     ");
                     $stmtInsP->execute([
-                        $catId, $ourSku, $name, $slug, $badge, $it['description'] ?? '', $price, $originalPrice, $requestCount, $duration, $features
+                        $catId, $ourSku, $name, $slug, $prodImg, $badge, $it['description'] ?? '', $price, $originalPrice, $requestCount, $duration, $features
                     ]);
                     $targetPid = (int)$pdo->lastInsertId();
                 }

@@ -137,8 +137,9 @@ class NhaCungCapApi {
 
         $items = $raw['products'] ?? ($raw['data'] ?? []);
 
-        // 3. Nếu là Taphoaai hoặc có sản phẩm trả về stock = null, lấy tồn kho chuẩn thời gian thực từ web catalog
+        // 3. Nếu là Taphoaai hoặc có sản phẩm trả về stock = null, lấy tồn kho chuẩn thời gian thực và link ảnh từ web catalog
         $webStockMap = [];
+        $webImageMap = [];
         if (stripos($this->baseUrl, 'taphoaai') !== false) {
             $parsedHost = parse_url($this->baseUrl, PHP_URL_HOST) ?: 'taphoaai.info.vn';
             $ch = curl_init("https://{$parsedHost}/api/web/catalog/products");
@@ -153,6 +154,9 @@ class NhaCungCapApi {
                     foreach ($webJson['data'] as $w) {
                         if (isset($w['id'])) {
                             $webStockMap[(string)$w['id']] = (int)($w['stock'] ?? 0);
+                            if (!empty($w['image_url'])) {
+                                $webImageMap[(string)$w['id']] = $w['image_url'];
+                            }
                         }
                     }
                 }
@@ -194,7 +198,7 @@ class NhaCungCapApi {
                 }
             }
 
-            // Lấy tồn kho thời gian thực
+            // Lấy tồn kho thời gian thực & ảnh sản phẩm
             $stock = $it['stock'] ?? ($it['available'] ?? null);
             $numericId = isset($it['id']) ? (string)$it['id'] : (string)$sku;
             if ($stock === null && isset($webStockMap[$numericId])) {
@@ -202,12 +206,15 @@ class NhaCungCapApi {
             }
             $stock = (int)($stock ?? 0);
 
+            $img = $it['image'] ?? ($it['image_url'] ?? ($webImageMap[$numericId] ?? null));
+
             $normalized[] = [
                 'product_id'     => $sku,
                 'productId'      => $sku,
                 'name'           => $name,
                 'description'    => trim($it['description'] ?? ($it['title'] ?? '')),
                 'type'           => $type,
+                'image'          => $img,
                 'walletPricing'  => (float)($it['walletPricing'] ?? ($it['price'] ?? 0)),
                 'price'          => (float)($it['price'] ?? ($it['walletPricing'] ?? 0)),
                 'available'      => $stock,

@@ -183,6 +183,12 @@ try {
                     $pdo->prepare("UPDATE `products` SET `category_id` = ? WHERE `id` = ?")->execute([$targetCatId, $existingPid]);
                 }
 
+                // Cập nhật ảnh đại diện nếu sản phẩm chưa có ảnh
+                $prodImg = $it['image'] ?? null;
+                if (!empty($prodImg)) {
+                    $pdo->prepare("UPDATE `products` SET `image` = ? WHERE `id` = ? AND (`image` IS NULL OR `image` = '')")->execute([$prodImg, $existingPid]);
+                }
+
                 // TỰ ĐỘNG CẬP NHẬT TRẠNG THÁI: Nếu BẤT KỲ đối tác nào còn hàng thì sản phẩm mở bán, tất cả hết thì ẩn
                 $stmtStockAny = $pdo->prepare("SELECT COUNT(*) FROM `supplier_product_mappings` WHERE `product_id` = ? AND `is_active` = 1 AND `stock` > 0");
                 $stmtStockAny->execute([$existingPid]);
@@ -257,14 +263,15 @@ try {
 
                 // Thêm vào bảng products (tự ẩn nếu tồn kho = 0)
                 $isActiveNew = ($stock > 0) ? 1 : 0;
+                $prodImg = $it['image'] ?? null;
                 try {
                     $stmtInsP = $pdo->prepare("
                         INSERT INTO `products` 
-                        (`category_id`, `sku`, `name`, `slug`, `badge`, `description`, `price`, `original_price`, `request_count`, `duration_days`, `features`, `is_hot`, `is_active`)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+                        (`category_id`, `sku`, `name`, `slug`, `image`, `badge`, `description`, `price`, `original_price`, `request_count`, `duration_days`, `features`, `is_hot`, `is_active`)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
                     ");
                     $stmtInsP->execute([
-                        $catId, $ourSku, $name, $slug, $badge, $it['description'] ?? '', $price, $originalPrice, $requestCount, $duration, $features, $isActiveNew
+                        $catId, $ourSku, $name, $slug, $prodImg, $badge, $it['description'] ?? '', $price, $originalPrice, $requestCount, $duration, $features, $isActiveNew
                     ]);
                     $newPid = (int)$pdo->lastInsertId();
                 } catch (PDOException $eDup) {
