@@ -1429,6 +1429,13 @@ switch ($hanhDong) {
                 // Đã có mapping cho NCC này -> Cập nhật tồn kho và giá vốn
                 $pdo->prepare("UPDATE `supplier_product_mappings` SET `stock` = ?, `cost_price` = ? WHERE `product_id` = ? AND `supplier_id` = ?")
                     ->execute([$stock, $cost, $existingPid, $supplier['id']]);
+                if ($stock > 0) {
+                    $pdo->prepare("UPDATE `products` SET `is_active` = 1 WHERE `id` = ?")->execute([$existingPid]);
+                }
+                if (isset($cats[$catSlug])) {
+                    $pdo->prepare("UPDATE `products` SET `category_id` = ? WHERE `id` = ? AND (`category_id` = 1009 OR `category_id` IS NULL)")
+                        ->execute([$catId, $existingPid]);
+                }
                 $demCapNhat++;
             } else {
                 // Kiểm tra xem đã có sản phẩm này trong bảng products (ví dụ từ NCC khác hoặc do admin tạo) chưa
@@ -1439,6 +1446,13 @@ switch ($hanhDong) {
 
                 if ($targetPid) {
                     $targetPid = (int)$targetPid;
+                    if ($stock > 0) {
+                        $pdo->prepare("UPDATE `products` SET `is_active` = 1 WHERE `id` = ?")->execute([$targetPid]);
+                    }
+                    if (isset($cats[$catSlug])) {
+                        $pdo->prepare("UPDATE `products` SET `category_id` = ? WHERE `id` = ? AND (`category_id` = 1009 OR `category_id` IS NULL)")
+                            ->execute([$catId, $targetPid]);
+                    }
                 } else {
                     // Chưa có sản phẩm trong products -> Tạo sản phẩm mới
                     $slug = taoSlugVn($name) . '-' . strtolower(str_replace('-', '', $sku));

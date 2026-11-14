@@ -168,10 +168,19 @@ try {
                 $upMap->execute([$stock, $cost, $existingPid, $sup['id']]);
 
                 // Tự động kiểm tra giá bán: nếu giá vốn tăng cao hơn giá bán thì tự động điều chỉnh giá bán để không bị lỗ
-                $curProd = $pdo->query("SELECT price FROM `products` WHERE id = {$existingPid}")->fetch();
+                $curProd = $pdo->query("SELECT price, category_id FROM `products` WHERE id = {$existingPid}")->fetch();
                 if ($curProd && (float)$curProd['price'] < ($cost + 2000)) {
                     $giaBanMoi = ceil(($cost * 1.15) / 1000) * 1000;
                     $pdo->prepare("UPDATE `products` SET `price` = ? WHERE `id` = ?")->execute([$giaBanMoi, $existingPid]);
+                }
+
+                // Cập nhật lại danh mục chuẩn xác nếu sản phẩm trước đó đang nằm ở danh mục Khác (1009)
+                $type = strtolower($it['type'] ?? 'other');
+                $catInfo = $danhMucChuan[$type] ?? $danhMucChuan['other'];
+                $catSlug = $catInfo['slug'];
+                if (isset($cats[$catSlug]) && (!empty($curProd['category_id']) && (int)$curProd['category_id'] === 1009)) {
+                    $targetCatId = (int)$cats[$catSlug];
+                    $pdo->prepare("UPDATE `products` SET `category_id` = ? WHERE `id` = ?")->execute([$targetCatId, $existingPid]);
                 }
 
                 // TỰ ĐỘNG CẬP NHẬT TRẠNG THÁI: Nếu BẤT KỲ đối tác nào còn hàng thì sản phẩm mở bán, tất cả hết thì ẩn

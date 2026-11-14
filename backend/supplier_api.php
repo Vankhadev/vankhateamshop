@@ -136,22 +136,82 @@ class NhaCungCapApi {
         }
 
         $items = $raw['products'] ?? ($raw['data'] ?? []);
+
+        // 3. Nếu là Taphoaai hoặc có sản phẩm trả về stock = null, lấy tồn kho chuẩn thời gian thực từ web catalog
+        $webStockMap = [];
+        if (stripos($this->baseUrl, 'taphoaai') !== false) {
+            $parsedHost = parse_url($this->baseUrl, PHP_URL_HOST) ?: 'taphoaai.info.vn';
+            $ch = curl_init("https://{$parsedHost}/api/web/catalog/products");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)');
+            $webRes = curl_exec($ch);
+            curl_close($ch);
+            if ($webRes) {
+                $webJson = json_decode($webRes, true);
+                if (!empty($webJson['data']) && is_array($webJson['data'])) {
+                    foreach ($webJson['data'] as $w) {
+                        if (isset($w['id'])) {
+                            $webStockMap[(string)$w['id']] = (int)($w['stock'] ?? 0);
+                        }
+                    }
+                }
+            }
+        }
+
         $normalized = [];
 
         foreach ($items as $it) {
             $sku = trim($it['productId'] ?? ($it['product_id'] ?? ($it['code'] ?? '')));
             if (empty($sku)) continue;
 
+            $name = trim($it['title'] ?? ($it['name'] ?? ''));
+
+            // Tự động nhận diện loại / danh mục nếu API đối tác không trả về type
+            $type = strtolower($it['type'] ?? '');
+            if (empty($type) || $type === 'other') {
+                $nameLower = mb_strtolower($name, 'UTF-8');
+                if (str_contains($nameLower, 'cursor')) {
+                    $type = 'cursor';
+                } elseif (str_contains($nameLower, 'codex')) {
+                    $type = 'codex';
+                } elseif (str_contains($nameLower, 'claude')) {
+                    $type = 'claude';
+                } elseif (str_contains($nameLower, 'deepseek')) {
+                    $type = 'deepseek';
+                } elseif (str_contains($nameLower, 'gemini')) {
+                    $type = 'gemini';
+                } elseif (str_contains($nameLower, 'grok')) {
+                    $type = 'grok';
+                } elseif (str_contains($nameLower, 'kimi')) {
+                    $type = 'kimi';
+                } elseif (str_contains($nameLower, 'zhipu') || str_contains($nameLower, 'glm')) {
+                    $type = 'zhipu';
+                } elseif (str_contains($nameLower, 'muse')) {
+                    $type = 'muse';
+                } else {
+                    $type = 'other';
+                }
+            }
+
+            // Lấy tồn kho thời gian thực
+            $stock = $it['stock'] ?? ($it['available'] ?? null);
+            $numericId = isset($it['id']) ? (string)$it['id'] : (string)$sku;
+            if ($stock === null && isset($webStockMap[$numericId])) {
+                $stock = $webStockMap[$numericId];
+            }
+            $stock = (int)($stock ?? 0);
+
             $normalized[] = [
                 'product_id'     => $sku,
                 'productId'      => $sku,
-                'name'           => trim($it['title'] ?? ($it['name'] ?? '')),
+                'name'           => $name,
                 'description'    => trim($it['description'] ?? ($it['title'] ?? '')),
-                'type'           => $it['type'] ?? 'other',
+                'type'           => $type,
                 'walletPricing'  => (float)($it['walletPricing'] ?? ($it['price'] ?? 0)),
                 'price'          => (float)($it['price'] ?? ($it['walletPricing'] ?? 0)),
-                'available'      => (int)($it['available'] ?? ($it['stock'] ?? 0)),
-                'stock'          => (int)($it['stock'] ?? ($it['available'] ?? 0)),
+                'available'      => $stock,
+                'stock'          => $stock,
                 'walletCurrency' => $it['walletCurrency'] ?? 'VND'
             ];
         }
