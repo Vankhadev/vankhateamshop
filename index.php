@@ -61,6 +61,12 @@ if (isset($redirectsLegacy[$uri])) {
     exit;
 }
 
+// 1.5. CỔNG KẾT NỐI API GATEWAY CHUẨN OPENAI (/v1/chat/completions, /v1/models, /v1/usage, /v1/key/check)
+if (str_starts_with($uri, '/v1')) {
+    require __DIR__ . '/backend/proxy_api.php';
+    exit;
+}
+
 // 2. BẢNG ÁNH XẠ URL ĐẸP -> TỆP XỬ LÝ THỰC TẾ
 $routes = [
     '/'                      => __DIR__ . '/frontend/index.php',

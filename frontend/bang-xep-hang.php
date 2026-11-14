@@ -9,8 +9,8 @@
 require_once __DIR__ . '/../backend/config.php';
 require_once __DIR__ . '/../backend/db.php';
 
-$tenShop = SHOP_NAME;
-$soZaloBxh = getSetting('zalo_cskh', '0904045071');
+$tenShop = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_name', SHOP_NAME) : SHOP_NAME;
+$soZaloBxh = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_contact_zalo', SHOP_ZALO) : SHOP_ZALO;
 
 // Truy vấn danh sách thành viên có chi tiêu cao nhất
 $topUsers = [];

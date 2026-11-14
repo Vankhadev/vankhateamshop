@@ -9,8 +9,8 @@
 require_once __DIR__ . '/../backend/config.php';
 require_once __DIR__ . '/../backend/db.php';
 
-$soZaloTraCuu = getSetting('zalo_cskh', '0904045071');
-$tenShop = SHOP_NAME;
+$soZaloTraCuu = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_contact_zalo', SHOP_ZALO) : SHOP_ZALO;
+$tenShop = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_name', SHOP_NAME) : SHOP_NAME;
 
 $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ? 'https' : 'http';
 $host = $_SERVER['HTTP_HOST'] ?? 'tiemai.io.vn';
@@ -76,7 +76,7 @@ $keyTuUrl = htmlspecialchars(trim($_GET['key'] ?? ''));
         <!-- TIÊU ĐỀ & BANNER TRA CỨU -->
         <div class="text-center space-y-3">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold uppercase tracking-wider">
-                <i class="fas fa-chart-line"></i> Kiểm Tra Trạng Thái
+                <i class="fas fa-chart-line"></i> Kiểm Tra Trạng Thái Usage
             </div>
             <h1 class="text-2xl sm:text-4xl font-black text-white tracking-tight">
                 Tra Cứu Key API & Hạn Sử Dụng
@@ -211,7 +211,7 @@ $keyTuUrl = htmlspecialchars(trim($_GET['key'] ?? ''));
                 </h3>
 
                 <p class="text-xs text-gray-300 leading-relaxed">
-                    Sử dụng Base URL chính thức của shop để kết nối vào Cursor IDE, Cline, NextChat, Python hoặc cURL:
+                    Sử dụng Base URL chính thức của shop để kết nối vào Cursor IDE, Cline, Và các :
                 </p>
 
                 <div class="space-y-3">
