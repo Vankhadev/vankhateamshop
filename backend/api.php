@@ -816,14 +816,22 @@ switch ($hanhDong) {
         echo json_encode(['thanh_cong' => true, 'thong_bao' => 'Đã cập nhật trạng thái tài khoản']);
         break;
 
-    // 9. ADMIN: KIỂM TRA SỐ DƯ VÍ NGUỒN LIVE
+    // 9. ADMIN: KIỂM TRA SỐ DƯ VÍ NGUỒN LIVE (THEO ID NHÀ CUNG CẤP)
     case 'kiem_tra_vi_nguon':
         if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Bạn không có quyền']);
             exit;
         }
 
-        $supplier = $pdo->query("SELECT * FROM `suppliers` WHERE `is_active` = 1 ORDER BY `id` ASC LIMIT 1")->fetch();
+        $supplierId = (int)($_GET['id'] ?? ($_POST['id'] ?? 0));
+        if ($supplierId > 0) {
+            $stmtSup = $pdo->prepare("SELECT * FROM `suppliers` WHERE `id` = ?");
+            $stmtSup->execute([$supplierId]);
+            $supplier = $stmtSup->fetch();
+        } else {
+            $supplier = $pdo->query("SELECT * FROM `suppliers` WHERE `is_active` = 1 ORDER BY `id` ASC LIMIT 1")->fetch();
+        }
+
         if (!$supplier) {
             echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Chưa cấu hình nhà cung cấp']);
             exit;
@@ -832,22 +840,27 @@ switch ($hanhDong) {
         $apiClient = new NhaCungCapApi($supplier['api_url'], $supplier['api_key']);
         $ketQua = $apiClient->laySoDuVi();
 
-        if ($ketQua['success']) {
+        if (!empty($ketQua['success'])) {
             $soDu = (float)$ketQua['balance'];
             $pdo->prepare("UPDATE `suppliers` SET `balance` = ? WHERE `id` = ?")->execute([$soDu, $supplier['id']]);
 
             echo json_encode([
-                'thanh_cong' => true,
-                'so_du'      => $soDu,
-                'so_du_chu'  => number_format($soDu, 0, ',', '.') . ' VNĐ'
-            ]);
+                'thanh_cong'  => true,
+                'supplier_id' => $supplier['id'],
+                'ten_ncc'     => $supplier['name'],
+                'shop_id'     => $ketQua['shop_id'] ?? null,
+                'so_du'       => $soDu,
+                'so_du_chu'   => number_format($soDu, 0, ',', '.') . ' VNĐ'
+            ], JSON_UNESCAPED_UNICODE);
         } else {
             echo json_encode([
-                'thanh_cong' => false,
-                'thong_bao'  => 'Không lấy được số dư: ' . ($ketQua['message'] ?? 'Lỗi không xác định'),
-                'so_du'      => (float)$supplier['balance'],
-                'so_du_chu'  => number_format($supplier['balance'], 0, ',', '.') . ' VNĐ'
-            ]);
+                'thanh_cong'  => false,
+                'supplier_id' => $supplier['id'],
+                'ten_ncc'     => $supplier['name'],
+                'thong_bao'   => 'Không lấy được số dư từ ' . $supplier['name'] . ': ' . ($ketQua['message'] ?? 'Lỗi không xác định'),
+                'so_du'       => (float)$supplier['balance'],
+                'so_du_chu'   => number_format($supplier['balance'], 0, ',', '.') . ' VNĐ'
+            ], JSON_UNESCAPED_UNICODE);
         }
         break;
 
@@ -1120,14 +1133,22 @@ switch ($hanhDong) {
         ]);
         break;
 
-    // 21. ADMIN: LẤY DANH SÁCH SẢN PHẨM & TỒN KHO THỜI GIAN THỰC TỪ NHÀ CUNG CẤP (GENZSHOP)
+    // 21. ADMIN: LẤY DANH SÁCH SẢN PHẨM & TỒN KHO THỜI GIAN THỰC TỪ NHÀ CUNG CẤP
     case 'admin_lay_kho_ncc':
         if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Không có quyền']);
             exit;
         }
 
-        $supplier = $pdo->query("SELECT * FROM `suppliers` WHERE `is_active` = 1 ORDER BY `id` ASC LIMIT 1")->fetch();
+        $supplierId = (int)($_GET['supplier_id'] ?? ($_GET['id'] ?? 0));
+        if ($supplierId > 0) {
+            $stmtSup = $pdo->prepare("SELECT * FROM `suppliers` WHERE `id` = ?");
+            $stmtSup->execute([$supplierId]);
+            $supplier = $stmtSup->fetch();
+        } else {
+            $supplier = $pdo->query("SELECT * FROM `suppliers` WHERE `is_active` = 1 ORDER BY `id` ASC LIMIT 1")->fetch();
+        }
+
         if (!$supplier) {
             echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Chưa kích hoạt nhà cung cấp nào trong hệ thống']);
             exit;
@@ -1200,7 +1221,15 @@ switch ($hanhDong) {
             exit;
         }
 
-        $supplier = $pdo->query("SELECT * FROM `suppliers` WHERE `is_active` = 1 ORDER BY `id` ASC LIMIT 1")->fetch();
+        $supplierId = (int)($_GET['supplier_id'] ?? ($_GET['id'] ?? ($_POST['supplier_id'] ?? 0)));
+        if ($supplierId > 0) {
+            $stmtSup = $pdo->prepare("SELECT * FROM `suppliers` WHERE `id` = ?");
+            $stmtSup->execute([$supplierId]);
+            $supplier = $stmtSup->fetch();
+        } else {
+            $supplier = $pdo->query("SELECT * FROM `suppliers` WHERE `is_active` = 1 ORDER BY `id` ASC LIMIT 1")->fetch();
+        }
+
         if (!$supplier) {
             echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Chưa cấu hình nhà cung cấp']);
             exit;

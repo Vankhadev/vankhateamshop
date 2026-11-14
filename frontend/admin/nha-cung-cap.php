@@ -193,7 +193,7 @@ $suppliers = $pdo->query("SELECT * FROM `suppliers` ORDER BY `id` ASC")->fetchAl
                                     <button @click="kiemTraSoDu(<?= $s['id'] ?>)" class="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-blue-600/30">
                                         <i class="fas fa-rotate"></i> Check Ví
                                     </button>
-                                    <button @click="moKhoNcc()" class="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-purple-600/30">
+                                    <button @click="moKhoNcc(<?= $s['id'] ?>)" class="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-purple-600/30">
                                         <i class="fas fa-boxes-stacked"></i> Kho Hàng
                                     </button>
                                     <button @click="moSua(<?= htmlspecialchars(json_encode($s)) ?>)" class="px-3 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs transition border border-gray-700">
@@ -215,7 +215,7 @@ $suppliers = $pdo->query("SELECT * FROM `suppliers` ORDER BY `id` ASC")->fetchAl
                         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-800 pb-3">
                             <div>
                                 <h3 class="text-base font-bold text-white flex items-center gap-2">
-                                    <i class="fas fa-boxes-stacked text-purple-400"></i> Kho Hàng Thời Gian Thực Nhà Cung Cấp (<span x-text="khoData.supplier_name || 'genzshop'"></span>)
+                                    <i class="fas fa-boxes-stacked text-purple-400"></i> Kho Hàng Thời Gian Thực Nhà Cung Cấp (<span x-text="khoData.supplier_name || "></span>)
                                 </h3>
                                 <p class="text-xs text-gray-400 mt-0.5">
                                     Tổng cộng <strong class="text-white" x-text="khoData.tong_ncc || 0"></strong> gói | Đã liên kết: <strong class="text-green-400" x-text="khoData.da_map || 0"></strong> | Còn hàng: <strong class="text-blue-400" x-text="khoData.con_hang || 0"></strong>
@@ -448,11 +448,11 @@ $suppliers = $pdo->query("SELECT * FROM `suppliers` ORDER BY `id` ASC")->fetchAl
                 },
 
                 kiemTraSoDu(id) {
-                    fetch('/backend/api.php?action=kiem_tra_vi_nguon')
+                    fetch('/backend/api.php?action=kiem_tra_vi_nguon&id=' + encodeURIComponent(id))
                         .then(res => res.json())
                         .then(data => {
                             if (data.thanh_cong) {
-                                alert('Số dư ví tại nguồn: ' + data.so_du_chu);
+                                alert('Số dư ví tại nguồn [' + (data.ten_ncc || 'Nguồn') + ']: ' + data.so_du_chu);
                                 location.reload();
                             } else {
                                 alert(data.thong_bao || 'Không thể kiểm tra');
@@ -460,15 +460,17 @@ $suppliers = $pdo->query("SELECT * FROM `suppliers` ORDER BY `id` ASC")->fetchAl
                         });
                 },
 
-                moKhoNcc() {
+                moKhoNcc(id) {
+                    this.selectedSupplierId = id || 0;
                     this.moModalKho = true;
-                    this.taiKhoNcc();
+                    this.taiKhoNcc(id);
                 },
 
-                async taiKhoNcc() {
+                async taiKhoNcc(id) {
+                    id = id || this.selectedSupplierId || 0;
                     this.dangTaiKho = true;
                     try {
-                        const res = await fetch('/backend/api.php?action=admin_lay_kho_ncc');
+                        const res = await fetch('/backend/api.php?action=admin_lay_kho_ncc&supplier_id=' + encodeURIComponent(id));
                         const d = await res.json();
                         this.dangTaiKho = false;
                         if (d.thanh_cong) {

@@ -73,6 +73,7 @@ class NhaCungCapApi {
             ];
         }
 
+        $ketQua['http_code'] = $httpCode;
         return $ketQua;
     }
 
@@ -80,33 +81,42 @@ class NhaCungCapApi {
      * 1. Lấy số dư ví hiện tại trên hệ thống nhà cung cấp
      */
     public function laySoDuVi(): array {
-        // Đa số các hệ thống dùng endpoint /balance hoặc /balance.php
+        // 1. Thử endpoint /balance.php (chuẩn Genzshop)
         $ketQua = $this->guiYeuCau('/balance.php', 'GET');
         
-        // Nếu hệ thống trả về số dư theo cấu trúc chuẩn
+        // 2. Nếu không có số dư hoặc trả về 404, thử /balance (chuẩn Taphoaai, RESTful)
+        if (!isset($ketQua['balance']) && !isset($ketQua['data']['balance'])) {
+            $ketQua2 = $this->guiYeuCau('/balance', 'GET');
+            if (isset($ketQua2['balance']) || isset($ketQua2['data']['balance'])) {
+                $ketQua = $ketQua2;
+            }
+        }
+
+        // Cấu trúc trả về trực tiếp balance (Genzshop: {"balance":24000} hoặc Taphoaai: {"ok":true,"balance":48000})
         if (isset($ketQua['balance'])) {
             return [
-                'success' => true,
-                'balance' => (float)$ketQua['balance'],
-                'currency' => $ketQua['currency'] ?? 'VND',
-                'raw' => $ketQua
+                'success'  => true,
+                'balance'  => (float)$ketQua['balance'],
+                'currency' => $ketQua['currency'] ?? ($ketQua['walletCurrency'] ?? 'VND'),
+                'shop_id'  => $ketQua['shopId'] ?? null,
+                'raw'      => $ketQua
             ];
         }
 
-        // Nếu hệ thống bọc trong data.balance
+        // Cấu trúc bọc trong data.balance
         if (isset($ketQua['data']['balance'])) {
             return [
-                'success' => true,
-                'balance' => (float)$ketQua['data']['balance'],
-                'currency' => $ketQua['data']['currency'] ?? 'VND',
-                'raw' => $ketQua
+                'success'  => true,
+                'balance'  => (float)$ketQua['data']['balance'],
+                'currency' => $ketQua['data']['currency'] ?? ($ketQua['data']['walletCurrency'] ?? 'VND'),
+                'raw'      => $ketQua
             ];
         }
 
         return [
             'success' => false,
-            'message' => $ketQua['message'] ?? 'Không đọc được số dư từ nhà cung cấp',
-            'raw' => $ketQua
+            'message' => $ketQua['error'] ?? ($ketQua['message'] ?? 'Không đọc được số dư từ nhà cung cấp'),
+            'raw'     => $ketQua
         ];
     }
 
@@ -114,38 +124,86 @@ class NhaCungCapApi {
      * 2. Lấy danh sách sản phẩm và tồn kho thời gian thực
      */
     public function layDanhSachSanPham(): array {
-        return $this->guiYeuCau('/products.php', 'GET');
+        // 1. Thử /products.php (Genzshop)
+        $raw = $this->guiYeuCau('/products.php', 'GET');
+
+        // 2. Nếu không có products, thử /products (Taphoaai)
+        if (empty($raw['products']) && empty($raw['data'])) {
+            $raw2 = $this->guiYeuCau('/products', 'GET');
+            if (!empty($raw2['products']) || !empty($raw2['data'])) {
+                $raw = $raw2;
+            }
+        }
+
+        $items = $raw['products'] ?? ($raw['data'] ?? []);
+        $normalized = [];
+
+        foreach ($items as $it) {
+            $sku = trim($it['productId'] ?? ($it['product_id'] ?? ($it['code'] ?? '')));
+            if (empty($sku)) continue;
+
+            $normalized[] = [
+                'product_id'     => $sku,
+                'productId'      => $sku,
+                'name'           => trim($it['title'] ?? ($it['name'] ?? '')),
+                'description'    => trim($it['description'] ?? ($it['title'] ?? '')),
+                'type'           => $it['type'] ?? 'other',
+                'walletPricing'  => (float)($it['walletPricing'] ?? ($it['price'] ?? 0)),
+                'price'          => (float)($it['price'] ?? ($it['walletPricing'] ?? 0)),
+                'available'      => (int)($it['available'] ?? ($it['stock'] ?? 0)),
+                'stock'          => (int)($it['stock'] ?? ($it['available'] ?? 0)),
+                'walletCurrency' => $it['walletCurrency'] ?? 'VND'
+            ];
+        }
+
+        return [
+            'success'  => !empty($normalized) || !empty($raw['ok']) || !empty($raw['success']),
+            'products' => $normalized,
+            'raw'      => $raw
+        ];
     }
 
     /**
      * 3. Mua tài khoản/gói cước tự động
      * 
-     * @param string $supplierSku Mã SKU của nhà cung cấp (vd: CUR-30D-700)
+     * @param string $supplierSku Mã SKU của nhà cung cấp (vd: CUR-0013)
      * @param int $soLuong Số lượng cần mua (mặc định 1)
-     * @param string $maDonHangChongTrung Mã chống trừ tiền 2 lần (Idempotency Key)
+     * @param string $maDonHangChongTrung Mã chống trừ tiền 2 lần (Idempotency Key / shopOrderId)
      * @param string $emailKhach Email của khách hàng để nhận bảo hành
      * @return array Kết quả trả về gồm tài khoản hoặc token đã giao
      */
     public function muaHangTuDong(string $supplierSku, int $soLuong, string $maDonHangChongTrung, string $emailKhach = ''): array {
         $payload = [
-            'product_id' => $supplierSku,
-            'quantity' => $soLuong,
+            'product_id'      => $supplierSku,
+            'productId'       => $supplierSku,
+            'quantity'        => $soLuong,
+            'qty'             => $soLuong,
             'idempotency_key' => $maDonHangChongTrung,
-            'customer_email' => $emailKhach
+            'shopOrderId'     => $maDonHangChongTrung,
+            'customer_email'  => $emailKhach
         ];
 
+        // 1. Thử gửi tới /purchase.php (chuẩn Genzshop)
         $phanHoi = $this->guiYeuCau('/purchase.php', 'POST', $payload);
+
+        // 2. Nếu trả về 404 (chuẩn RESTful như Taphoaai), thử gửi tới /orders
+        if (!empty($phanHoi['http_code']) && $phanHoi['http_code'] === 404) {
+            $phanHoi = $this->guiYeuCau('/orders', 'POST', $payload);
+        }
 
         // Kiểm tra xem đơn hàng đã được giao thành công hay chưa
         $thanhCong = false;
         $danhSachTaiKhoan = [];
 
-        if (isset($phanHoi['success']) && $phanHoi['success'] === true) {
+        if (!empty($phanHoi['success']) && $phanHoi['success'] === true) {
             $thanhCong = true;
-            $danhSachTaiKhoan = $phanHoi['deliveredAccounts'] ?? $phanHoi['data']['accounts'] ?? [];
-        } elseif (isset($phanHoi['status']) && $phanHoi['status'] === 'success') {
+            $danhSachTaiKhoan = $phanHoi['deliveredAccounts'] ?? ($phanHoi['data']['accounts'] ?? []);
+        } elseif (!empty($phanHoi['ok']) && $phanHoi['ok'] === true) {
             $thanhCong = true;
-            $danhSachTaiKhoan = $phanHoi['deliveredAccounts'] ?? $phanHoi['data']['accounts'] ?? [];
+            $danhSachTaiKhoan = $phanHoi['order']['accounts'] ?? ($phanHoi['accounts'] ?? []);
+        } elseif (!empty($phanHoi['status']) && in_array(strtolower($phanHoi['status']), ['success', 'completed'])) {
+            $thanhCong = true;
+            $danhSachTaiKhoan = $phanHoi['deliveredAccounts'] ?? ($phanHoi['data']['accounts'] ?? ($phanHoi['accounts'] ?? []));
         }
 
         // Chuẩn hóa danh sách tài khoản / token / key trả về để khách hàng dễ sao chép
@@ -173,12 +231,12 @@ class NhaCungCapApi {
         }
 
         return [
-            'success' => $thanhCong,
-            'accounts' => !empty($formattedAccounts) ? $formattedAccounts : $danhSachTaiKhoan,
-            'order_code' => $phanHoi['orderCode'] ?? $phanHoi['order_id'] ?? null,
-            'error_code' => $phanHoi['errorCode'] ?? null,
-            'message' => $phanHoi['detail'] ?? $phanHoi['message'] ?? ($thanhCong ? 'Thành công' : 'Thất bại'),
-            'raw' => $phanHoi
+            'success'    => $thanhCong,
+            'accounts'   => !empty($formattedAccounts) ? $formattedAccounts : $danhSachTaiKhoan,
+            'order_code' => $phanHoi['orderCode'] ?? ($phanHoi['order_id'] ?? ($phanHoi['order']['shopOrderId'] ?? null)),
+            'error_code' => $phanHoi['errorCode'] ?? ($phanHoi['error'] ?? null),
+            'message'    => $phanHoi['detail'] ?? ($phanHoi['message'] ?? ($phanHoi['error'] ?? ($thanhCong ? 'Thành công' : 'Thất bại'))),
+            'raw'        => $phanHoi
         ];
     }
 }
