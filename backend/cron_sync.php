@@ -24,6 +24,7 @@ if (!defined('IN_CRON_MASTER') && php_sapi_name() !== 'cli') {
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/supplier_api.php';
 require_once __DIR__ . '/telegram.php';
 
