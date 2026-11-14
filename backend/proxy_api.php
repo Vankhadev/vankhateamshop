@@ -250,17 +250,29 @@ if ($targetUrl === 'https://zplay.io.vn/v1/chat/completions') {
     $reqModelLower = strtolower($rawReqModel);
 
     if (!empty($rawReqModel) && !in_array($reqModelLower, $zplaySupported, true)) {
-        if (stripos($reqModelLower, 'claude') !== false) {
-            $bodyJson['model'] = 'claude-opus-5.5';
-        } elseif (stripos($reqModelLower, 'mini') !== false || stripos($reqModelLower, 'small') !== false) {
-            $bodyJson['model'] = 'gpt-5.4-mini';
-        } elseif (stripos($reqModelLower, '6') !== false) {
-            $bodyJson['model'] = 'gpt-6.1-sol';
-        } else {
-            // Mặc định chuyển sang model mạnh nhất gpt-5.6-sol (thay vì báo lỗi 404 cho deepseek-reasoner, gpt-4o...)
+        if (in_array($reqModelLower, ['gpt-4o', 'gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo', 'chatgpt-4o-latest', 'o1', 'o3-mini'], true)) {
             $bodyJson['model'] = 'gpt-5.6-sol';
+            $bodyRaw = json_encode($bodyJson, JSON_UNESCAPED_UNICODE);
+        } elseif (in_array($reqModelLower, ['claude-3-5-sonnet', 'claude-3-7-sonnet', 'claude-3-opus'], true)) {
+            $bodyJson['model'] = 'claude-opus-5.5';
+            $bodyRaw = json_encode($bodyJson, JSON_UNESCAPED_UNICODE);
+        } elseif (in_array($reqModelLower, ['cursor-small', 'gpt-4o-mini'], true)) {
+            $bodyJson['model'] = 'gpt-5.4-mini';
+            $bodyRaw = json_encode($bodyJson, JSON_UNESCAPED_UNICODE);
+        } else {
+            // Model không thuộc gói Codex (ví dụ: deepseek-reasoner, deepseek-chat...)
+            http_response_code(400);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'error' => [
+                    'message' => "Model '{$rawReqModel}' không có trong gói Codex này. Gói này chỉ hỗ trợ các model: gpt-5.6-sol, gpt-6.1-sol, claude-opus-5.5, claude-sonnet-5. Vui lòng chọn đúng model trong Kilo Code / Cursor!",
+                    'type' => 'invalid_request_error',
+                    'param' => 'model',
+                    'code' => 'model_not_supported'
+                ]
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
         }
-        $bodyRaw = json_encode($bodyJson, JSON_UNESCAPED_UNICODE);
     }
 }
 
