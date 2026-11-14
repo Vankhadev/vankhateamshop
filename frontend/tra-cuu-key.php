@@ -121,7 +121,7 @@ $keyTuUrl = htmlspecialchars(trim($_GET['key'] ?? ''));
                 </div>
             </div>
 
-            <!-- THANH TABS NAVIGATION (4 TABS CHUẨN GIAO DIỆN) -->
+            <!-- THANH TABS NAVIGATION + NÚT LÀM MỚI DỮ LIỆU -->
             <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-gray-800 no-scrollbar">
                 <button type="button" @click="tabHienTai = 1"
                         :class="tabHienTai === 1 ? 'bg-amber-600 text-white font-bold shadow-md shadow-amber-600/30' : 'bg-gray-800/80 text-gray-400 hover:text-gray-200 hover:bg-gray-800 border border-gray-700/60'"
@@ -146,6 +146,12 @@ $keyTuUrl = htmlspecialchars(trim($_GET['key'] ?? ''));
                         class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-2 whitespace-nowrap">
                     <i class="fas fa-clock-rotate-left"></i>
                     <span>Lịch sử request</span>
+                </button>
+                <button type="button" @click="lamMoiUsage()" :disabled="dangTai || !oNhapKey.trim()"
+                        class="ml-auto shrink-0 px-4 py-2.5 rounded-xl bg-gray-700/80 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-gray-100 text-xs sm:text-sm font-semibold transition flex items-center gap-2 whitespace-nowrap border border-gray-600/70"
+                        title="Cập nhật Usage và lịch sử request mà không tải lại trang">
+                    <i class="fas fa-arrows-rotate" :class="dangTai ? 'fa-spin' : ''"></i>
+                    <span x-text="dangTai ? 'Đang cập nhật...' : 'Làm mới'">Làm mới</span>
                 </button>
             </div>
 
@@ -210,7 +216,7 @@ $keyTuUrl = htmlspecialchars(trim($_GET['key'] ?? ''));
                         <span class="text-gray-400 font-medium">Tiến độ tiêu thụ:</span>
                         <div class="flex items-center gap-1.5 font-mono text-amber-400 font-bold">
                             <span x-text="ketQua ? ketQua.progress_text : '-- / --'"></span>
-                            <button type="button" @click="traCuuNgay()" class="hover:text-amber-300 text-gray-400 p-0.5" title="Làm mới">
+                            <button type="button" @click="lamMoiUsage()" :disabled="dangTai || !oNhapKey.trim()" class="hover:text-amber-300 disabled:opacity-50 text-gray-400 p-0.5" title="Làm mới Usage">
                                 <i class="fas fa-arrows-rotate text-[11px]" :class="dangTai ? 'fa-spin' : ''"></i>
                             </button>
                         </div>
@@ -482,6 +488,17 @@ $keyTuUrl = htmlspecialchars(trim($_GET['key'] ?? ''));
             },
 
             async traCuuNgay() {
+                return this.capNhatDuLieu(false);
+            },
+
+            // Làm mới toàn bộ Usage, Daily Usage, Overage và lịch sử request
+            // bằng AJAX, không tải lại trang và không làm mất dữ liệu cũ nếu lỗi.
+            async lamMoiUsage() {
+                if (!this.oNhapKey.trim() || this.dangTai) return;
+                return this.capNhatDuLieu(true);
+            },
+
+            async capNhatDuLieu(laLamMoi = false) {
                 let key = this.oNhapKey.trim();
                 if (!key) {
                     this.loi = 'Vui lòng nhập API Key hoặc Mã đơn hàng (#VK...) cần tra cứu!';
@@ -491,16 +508,27 @@ $keyTuUrl = htmlspecialchars(trim($_GET['key'] ?? ''));
                 this.loi = '';
 
                 try {
-                    let res = await fetch('/backend/api.php?action=tra_cuu_key&key=' + encodeURIComponent(key));
+                    // Thêm timestamp và cache: no-store để luôn lấy api_logs mới nhất.
+                    let url = '/backend/api.php?action=tra_cuu_key&key=' + encodeURIComponent(key) + '&_=' + Date.now();
+                    let res = await fetch(url, {
+                        cache: 'no-store',
+                        headers: { 'Accept': 'application/json' }
+                    });
                     let data = await res.json();
+                    if (!res.ok) {
+                        throw new Error('HTTP ' + res.status);
+                    }
                     if (data.thanh_cong) {
                         this.ketQua = data;
                     } else {
-                        this.ketQua = null;
+                        // Khi tra key mới thì xóa kết quả cũ; khi refresh lỗi thì giữ nguyên.
+                        if (!laLamMoi) this.ketQua = null;
                         this.loi = data.thong_bao || 'Không tìm thấy thông tin của mã Key này trong hệ thống!';
                     }
                 } catch (e) {
-                    this.loi = 'Lỗi kết nối tới máy chủ. Vui lòng thử lại sau giây lát!';
+                    this.loi = laLamMoi
+                        ? 'Không thể làm mới dữ liệu. Thông tin đang hiển thị vẫn là dữ liệu gần nhất.'
+                        : 'Lỗi kết nối tới máy chủ. Vui lòng thử lại sau giây lát!';
                 } finally {
                     this.dangTai = false;
                 }
