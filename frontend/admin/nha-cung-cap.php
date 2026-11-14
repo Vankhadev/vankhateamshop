@@ -215,7 +215,7 @@ $suppliers = $pdo->query("SELECT * FROM `suppliers` ORDER BY `id` ASC")->fetchAl
                         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-800 pb-3">
                             <div>
                                 <h3 class="text-base font-bold text-white flex items-center gap-2">
-                                    <i class="fas fa-boxes-stacked text-purple-400"></i> Kho Hàng Thời Gian Thực Nhà Cung Cấp (<span x-text="khoData.supplier_name || "></span>)
+                                    <i class="fas fa-boxes-stacked text-purple-400"></i> Kho Hàng Thời Gian Thực: <span class="text-purple-300 font-extrabold" x-text="khoData.supplier_name || 'Đang tải...'"></span>
                                 </h3>
                                 <p class="text-xs text-gray-400 mt-0.5">
                                     Tổng cộng <strong class="text-white" x-text="khoData.tong_ncc || 0"></strong> gói | Đã liên kết: <strong class="text-green-400" x-text="khoData.da_map || 0"></strong> | Còn hàng: <strong class="text-blue-400" x-text="khoData.con_hang || 0"></strong>
@@ -422,11 +422,12 @@ $suppliers = $pdo->query("SELECT * FROM `suppliers` ORDER BY `id` ASC")->fetchAl
                 suaData: {},
 
                 // Kho hàng NCC
+                selectedSupplierId: 0,
                 moModalKho: false,
                 dangTaiKho: false,
                 dangDongBo: false,
                 dangNhap: false,
-                khoData: { tong_ncc: 0, da_map: 0, con_hang: 0, products: [] },
+                khoData: { supplier_id: 0, supplier_name: '', tong_ncc: 0, da_map: 0, con_hang: 0, products: [] },
                 tuKhoaKho: '',
                 locType: 'ALL',
 
@@ -487,7 +488,9 @@ $suppliers = $pdo->query("SELECT * FROM `suppliers` ORDER BY `id` ASC")->fetchAl
                 async dongBoTonKho() {
                     this.dangDongBo = true;
                     try {
-                        const res = await fetch('/backend/api.php?action=admin_dong_bo_ton_kho');
+                        const supId = this.selectedSupplierId || this.khoData.supplier_id || 0;
+                        const url = '/backend/api.php?action=admin_dong_bo_ton_kho' + (supId ? '&supplier_id=' + encodeURIComponent(supId) : '');
+                        const res = await fetch(url);
                         const d = await res.json();
                         this.dangDongBo = false;
                         if (d.thanh_cong) {
@@ -510,6 +513,7 @@ $suppliers = $pdo->query("SELECT * FROM `suppliers` ORDER BY `id` ASC")->fetchAl
                     this.dangNhap = true;
                     const fd = new FormData();
                     fd.append('supplier_sku', sku);
+                    fd.append('supplier_id', this.selectedSupplierId || this.khoData.supplier_id || 0);
                     try {
                         const res = await fetch('/backend/api.php?action=admin_nhap_san_pham_ncc', { method: 'POST', body: fd });
                         const d = await res.json();
@@ -527,10 +531,12 @@ $suppliers = $pdo->query("SELECT * FROM `suppliers` ORDER BY `id` ASC")->fetchAl
                 },
 
                 async nhapTatCaSanPham() {
-                    if (!confirm('Bạn có chắc muốn tự động nhập TẤT CẢ các gói sản phẩm từ Nhà Cung Cấp vào Shop? Hệ thống sẽ tự tạo danh mục và tính giá bán tự động!')) return;
+                    const supName = this.khoData.supplier_name || 'Nhà Cung Cấp';
+                    if (!confirm('Bạn có chắc muốn tự động nhập TẤT CẢ các gói sản phẩm từ [' + supName + '] vào Shop? Hệ thống sẽ tự tạo danh mục và tính giá bán tự động!')) return;
                     this.dangNhap = true;
                     const fd = new FormData();
                     fd.append('supplier_sku', 'ALL');
+                    fd.append('supplier_id', this.selectedSupplierId || this.khoData.supplier_id || 0);
                     try {
                         const res = await fetch('/backend/api.php?action=admin_nhap_san_pham_ncc', { method: 'POST', body: fd });
                         const d = await res.json();

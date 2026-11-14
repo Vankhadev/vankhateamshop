@@ -1205,11 +1205,12 @@ switch ($hanhDong) {
 
         echo json_encode([
             'thanh_cong'    => true,
+            'supplier_id'   => (int)$supplier['id'],
+            'supplier_name' => $supplier['name'],
             'tong_ncc'      => count($nccItems),
             'da_map'        => $demDaMap,
             'chua_map'      => count($nccItems) - $demDaMap,
             'con_hang'      => $demConHang,
-            'supplier_name' => $supplier['name'],
             'products'      => $danhSachSanPham
         ]);
         break;
@@ -1284,7 +1285,15 @@ switch ($hanhDong) {
             exit;
         }
 
-        $supplier = $pdo->query("SELECT * FROM `suppliers` WHERE `is_active` = 1 ORDER BY `id` ASC LIMIT 1")->fetch();
+        $supplierId = (int)($_POST['supplier_id'] ?? ($_GET['supplier_id'] ?? 0));
+        if ($supplierId > 0) {
+            $stmtSup = $pdo->prepare("SELECT * FROM `suppliers` WHERE `id` = ?");
+            $stmtSup->execute([$supplierId]);
+            $supplier = $stmtSup->fetch();
+        } else {
+            $supplier = $pdo->query("SELECT * FROM `suppliers` WHERE `is_active` = 1 ORDER BY `id` ASC LIMIT 1")->fetch();
+        }
+
         if (!$supplier) {
             echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Chưa cấu hình nhà cung cấp']);
             exit;
@@ -1411,47 +1420,61 @@ switch ($hanhDong) {
                 $badge = $matches[1] . '$';
             }
 
-            // Kiểm tra xem sản phẩm đã map hay chưa
+            // Kiểm tra xem sản phẩm đã map cho NCC này hay chưa
             $stmtMap = $pdo->prepare("SELECT product_id FROM `supplier_product_mappings` WHERE `supplier_id` = ? AND `supplier_sku` = ?");
             $stmtMap->execute([$supplier['id'], $sku]);
             $existingPid = $stmtMap->fetchColumn();
 
             if ($existingPid) {
-                // Đã có -> Cập nhật tồn kho và giá vốn
+                // Đã có mapping cho NCC này -> Cập nhật tồn kho và giá vốn
                 $pdo->prepare("UPDATE `supplier_product_mappings` SET `stock` = ?, `cost_price` = ? WHERE `product_id` = ? AND `supplier_id` = ?")
                     ->execute([$stock, $cost, $existingPid, $supplier['id']]);
                 $demCapNhat++;
             } else {
-                // Tạo SKU và slug duy nhất
+                // Kiểm tra xem đã có sản phẩm này trong bảng products (ví dụ từ NCC khác hoặc do admin tạo) chưa
                 $ourSku = 'VK-' . strtoupper(str_replace('-', '', $sku));
-                $slug = taoSlugVn($name) . '-' . strtolower(str_replace('-', '', $sku));
+                $stmtCheckP = $pdo->prepare("SELECT id FROM `products` WHERE `sku` = ? LIMIT 1");
+                $stmtCheckP->execute([$ourSku]);
+                $targetPid = $stmtCheckP->fetchColumn();
 
-                // Chuẩn bị tính năng mặc định
-                $features = json_encode([
-                    "Sử dụng full model theo hệ thống nguồn",
-                    "Thời hạn bản quyền {$duration} ngày",
-                    "Giao key tự động ngay sau thanh toán",
-                    "Bảo hành 100% trong thời gian sử dụng"
-                ], JSON_UNESCAPED_UNICODE);
+                if ($targetPid) {
+                    $targetPid = (int)$targetPid;
+                } else {
+                    // Chưa có sản phẩm trong products -> Tạo sản phẩm mới
+                    $slug = taoSlugVn($name) . '-' . strtolower(str_replace('-', '', $sku));
+                    $stmtCheckSlug = $pdo->prepare("SELECT id FROM `products` WHERE `slug` = ? LIMIT 1");
+                    $stmtCheckSlug->execute([$slug]);
+                    if ($stmtCheckSlug->fetchColumn()) {
+                        $slug .= '-' . $supplier['id'];
+                    }
 
-                // Insert vào products
-                $stmtInsP = $pdo->prepare("
-                    INSERT INTO `products` 
-                    (`category_id`, `sku`, `name`, `slug`, `badge`, `description`, `price`, `original_price`, `request_count`, `duration_days`, `features`, `is_hot`, `is_active`)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1)
-                ");
-                $stmtInsP->execute([
-                    $catId, $ourSku, $name, $slug, $badge, $it['description'] ?? '', $price, $originalPrice, $requestCount, $duration, $features
-                ]);
-                $newPid = (int)$pdo->lastInsertId();
+                    // Chuẩn bị tính năng mặc định
+                    $features = json_encode([
+                        "Sử dụng full model theo hệ thống nguồn",
+                        "Thời hạn bản quyền {$duration} ngày",
+                        "Giao key tự động ngay sau thanh toán",
+                        "Bảo hành 100% trong thời gian sử dụng"
+                    ], JSON_UNESCAPED_UNICODE);
 
-                // Insert vào supplier_product_mappings
+                    $stmtInsP = $pdo->prepare("
+                        INSERT INTO `products` 
+                        (`category_id`, `sku`, `name`, `slug`, `badge`, `description`, `price`, `original_price`, `request_count`, `duration_days`, `features`, `is_hot`, `is_active`)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1)
+                    ");
+                    $stmtInsP->execute([
+                        $catId, $ourSku, $name, $slug, $badge, $it['description'] ?? '', $price, $originalPrice, $requestCount, $duration, $features
+                    ]);
+                    $targetPid = (int)$pdo->lastInsertId();
+                }
+
+                // Insert hoặc update vào supplier_product_mappings
                 $stmtInsMap = $pdo->prepare("
                     INSERT INTO `supplier_product_mappings`
                     (`product_id`, `supplier_id`, `supplier_sku`, `cost_price`, `stock`, `priority`, `is_active`)
                     VALUES (?, ?, ?, ?, ?, 1, 1)
+                    ON DUPLICATE KEY UPDATE `cost_price`=VALUES(`cost_price`), `stock`=VALUES(`stock`)
                 ");
-                $stmtInsMap->execute([$newPid, $supplier['id'], $sku, $cost, $stock]);
+                $stmtInsMap->execute([$targetPid, $supplier['id'], $sku, $cost, $stock]);
                 $demThem++;
             }
         }

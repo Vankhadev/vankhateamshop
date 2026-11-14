@@ -62,15 +62,26 @@ class BoDieuPhoiDonHang {
         }
 
         // 2. Tìm tất cả các nhà cung cấp có bán sản phẩm này
-        // Sắp xếp: Ưu tiên số 1 (priority nhỏ nhất) và Giá nhập rẻ nhất (cost_price)
-        $sql = "SELECT m.*, s.code AS ma_nha_cung_cap, s.name AS ten_nha_cung_cap, s.api_url, s.api_key 
+        // Sắp xếp thông minh đa nguồn:
+        // 1) Ưu tiên nguồn có số dư ví ĐỦ để mua (>= cost_price * quantity)
+        // 2) Ưu tiên cấu hình ưu tiên của Admin (priority)
+        // 3) Ưu tiên giá nhập rẻ nhất (cost_price)
+        $soLuongMua = max(1, (int)$donHang['quantity']);
+        $sql = "SELECT m.*, s.code AS ma_nha_cung_cap, s.name AS ten_nha_cung_cap, s.api_url, s.api_key, s.balance AS supplier_balance
                 FROM `supplier_product_mappings` m
                 JOIN `suppliers` s ON m.supplier_id = s.id
                 WHERE m.product_id = ? AND m.is_active = 1 AND s.is_active = 1
-                ORDER BY m.priority ASC, m.cost_price ASC";
+                ORDER BY 
+                    CASE 
+                        WHEN (s.balance IS NOT NULL AND s.balance >= (m.cost_price * ?)) THEN 0 
+                        WHEN (s.balance IS NULL OR s.balance <= 0) THEN 1 
+                        ELSE 2 
+                    END ASC,
+                    m.priority ASC, 
+                    m.cost_price ASC";
         
         $stmtMapping = $this->db->prepare($sql);
-        $stmtMapping->execute([$donHang['product_id']]);
+        $stmtMapping->execute([$donHang['product_id'], $soLuongMua]);
         $danhSachNguon = $stmtMapping->fetchAll();
 
         $nhatKyLoi = [];
