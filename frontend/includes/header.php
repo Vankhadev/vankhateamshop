@@ -112,7 +112,7 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                                 <i class="fas fa-coins text-amber-400 w-4 text-center"></i>
                                 <span>Nạp Credit API</span>
                             </a>
-                            <a href="https://status.gwai.cloud/" target="_blank" rel="noopener noreferrer" @click="moMenuApi = false" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
+                            <a href="/bang-gia-model" @click="moMenuApi = false" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
                                 <i class="fas fa-wave-square text-purple-400 w-4 text-center"></i>
                                 <span>Trạng thái Model</span>
                                 <i class="fas fa-arrow-up-right-from-square text-[9px] text-gray-500 ml-auto"></i>
@@ -295,7 +295,7 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                 <a href="/bang-gia-model" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-blue-500 transition">
                     <i class="fas fa-tag text-blue-400 w-4 text-center"></i> <span>Bảng Giá Model</span>
                 </a>
-                <a href="https://status.gwai.cloud/" target="_blank" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-green-500 transition">
+                <a href="/bang-gia-model" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-green-500 transition">
                     <i class="fas fa-wave-square text-green-400 w-4 text-center"></i> <span>Status Model</span>
                 </a>
                 <a href="/tra-cuu-key" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-blue-500 transition text-left w-full">
