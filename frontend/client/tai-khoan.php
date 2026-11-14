@@ -24,6 +24,8 @@ if (!$user) {
     header('Location: ../../backend/logout.php');
     exit;
 }
+$csrfToken = taoCsrfToken();
+$tokenDaCap = !empty($user['api_token']);
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -125,11 +127,11 @@ if (!$user) {
             </div>
 
             <div class="flex items-center gap-2">
-                <input type="text" readonly :value="apiToken" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-green-400 font-mono focus:outline-none select-all">
-                <button @click="saoChep(apiToken)" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition shrink-0">
-                    <i class="fas fa-copy"></i> Copy
-                </button>
+                <input type="text" readonly :value="apiToken || '<?= $tokenDaCap ? 'Token đã được cấp — bấm Hiện token' : 'Chưa có token' ?>'" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-green-400 font-mono focus:outline-none select-all">
+                <button @click="layApiToken()" :disabled="dangLayToken" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs transition shrink-0"><i class="fas fa-eye"></i> Hiện</button>
+                <button @click="saoChep(apiToken)" :disabled="!apiToken" class="px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white font-bold text-xs transition shrink-0"><i class="fas fa-copy"></i> Copy</button>
             </div>
+            <p class="text-[11px] text-amber-300"><i class="fas fa-shield-halved mr-1"></i> Token không được nhúng vào HTML ban đầu và chỉ lấy qua yêu cầu POST có CSRF.</p>
         </div>
 
         <!-- KHỐI 3: ĐỔI MẬT KHẨU TÀI KHOẢN -->
@@ -174,7 +176,9 @@ if (!$user) {
     <script>
         function ungDungTaiKhoan() {
             return {
-                apiToken: '<?= htmlspecialchars($user['api_token'] ?? '') ?>',
+                apiToken: '',
+                csrfToken: '<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>',
+                dangLayToken: false,
                 matKhauCu: '',
                 matKhauMoi: '',
                 xacNhanMatKhau: '',
@@ -188,18 +192,27 @@ if (!$user) {
                     });
                 },
 
-                taoMoiApiToken() {
-                    if (!confirm('Bạn có chắc muốn tạo lại API Token? Token cũ sẽ bị vô hiệu hóa.')) return;
-                    
-                    fetch('/backend/api.php?action=tao_moi_api_token')
+                layApiToken() {
+                    this.dangLayToken = true;
+                    fetch('/backend/api.php?action=lay_api_token', {method: 'POST', headers: {'X-CSRF-Token': this.csrfToken, 'Accept': 'application/json'}})
                         .then(res => res.json())
                         .then(data => {
-                            if (data.thanh_cong) {
-                                this.apiToken = data.api_token;
-                                this.thongBao = data.thong_bao;
-                                this.loaiThongBao = 'success';
-                            }
-                        });
+                            if (data.thanh_cong) this.apiToken = data.api_token;
+                            else { this.thongBao = data.thong_bao || 'Không thể lấy token'; this.loaiThongBao = 'error'; }
+                        })
+                        .catch(() => { this.thongBao = 'Lỗi kết nối máy chủ'; this.loaiThongBao = 'error'; })
+                        .finally(() => { this.dangLayToken = false; });
+                },
+
+                taoMoiApiToken() {
+                    if (!confirm('Bạn có chắc muốn tạo lại API Token? Token cũ sẽ bị vô hiệu hóa.')) return;
+                    fetch('/backend/api.php?action=tao_moi_api_token', {method: 'POST', headers: {'X-CSRF-Token': this.csrfToken, 'Accept': 'application/json'}})
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.thanh_cong) { this.apiToken = data.api_token; this.thongBao = data.thong_bao; this.loaiThongBao = 'success'; }
+                            else { this.thongBao = data.thong_bao || 'Không thể tạo token'; this.loaiThongBao = 'error'; }
+                        })
+                        .catch(() => { this.thongBao = 'Lỗi kết nối máy chủ'; this.loaiThongBao = 'error'; });
                 },
 
                 doiMatKhau() {
@@ -215,7 +228,9 @@ if (!$user) {
                     const formData = new FormData();
                     formData.append('action', 'doi_mat_khau');
                     formData.append('old_password', this.matKhauCu);
-                    formData.append('new_password', this.matKhauMoi);
+                     formData.append('new_password', this.matKhauMoi);
+                     formData.append('csrf_token', this.csrfToken);
+
 
                     fetch('/backend/api.php', {
                         method: 'POST',

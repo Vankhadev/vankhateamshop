@@ -58,9 +58,9 @@ $danhSachSanPhamFooter = [
             <div>
                 <h3 class="text-xs font-black tracking-wider text-white uppercase mb-4">TÀI NGUYÊN</h3>
                 <ul class="space-y-2.5 text-xs">
-                    <li><a href="/docs" class="text-gray-400 hover:text-white transition">API Docs</a></li>
+                    <li><a href="/api-guide" class="text-gray-400 hover:text-white transition">Hướng dẫn API</a></li>
+                    <li><a href="/docs" class="text-gray-400 hover:text-white transition">Buyer API Docs</a></li>
                     <li><a href="/bang-gia-model" class="text-gray-400 hover:text-white transition">Bảng giá Model</a></li>
-                    <li><a href="/docs" class="text-gray-400 hover:text-white transition">Blog</a></li>
                     <li><a href="/xep-hang" class="text-gray-400 hover:text-white transition">Bảng Xếp Hạng</a></li>
                     <li><a href="/phan-mem" class="text-gray-400 hover:text-white transition">Phần mềm</a></li>
                 </ul>

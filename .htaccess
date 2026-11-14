@@ -71,8 +71,11 @@
     RewriteRule ^kiem-tra-key/?$ frontend/tra-cuu-key.php [QSA,L]
     RewriteRule ^bang-xep-hang/?$ frontend/bang-xep-hang.php [QSA,L]
     RewriteRule ^xep-hang/?$ frontend/bang-xep-hang.php [QSA,L]
-    RewriteRule ^docs/?$ frontend/docs.php [QSA,L]
-    RewriteRule ^buyer-api/?$ frontend/docs.php [QSA,L]
+     RewriteRule ^api-guide/?$ frontend/api-guide.php [QSA,L]
+     RewriteRule ^huong-dan-api/?$ frontend/api-guide.php [QSA,L]
+     RewriteRule ^docs/?$ frontend/docs.php [QSA,L]
+     RewriteRule ^buyer-api/?$ frontend/docs.php [QSA,L]
+
     RewriteRule ^bang-gia-model/?$ frontend/bang-gia-model.php [QSA,L]
     RewriteRule ^models-pricing/?$ frontend/bang-gia-model.php [QSA,L]
     # Trung tâm chính sách pháp lý (mỗi chính sách 1 trang riêng)

@@ -66,7 +66,12 @@ $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset(
 $proto = $isHttps ? 'https://' : 'http://';
 $detectedDomain = $httpHost ? ($proto . $httpHost) : 'https://tiemai.io.vn';
 
-define('SITE_URL', layGiaTriEnv('SITE_URL', $detectedDomain));
+// Không tin HTTP_HOST để tạo URL canonical; chỉ cho phép domain website đã cấu hình.
+$siteUrlCauHinh = rtrim(layGiaTriEnv('SITE_URL', 'https://tiemai.io.vn'), '/');
+if (!preg_match('#^https://(www\.)?tiemai\.io\.vn$#i', $siteUrlCauHinh)) {
+    $siteUrlCauHinh = 'https://tiemai.io.vn';
+}
+define('SITE_URL', $siteUrlCauHinh);
 
 // 1. CẤU HÌNH CƠ SỞ DỮ LIỆU MYSQL
 define('DB_HOST', layGiaTriEnv('DB_HOST', '127.0.0.1'));

@@ -78,6 +78,9 @@ $routes = [
     '/kiem-tra-key'          => __DIR__ . '/frontend/tra-cuu-key.php',
     '/bang-xep-hang'         => __DIR__ . '/frontend/bang-xep-hang.php',
     '/xep-hang'              => __DIR__ . '/frontend/bang-xep-hang.php',
+    // Tài liệu tích hợp API người dùng (Base URL nội bộ website); Buyer API giữ nguyên ở /docs.
+    '/api-guide'             => __DIR__ . '/frontend/api-guide.php',
+    '/huong-dan-api'         => __DIR__ . '/frontend/api-guide.php',
     '/docs'                  => __DIR__ . '/frontend/docs.php',
     '/docs.php'              => __DIR__ . '/frontend/docs.php',
     '/buyer-api'             => __DIR__ . '/frontend/docs.php',

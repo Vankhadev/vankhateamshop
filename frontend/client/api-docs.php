@@ -26,12 +26,9 @@ if (!$user) {
     exit;
 }
 
-// Nếu tài khoản chưa có API Token thì tự sinh 1 token
-if (empty($user['api_token'])) {
-    $tokenMoi = 'vk_' . bin2hex(random_bytes(24));
-    $pdo->prepare("UPDATE `users` SET `api_token` = ? WHERE `id` = ?")->execute([$tokenMoi, $user['id']]);
-    $user['api_token'] = $tokenMoi;
-}
+// Không hydrate API token vào HTML/JavaScript. Token chỉ lấy qua POST + CSRF khi người dùng bấm Hiện.
+$csrfToken = taoCsrfToken();
+$tokenDaCap = !empty($user['api_token']);
 
 // Lấy danh sách sản phẩm/model API đang kinh doanh
 $products = $pdo->query("SELECT * FROM `products` WHERE `is_active` = 1 ORDER BY `id` ASC")->fetchAll();
@@ -108,17 +105,18 @@ $products = $pdo->query("SELECT * FROM `products` WHERE `is_active` = 1 ORDER BY
                 </button>
             </div>
 
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center gap-2">
                 <div class="relative flex-1">
-                    <input :type="hienToken ? 'text' : 'password'" x-model="apiToken" readonly class="w-full bg-[#1E293B] border border-gray-700 rounded-xl px-4 py-2.5 text-xs text-blue-300 font-mono focus:outline-none">
-                    <button @click="hienToken = !hienToken" class="absolute right-3 top-2.5 text-gray-400 hover:text-white text-xs">
-                        <i class="fas" :class="hienToken ? 'fa-eye-slash' : 'fa-eye'"></i>
-                    </button>
+                    <input type="text" :value="apiToken || '<?= $tokenDaCap ? 'Token đã được cấp — bấm Hiện để lấy an toàn' : 'Chưa có token' ?>'" readonly class="w-full bg-[#1E293B] border border-gray-700 rounded-xl px-4 py-2.5 text-xs text-blue-300 font-mono focus:outline-none">
                 </div>
-                <button @click="saoChep(apiToken)" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition duration-150 flex items-center gap-1.5 flex-shrink-0">
+                <button @click="layToken()" :disabled="dangLayToken" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs transition duration-150 flex items-center gap-1.5 flex-shrink-0">
+                    <i class="fas fa-eye" :class="dangLayToken ? 'fa-spin' : ''"></i> Hiện
+                </button>
+                <button @click="saoChepToken()" :disabled="!apiToken" class="px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white font-bold text-xs transition duration-150 flex items-center gap-1.5 flex-shrink-0">
                     <i class="fas fa-copy"></i> Sao Chép
                 </button>
             </div>
+            <p class="mt-2 text-[11px] text-amber-300"><i class="fas fa-shield-halved mr-1"></i> Token không nằm trong HTML ban đầu. Chỉ hiện sau khi bạn bấm “Hiện”; hãy xóa khỏi màn hình sau khi sao chép.</p>
             
             <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div class="bg-[#0F172A] p-3 rounded-xl border border-gray-800 overflow-hidden">
@@ -155,7 +153,7 @@ $products = $pdo->query("SELECT * FROM `products` WHERE `is_active` = 1 ORDER BY
                         <p class="text-xs text-gray-300">Cấu hình trong Cursor Settings (<kbd class="bg-gray-800 px-1 py-0.5 rounded text-[10px]">Ctrl + Shift + J</kbd> -> Models):</p>
                         <div class="bg-[#0B0F19] p-3 rounded-xl border border-gray-800 space-y-2 text-xs font-mono overflow-hidden">
                             <div class="break-all"><span class="text-gray-500">1. Override OpenAI Base URL:</span> <span class="text-amber-400"><?= (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] ?>/v1</span></div>
-                            <div class="break-all"><span class="text-gray-500">2. OpenAI API Key:</span> <span class="text-blue-400" x-text="apiToken"></span></div>
+                            <div class="break-all"><span class="text-gray-500">2. OpenAI API Key:</span> <span class="text-blue-400">YOUR_API_KEY</span></div>
                             <div class="break-all"><span class="text-gray-500">3. Thêm Model:</span> <span class="text-green-400">claude-3-5-sonnet, deepseek-reasoner, cursor-small</span></div>
                         </div>
                     </div>
@@ -165,7 +163,7 @@ $products = $pdo->query("SELECT * FROM `products` WHERE `is_active` = 1 ORDER BY
                         <pre class="bg-[#0B0F19] p-4 rounded-xl border border-gray-800 text-[11px] font-mono text-gray-300 overflow-x-auto"><code>from openai import OpenAI
 
 client = OpenAI(
-    api_key="<span class="text-blue-400" x-text="apiToken"></span>",
+    api_key="<span class="text-blue-400">YOUR_API_KEY</span>",
     base_url="<?= (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] ?>/v1"
 )
 
@@ -184,7 +182,7 @@ print(response.choices[0].message.content)</code></pre>
                         <pre class="bg-[#0B0F19] p-4 rounded-xl border border-gray-800 text-[11px] font-mono text-gray-300 overflow-x-auto"><code>import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: '<span class="text-blue-400" x-text="apiToken"></span>',
+  apiKey: '<span class="text-blue-400">YOUR_API_KEY</span>',
   baseURL: '<?= (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] ?>/v1',
 });
 
@@ -200,7 +198,7 @@ console.log(completion.choices[0].message.content);</code></pre>
                     <div x-show="tabCode === 'curl'" class="relative">
                         <pre class="bg-[#0B0F19] p-4 rounded-xl border border-gray-800 text-[11px] font-mono text-gray-300 overflow-x-auto"><code>curl <?= (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] ?>/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <span class="text-blue-400" x-text="apiToken"></span>" \
+  -H "Authorization: Bearer <span class="text-blue-400">YOUR_API_KEY</span>" \
   -d '{
     "model": "claude-3-5-sonnet",
     "messages": [{"role": "user", "content": "Xin chào"}]
@@ -259,34 +257,55 @@ console.log(completion.choices[0].message.content);</code></pre>
     <script>
     function ungDungApiDocs() {
         return {
-            apiToken: '<?= htmlspecialchars($user['api_token']) ?>',
-            hienToken: false,
-            dangTaoToken: false,
+apiToken: '',
+             csrfToken: '<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>',
+             dangLayToken: false,
+             dangTaoToken: false,
+
             tabCode: 'cursor',
 
-            saoChep(vanBan) {
-                navigator.clipboard.writeText(vanBan);
-                alert('Đã sao chép vào bộ nhớ tạm!');
-            },
+             async layToken() {
+                 this.dangLayToken = true;
+                 try {
+                     const res = await fetch('/backend/api.php?action=lay_api_token', {
+                         method: 'POST',
+                         headers: {'X-CSRF-Token': this.csrfToken, 'Accept': 'application/json'}
+                     });
+                     const data = await res.json();
+                     if (data.thanh_cong) this.apiToken = data.api_token;
+                     else alert(data.thong_bao || 'Không thể lấy token');
+                 } catch (e) {
+                     alert('Lỗi kết nối máy chủ');
+                 } finally {
+                     this.dangLayToken = false;
+                 }
+             },
 
-            async taoMoiToken() {
-                if (!confirm('Bạn có chắc muốn tạo mới API Token? Khóa cũ sẽ bị vô hiệu hóa ngay lập tức!')) return;
-                this.dangTaoToken = true;
-                try {
-                    const res = await fetch('/backend/api.php?action=tao_moi_api_token', { method: 'POST' });
-                    const data = await res.json();
-                    if (data.thanh_cong) {
-                        this.apiToken = data.token_moi;
-                        alert('Đã sinh khóa API Token mới thành công!');
-                    } else {
-                        alert(data.thong_bao || 'Lỗi không thể sinh token');
-                    }
-                } catch (e) {
-                    alert('Lỗi kết nối máy chủ');
-                } finally {
-                    this.dangTaoToken = false;
-                }
-            }
+             saoChepToken() {
+                 if (!this.apiToken) return;
+                 navigator.clipboard.writeText(this.apiToken).then(() => alert('Đã sao chép token. Không chia sẻ token công khai.'));
+             },
+
+             async taoMoiToken() {
+                 if (!confirm('Bạn có chắc muốn tạo mới API Token? Khóa cũ sẽ bị vô hiệu hóa ngay lập tức!')) return;
+                 this.dangTaoToken = true;
+                 try {
+                     const res = await fetch('/backend/api.php?action=tao_moi_api_token', {
+                         method: 'POST',
+                         headers: {'X-CSRF-Token': this.csrfToken, 'Accept': 'application/json'}
+                     });
+                     const data = await res.json();
+                     if (data.thanh_cong) {
+                         this.apiToken = data.api_token;
+                         alert('Đã sinh khóa API Token mới. Hãy lưu ở nơi an toàn.');
+                     } else alert(data.thong_bao || 'Lỗi không thể sinh token');
+                 } catch (e) {
+                     alert('Lỗi kết nối máy chủ');
+                 } finally {
+                     this.dangTaoToken = false;
+                 }
+             }
+
         };
     }
     </script>

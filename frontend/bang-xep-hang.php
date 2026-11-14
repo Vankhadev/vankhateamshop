@@ -349,7 +349,7 @@ $danhSachConLai = array_slice($topUsers, 3);
                 <a href="/user/nap-tien" class="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition flex items-center gap-2 shadow-lg shadow-amber-600/30">
                     <i class="fas fa-coins"></i> Nạp Ví Nâng Hạng Ngay
                 </a>
-                <a href="/docs" class="px-5 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs transition flex items-center gap-2">
+                <a href="/api-guide" class="px-5 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs transition flex items-center gap-2">
                     <i class="fas fa-code text-blue-400"></i> Xem Tài Liệu API Đại Lý
                 </a>
                 <a href="https://zalo.me/<?= htmlspecialchars($soZaloBxh) ?>" target="_blank" class="px-5 py-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 font-bold text-xs transition flex items-center gap-2 border border-blue-500/30">

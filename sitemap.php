@@ -72,7 +72,15 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
         </url>
     <?php endforeach; ?>
 
-    <!-- Tài liệu kết nối Buyer API -->
+    <!-- Tài liệu tích hợp API dành cho người dùng -->
+    <url>
+        <loc><?= $baseUrl ?>/api-guide</loc>
+        <lastmod><?= $ngayHomNay ?></lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <!-- Tài liệu kết nối Buyer API dành cho đại lý -->
     <url>
         <loc><?= $baseUrl ?>/docs</loc>
         <lastmod><?= $ngayHomNay ?></lastmod>

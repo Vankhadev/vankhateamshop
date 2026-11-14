@@ -343,7 +343,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                         </div>
                     </div>
                 </div>
-                <a href="/docs" class="text-blue-300 hover:text-white shrink-0 font-semibold text-[11px] ml-1 flex items-center gap-1 whitespace-nowrap">
+                <a href="/api-guide" class="text-blue-300 hover:text-white shrink-0 font-semibold text-[11px] ml-1 flex items-center gap-1 whitespace-nowrap">
                     <span>Hướng dẫn</span> &rarr;
                 </a>
             </div>
@@ -412,7 +412,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                         <i class="fas fa-cart-shopping text-xs"></i>
                         <span>Xem sản phẩm</span>
                     </a>
-                    <a href="/docs" class="px-3 py-2 sm:px-5 sm:py-3 rounded-xl bg-[#111827] hover:bg-gray-800 text-gray-200 hover:text-white font-bold text-xs sm:text-sm border border-gray-700 transition duration-200 flex items-center gap-1.5 sm:gap-2">
+                    <a href="/api-guide" class="px-3 py-2 sm:px-5 sm:py-3 rounded-xl bg-[#111827] hover:bg-gray-800 text-gray-200 hover:text-white font-bold text-xs sm:text-sm border border-gray-700 transition duration-200 flex items-center gap-1.5 sm:gap-2">
                         <i class="fas fa-book-open text-blue-400 text-xs"></i>
                         <span>Hướng dẫn</span>
                     </a>

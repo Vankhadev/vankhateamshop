@@ -132,7 +132,7 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                              x-transition:enter-start="opacity-0 translate-y-1"
                              x-transition:enter-end="opacity-100 translate-y-0"
                              class="absolute left-0 mt-2 w-52 bg-[#1E293B] border border-gray-700/80 rounded-2xl shadow-2xl p-2 z-50 space-y-1 text-xs font-semibold" style="display: none;">
-                            <a href="/docs" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
+                            <a href="/api-guide" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
                                 <i class="fas fa-book-bookmark text-amber-400 w-4 text-center"></i>
                                 <span>Tài Liệu API & Tích Hợp</span>
                             </a>
@@ -304,7 +304,7 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                 <a href="/bang-xep-hang" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-amber-500 transition text-left w-full">
                     <i class="fas fa-trophy text-amber-400 w-4 text-center"></i> <span>Bảng Xếp Hạng</span>
                 </a>
-                <a href="/docs" @click="moMenuMobile = false" class="col-span-2 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-amber-600/20 to-orange-600/20 border border-amber-500/40 text-amber-300 hover:text-white transition">
+                <a href="/api-guide" @click="moMenuMobile = false" class="col-span-2 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-amber-600/20 to-orange-600/20 border border-amber-500/40 text-amber-300 hover:text-white transition">
                     <i class="fas fa-book-bookmark text-amber-400"></i> <span>Tài Liệu API & Hướng Dẫn Tích Hợp</span>
                 </a>
             </div>

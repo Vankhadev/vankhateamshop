@@ -764,21 +764,55 @@ switch ($hanhDong) {
         ], JSON_UNESCAPED_UNICODE);
         break;
 
-    // 5. TẠO MỚI API TOKEN CỦA KHÁCH HÀNG
-    case 'tao_moi_api_token':
+    // 5. HIỂN THỊ API TOKEN SAU KHI NGƯỜI DÙNG CHỦ ĐỘNG XÁC NHẬN
+    case 'lay_api_token':
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            header('Allow: POST');
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Phương thức không được hỗ trợ']);
+            exit;
+        }
         if (empty($_SESSION['user_id'])) {
+            http_response_code(401);
             echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Chưa đăng nhập']);
             exit;
         }
+        batBuocCsrf();
+        $stmtToken = $pdo->prepare("SELECT `api_token` FROM `users` WHERE `id` = ? AND `is_active` = 1 LIMIT 1");
+        $stmtToken->execute([(int)$_SESSION['user_id']]);
+        $tokenHienTai = (string)($stmtToken->fetchColumn() ?: '');
+        if ($tokenHienTai === '') {
+            http_response_code(404);
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Tài khoản chưa có API Token. Hãy tạo khóa mới.']);
+            exit;
+        }
+        header('Cache-Control: no-store, private');
+        echo json_encode(['thanh_cong' => true, 'api_token' => $tokenHienTai, 'thong_bao' => 'Token chỉ được hiển thị sau yêu cầu bảo mật của bạn.'], JSON_UNESCAPED_UNICODE);
+        break;
+
+    // 5b. TẠO MỚI API TOKEN CỦA KHÁCH HÀNG
+    case 'tao_moi_api_token':
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            header('Allow: POST');
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Phương thức không được hỗ trợ']);
+            exit;
+        }
+        if (empty($_SESSION['user_id'])) {
+            http_response_code(401);
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Chưa đăng nhập']);
+            exit;
+        }
+        batBuocCsrf();
         $userId = (int)$_SESSION['user_id'];
         $newToken = 'vk_' . bin2hex(random_bytes(24));
         $pdo->prepare("UPDATE `users` SET `api_token` = ? WHERE `id` = ?")->execute([$newToken, $userId]);
-        
+        header('Cache-Control: no-store, private');
         echo json_encode([
             'thanh_cong' => true,
             'api_token' => $newToken,
-            'thong_bao' => 'Đã tạo API Token mới thành công!'
-        ]);
+            'thong_bao' => 'Đã tạo API Token mới thành công. Hãy lưu ở nơi an toàn và không chia sẻ công khai.'
+        ], JSON_UNESCAPED_UNICODE);
         break;
 
     // 6. ĐỔI MẬT KHẨU TÀI KHOẢN KHÁCH HÀNG
@@ -788,6 +822,7 @@ switch ($hanhDong) {
             exit;
         }
 
+        batBuocCsrf();
         $userId = (int)$_SESSION['user_id'];
         $matKhauCu = $_POST['old_password'] ?? '';
         $matKhauMoi = $_POST['new_password'] ?? '';
