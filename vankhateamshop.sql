@@ -271,9 +271,9 @@ INSERT INTO `suppliers` (`code`, `name`, `api_url`, `api_key`, `balance`, `min_b
 
 -- 3. Danh mục thực tế
 INSERT INTO `categories` (`id`, `name`, `slug`, `icon`, `color`, `sort_order`) VALUES
-(1, 'Cursor API', 'cursor', 'fa-bolt', '#1f2937', 1),
-(2, 'Claude API', 'claude', 'fa-brain', '#f97316', 2),
-(3, 'Codex API', 'codex', 'fa-code', '#10b981', 3),
+(1, 'Claude API', 'claude', 'fa-brain', '#f97316', 1),
+(2, 'Codex API', 'codex', 'fa-code', '#10b981', 2),
+(3, 'Cursor API', 'cursor', 'fa-bolt', '#1f2937', 3),
 (4, 'DeepSeek API', 'deepseek', 'fa-magnifying-glass', '#4d6bfe', 4),
 (5, 'Gemini API', 'gemini', 'fa-gem', '#0ea5e9', 5),
 (6, 'Grok API', 'grok', 'fa-robot', '#111827', 6),

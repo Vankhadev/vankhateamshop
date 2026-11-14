@@ -191,7 +191,7 @@ $sql = "
     LEFT JOIN `categories` c ON p.category_id = c.id
     LEFT JOIN `supplier_product_mappings` m ON p.id = m.product_id
     LEFT JOIN `suppliers` s ON m.supplier_id = s.id
-    ORDER BY p.category_id ASC, p.price ASC
+    ORDER BY COALESCE(c.sort_order, 99) ASC, c.id ASC, p.price ASC, p.id ASC
 ";
 $products = $pdo->query($sql)->fetchAll();
 $allProductIds = array_map(fn($p) => (int)$p['id'], $products);

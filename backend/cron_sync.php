@@ -63,20 +63,25 @@ try {
         throw new Exception("Không có nhà cung cấp nào đang kích hoạt trong hệ thống");
     }
 
-    // Danh mục chuẩn và icon tương ứng
+    // Danh mục chuẩn và icon tương ứng, sắp xếp theo thứ tự ưu tiên hiển thị
     $danhMucChuan = [
-        'cursor'   => ['ten' => 'Cursor API',       'slug' => 'cursor',   'icon' => 'fa-bolt'],
-        'claude'   => ['ten' => 'Claude API',       'slug' => 'claude',   'icon' => 'fa-brain'],
-        'codex'    => ['ten' => 'Codex API',        'slug' => 'codex',    'icon' => 'fa-code'],
-        'gemini'   => ['ten' => 'Gemini API',       'slug' => 'gemini',   'icon' => 'fa-gem'],
-        'deepseek' => ['ten' => 'DeepSeek API',     'slug' => 'deepseek', 'icon' => 'fa-robot'],
-        'grok'     => ['ten' => 'Grok API',         'slug' => 'grok',     'icon' => 'fa-rocket'],
-        'kimi'     => ['ten' => 'Kimi API',         'slug' => 'kimi',     'icon' => 'fa-moon'],
-        'zhipu'    => ['ten' => 'GLM (Zhipu) API',  'slug' => 'zhipu',    'icon' => 'fa-feather'],
-        'muse'     => ['ten' => 'Muse AI API',      'slug' => 'muse',     'icon' => 'fa-music'],
-        'software' => ['ten' => 'Phần Mềm AI',      'slug' => 'software', 'icon' => 'fa-desktop'],
-        'other'    => ['ten' => 'Sản Phẩm Khác',    'slug' => 'other',    'icon' => 'fa-cube']
+        'claude'   => ['ten' => 'Claude API',       'slug' => 'claude',   'icon' => 'fa-brain',   'sort_order' => 1],
+        'codex'    => ['ten' => 'Codex API',        'slug' => 'codex',    'icon' => 'fa-code',    'sort_order' => 2],
+        'cursor'   => ['ten' => 'Cursor API',       'slug' => 'cursor',   'icon' => 'fa-bolt',    'sort_order' => 3],
+        'deepseek' => ['ten' => 'DeepSeek API',     'slug' => 'deepseek', 'icon' => 'fa-robot',   'sort_order' => 4],
+        'gemini'   => ['ten' => 'Gemini API',       'slug' => 'gemini',   'icon' => 'fa-gem',     'sort_order' => 5],
+        'grok'     => ['ten' => 'Grok API',         'slug' => 'grok',     'icon' => 'fa-rocket',  'sort_order' => 6],
+        'kimi'     => ['ten' => 'Kimi API',         'slug' => 'kimi',     'icon' => 'fa-moon',    'sort_order' => 7],
+        'zhipu'    => ['ten' => 'GLM (Zhipu) API',  'slug' => 'zhipu',    'icon' => 'fa-feather', 'sort_order' => 8],
+        'muse'     => ['ten' => 'Muse AI API',      'slug' => 'muse',     'icon' => 'fa-music',   'sort_order' => 9],
+        'software' => ['ten' => 'Phần Mềm AI',      'slug' => 'software', 'icon' => 'fa-desktop', 'sort_order' => 10],
+        'other'    => ['ten' => 'Sản Phẩm Khác',    'slug' => 'other',    'icon' => 'fa-cube',    'sort_order' => 99]
     ];
+
+    // Cập nhật thứ tự sắp xếp danh mục chuẩn trong CSDL
+    foreach ($danhMucChuan as $dm) {
+        $pdo->prepare("UPDATE `categories` SET `sort_order` = ? WHERE `slug` = ?")->execute([$dm['sort_order'], $dm['slug']]);
+    }
 
     // Lấy bảng categories hiện tại: slug => id
     $cats = $pdo->query("SELECT `slug`, `id` FROM `categories`")->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -160,8 +165,8 @@ try {
 
                 // Tạo danh mục nếu chưa có
                 if (!isset($cats[$catSlug])) {
-                    $stmtC = $pdo->prepare("INSERT INTO `categories` (`name`, `slug`, `icon`, `sort_order`, `is_active`) VALUES (?, ?, ?, 10, 1) ON DUPLICATE KEY UPDATE `name`=VALUES(`name`)");
-                    $stmtC->execute([$catInfo['ten'], $catSlug, $catInfo['icon']]);
+                    $stmtC = $pdo->prepare("INSERT INTO `categories` (`name`, `slug`, `icon`, `sort_order`, `is_active`) VALUES (?, ?, ?, ?, 1) ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `sort_order`=VALUES(`sort_order`)");
+                    $stmtC->execute([$catInfo['ten'], $catSlug, $catInfo['icon'], $catInfo['sort_order'] ?? 10]);
                     $catId = (int)$pdo->lastInsertId();
                     $cats[$catSlug] = $catId;
                 } else {

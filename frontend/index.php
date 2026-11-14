@@ -25,7 +25,7 @@ if ($daDangNhap) {
 // 1. Lấy tất cả danh mục đang kích hoạt từ MySQL
 $categories = $pdo->query("SELECT * FROM `categories` WHERE `is_active` = 1 ORDER BY `sort_order` ASC")->fetchAll();
 
-// 2. Lấy toàn bộ sản phẩm đang mở bán từ MySQL (Tự động ẩn sản phẩm hết hàng: stock <= 0)
+// 2. Lấy toàn bộ sản phẩm đang mở bán từ MySQL (Sắp xếp theo nhóm danh mục chuẩn và giá tăng dần)
 $products = $pdo->query("
     SELECT p.*, c.name AS category_name,
            COALESCE((SELECT m.stock FROM `supplier_product_mappings` m WHERE m.product_id = p.id AND m.is_active = 1 ORDER BY m.priority ASC LIMIT 1), 999) AS stock
@@ -33,7 +33,7 @@ $products = $pdo->query("
     JOIN `categories` c ON p.category_id = c.id
     WHERE p.is_active = 1
     HAVING (stock IS NULL OR stock > 0)
-    ORDER BY p.id ASC
+    ORDER BY c.sort_order ASC, c.id ASC, p.price ASC, p.id ASC
 ")->fetchAll();
 
 // 3. Lấy thông báo ghim nổi bật từ MySQL
