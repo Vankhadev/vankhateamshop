@@ -1,58 +1,166 @@
 <?php
 // ========================================================
-// FOOTER DÙNG CHUNG CHO TOÀN BỘ WEBSITE
-// vankhateamshop - Đồng bộ chân trang trên tất cả các trang
-// Tự động nhận diện tên website & Zalo từ cài đặt hệ thống / .env
-// Ghi chú code 100% bằng Tiếng Việt dễ hiểu
+// FOOTER DÙNG CHUNG CHO TOÀN BỘ WEBSITE TIỆM AI
+// tiemai.io.vn - Thiết kế hiện đại 5 cột chuẩn theo yêu cầu
 // ========================================================
 
 $tenWebsiteFooter = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_name', defined('SHOP_NAME') ? SHOP_NAME : 'TiemAI.io.vn') : (defined('SHOP_NAME') ? SHOP_NAME : 'TiemAI.io.vn');
-$soZaloFooter = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_contact_zalo', defined('SHOP_ZALO') ? SHOP_ZALO : '0904045075') : (defined('SHOP_ZALO') ? SHOP_ZALO : '0904045075');
-$teleFooter = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_contact_telegram', defined('SHOP_TELEGRAM') ? SHOP_TELEGRAM : 'https://t.me/vankhashop') : (defined('SHOP_TELEGRAM') ? SHOP_TELEGRAM : 'https://t.me/vankhashop');
+$soZaloFooter = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_contact_zalo', defined('SHOP_ZALO') ? SHOP_ZALO : '0847154088') : (defined('SHOP_ZALO') ? SHOP_ZALO : '0847154088');
+$teleFooter = 'https://t.me/vankhateam';
+$tiktokFooter = 'https://www.tiktok.com/@vankhateam';
+$emailFooter = 'vankhaqc@gmail.com';
 
 $daDangNhapFooter = !empty($_SESSION['user_id']);
 $curUri = $_SERVER['REQUEST_URI'] ?? '/';
+
+// 1. Danh sách sản phẩm đang bán kèm đường dẫn trực tiếp
+$danhSachSanPhamFooter = [
+    ['ten' => 'API Cursor',    'link' => '/san-pham/api-cursor-1-ngay'],
+    ['ten' => 'API Codex',     'link' => '/san-pham/codex-gpt-api-30trieu-token-rpm-1-ngay-27'],
+    ['ten' => 'API Claude',    'link' => '/san-pham/claude-code-api-goi-10-1-ngay-190'],
+    ['ten' => 'API DeepSeek',  'link' => '/san-pham/api-deepseek-toc-do-nhanh-50-credit-50-000-vnd-khuyen-nghi-188'],
+    ['ten' => 'API Kimi',      'link' => '/san-pham/api-kimi-kmi0087'],
+    ['ten' => 'API GLM',       'link' => '/san-pham/api-glm-zhp0092'],
+    ['ten' => 'API Gemini',    'link' => '/san-pham/api-gemini-10-gem0097'],
+    ['ten' => 'API Grok',      'link' => '/san-pham/api-grok-grk0078'],
+];
+
+// Nếu kết nối database hoạt động, tự động cập nhật sản phẩm hot/mới nhất
+if (isset($pdo)) {
+    try {
+        $stmtP = $pdo->query("SELECT name, slug FROM products WHERE is_active = 1 ORDER BY is_hot DESC, id ASC LIMIT 8");
+        $prodsDb = $stmtP->fetchAll(PDO::FETCH_ASSOC);
+        if (!empty($prodsDb)) {
+            $tmp = [];
+            foreach ($prodsDb as $p) {
+                $nameDisplay = $p['name'];
+                if (preg_match('/^(API (?:Cursor|Codex|Claude|DeepSeek|Kimi|GLM|Gemini|Grok))/i', $nameDisplay, $m)) {
+                    $nameDisplay = $m[1];
+                } elseif (mb_strlen($nameDisplay, 'UTF-8') > 24) {
+                    $nameDisplay = mb_substr($nameDisplay, 0, 22, 'UTF-8') . '...';
+                }
+                $tmp[] = [
+                    'ten' => $nameDisplay,
+                    'link' => '/san-pham/' . $p['slug']
+                ];
+            }
+            if (count($tmp) >= 4) {
+                $danhSachSanPhamFooter = $tmp;
+            }
+        }
+    } catch (\Throwable $e) {}
+}
 ?>
-<footer class="border-t border-gray-800 bg-[#0F172A] py-8 pb-24 lg:pb-8 text-center text-xs text-gray-400 mt-auto">
+<footer class="border-t border-gray-800/80 bg-[#0B0F19] pt-12 pb-28 lg:pb-12 text-xs text-gray-400 mt-auto">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 text-left">
-            <div>
-                <h2 class="text-sm font-black tracking-wider text-white uppercase mb-3">Hỗ trợ</h2>
-                <div class="space-y-2 text-xs">
-                    <a href="https://zalo.me/<?= htmlspecialchars($soZaloFooter) ?>" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 transition flex items-center gap-1.5 font-semibold">
-                        <i class="fas fa-comment-dots w-4"></i> Hotline Zalo: <?= htmlspecialchars($soZaloFooter) ?>
-                    </a>
-                    <a href="<?= htmlspecialchars($teleFooter) ?>" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:text-sky-300 transition flex items-center gap-1.5 font-semibold">
-                        <i class="fab fa-telegram w-4"></i> Hỗ Trợ Telegram
-                    </a>
-                    <a href="/docs" class="text-gray-400 hover:text-white transition flex items-center gap-1.5"><i class="fas fa-book w-4"></i> Buyer API Docs</a>
+        <!-- Bố cục 5 cột chuẩn xác theo thiết kế -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 lg:gap-6 text-left">
+            
+            <!-- Cột 1: Thương hiệu & Giới thiệu (Không có hộ kinh doanh / MST) -->
+            <div class="space-y-3 sm:col-span-2 md:col-span-3 lg:col-span-1">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 flex-shrink-0">
+                        <i class="fas fa-brain text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="text-base font-black text-white tracking-wide">Tiệm AI</div>
+                        <div class="text-[9px] uppercase tracking-wider text-blue-400 font-extrabold">AI API & PHÁT TRIỂN PHẦN MỀM</div>
+                    </div>
                 </div>
+                <p class="text-xs text-gray-400 leading-relaxed pt-1">
+                    Nền tảng cung cấp AI API & phần mềm tại Việt Nam.
+                </p>
             </div>
+
+            <!-- Cột 2: SẢN PHẨM -->
             <div>
-                <h2 class="text-sm font-black tracking-wider text-white uppercase mb-3">Pháp lý</h2>
-                <div class="grid grid-cols-1 gap-2 text-xs">
-                    <a href="/dieu-khoan-su-dung" class="text-gray-400 hover:text-white transition">Điều khoản sử dụng</a>
-                    <a href="/quy-che-hoat-dong" class="text-gray-400 hover:text-white transition">Quy chế hoạt động</a>
-                    <a href="/chinh-sach-thanh-toan" class="text-gray-400 hover:text-white transition">Chính sách thanh toán</a>
-                    <a href="/chinh-sach-cung-cap-san-pham" class="text-gray-400 hover:text-white transition">Chính sách cung cấp sản phẩm</a>
-                    <a href="/bao-hanh-hoan-tien" class="text-gray-400 hover:text-white transition">Bảo hành & hoàn tiền</a>
-                    <a href="/dieu-khoan-dai-ly" class="text-gray-400 hover:text-white transition">Điều khoản đại lý</a>
-                    <a href="/chinh-sach-bao-mat" class="text-gray-400 hover:text-white transition">Chính sách bảo mật</a>
-                </div>
+                <h3 class="text-xs font-black tracking-wider text-white uppercase mb-4">SẢN PHẨM</h3>
+                <ul class="space-y-2.5 text-xs">
+                    <?php foreach ($danhSachSanPhamFooter as $sp): ?>
+                        <li>
+                            <a href="<?= htmlspecialchars($sp['link']) ?>" class="text-gray-400 hover:text-white transition block truncate" title="<?= htmlspecialchars($sp['ten']) ?>">
+                                <?= htmlspecialchars($sp['ten']) ?>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
             </div>
-            <div class="lg:text-right">
-                <h2 class="text-sm font-black tracking-wider text-white uppercase mb-3">Thông tin</h2>
-                <p class="text-xs leading-relaxed text-gray-400">Hệ thống cung cấp API AI và phần mềm bản quyền 24/7. Vui lòng đọc kỹ chính sách trước khi sử dụng dịch vụ.</p>
+
+            <!-- Cột 3: TÀI NGUYÊN -->
+            <div>
+                <h3 class="text-xs font-black tracking-wider text-white uppercase mb-4">TÀI NGUYÊN</h3>
+                <ul class="space-y-2.5 text-xs">
+                    <li><a href="/docs" class="text-gray-400 hover:text-white transition">API Docs</a></li>
+                    <li><a href="/san-pham" class="text-gray-400 hover:text-white transition">Bảng giá Model</a></li>
+                    <li><a href="/docs" class="text-gray-400 hover:text-white transition">Blog</a></li>
+                    <li><a href="/xep-hang" class="text-gray-400 hover:text-white transition">Bảng Xếp Hạng</a></li>
+                    <li><a href="/phan-mem" class="text-gray-400 hover:text-white transition">Phần mềm</a></li>
+                </ul>
+            </div>
+
+            <!-- Cột 4: LIÊN HỆ -->
+            <div>
+                <h3 class="text-xs font-black tracking-wider text-white uppercase mb-4">LIÊN HỆ</h3>
+                <ul class="space-y-2.5 text-xs">
+                    <li>
+                        <a href="mailto:<?= htmlspecialchars($emailFooter) ?>" class="text-gray-400 hover:text-white transition flex items-center gap-2">
+                            <i class="far fa-envelope text-gray-400 w-4 text-center"></i>
+                            <span class="truncate"><?= htmlspecialchars($emailFooter) ?></span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-white transition flex items-center gap-2">
+                            <i class="fab fa-facebook text-gray-400 w-4 text-center"></i>
+                            <span>Facebook</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?= htmlspecialchars($teleFooter) ?>" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-white transition flex items-center gap-2">
+                            <i class="fab fa-telegram text-gray-400 w-4 text-center"></i>
+                            <span>vankhateam</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?= htmlspecialchars($tiktokFooter) ?>" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-white transition flex items-center gap-2">
+                            <i class="fab fa-tiktok text-gray-400 w-4 text-center"></i>
+                            <span>TikTok</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Cột 5: PHÁP LÝ -->
+            <div>
+                <h3 class="text-xs font-black tracking-wider text-white uppercase mb-4">PHÁP LÝ</h3>
+                <ul class="space-y-2.5 text-xs">
+                    <li><a href="/dieu-khoan-su-dung" class="text-gray-400 hover:text-white transition">Điều khoản sử dụng</a></li>
+                    <li><a href="/quy-che-hoat-dong" class="text-gray-400 hover:text-white transition">Quy chế hoạt động</a></li>
+                    <li><a href="/chinh-sach-thanh-toan" class="text-gray-400 hover:text-white transition">Chính sách thanh toán</a></li>
+                    <li><a href="/chinh-sach-cung-cap-san-pham" class="text-gray-400 hover:text-white transition">Chính sách cung cấp sản phẩm</a></li>
+                    <li><a href="/bao-hanh-hoan-tien" class="text-gray-400 hover:text-white transition">Bảo hành & hoàn tiền</a></li>
+                    <li><a href="/dieu-khoan-dai-ly" class="text-gray-400 hover:text-white transition">Điều khoản đại lý</a></li>
+                    <li><a href="/chinh-sach-bao-mat" class="text-gray-400 hover:text-white transition">Chính sách bảo mật</a></li>
+                </ul>
+            </div>
+
+        </div>
+
+        <!-- Dòng bản quyền chân trang (Giữ nguyên theo đúng yêu cầu) -->
+        <div class="mt-12 pt-6 border-t border-gray-800/80 flex flex-col md:flex-row items-center justify-between gap-4 text-gray-400 text-[11px]">
+            <p class="text-center md:text-left leading-relaxed">
+                &copy; 2026 Tiemai.io.vn - Cung Cấp Api Ai Agent - Hệ Thống Cung Cấp API AI & Phần Mềm Bản Quyền 24/7. All rights reserved.
+            </p>
+            <div class="flex items-center gap-4 text-xs font-medium">
+                <a href="/chinh-sach-bao-mat" class="text-gray-400 hover:text-white transition">Chính sách</a>
+                <span class="text-gray-700">|</span>
+                <a href="/dieu-khoan-su-dung" class="text-gray-400 hover:text-white transition">Điều khoản</a>
             </div>
         </div>
-        <p class="font-medium text-gray-400 text-[11px] text-center mt-8 pt-4 border-t border-gray-800">
-            &copy; 2026 <span class="text-white font-bold"><?= htmlspecialchars($tenWebsiteFooter) ?></span> - All rights reserved.
-        </p>
     </div>
 </footer>
 
 <!-- THANH ĐIỀU HƯỚNG DƯỚI ĐÁY DÀNH CHO MOBILE (APP-LIKE BOTTOM BAR) -->
-<nav class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0F172A]/95 backdrop-blur-xl border-t border-gray-800/90 px-2 py-1.5 shadow-[0_-5px_25px_rgba(0,0,0,0.6)]">
+<nav class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0B0F19]/95 backdrop-blur-xl border-t border-gray-800/90 px-2 py-1.5 shadow-[0_-5px_25px_rgba(0,0,0,0.6)]">
     <div class="grid grid-cols-5 text-center">
         <!-- 1. Trang Chủ -->
         <a href="/" class="flex flex-col items-center py-1 <?= ($curUri === '/' || $curUri === '') ? 'text-blue-400 font-bold' : 'text-gray-400 hover:text-white' ?> transition">
