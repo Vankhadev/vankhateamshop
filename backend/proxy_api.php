@@ -24,9 +24,42 @@ $phuongThuc = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 // 1. ENDPOINT LẤY DANH SÁCH MODEL (/v1/models)
 if (strpos($uri, '/models') !== false && $phuongThuc === 'GET') {
     header('Content-Type: application/json; charset=utf-8');
+
+    // Trích xuất Authorization Bearer Token nếu có
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
+    if (empty($authHeader) && function_exists('apache_request_headers')) {
+        $headers = apache_request_headers();
+        $authHeader = $headers['Authorization'] ?? ($headers['authorization'] ?? '');
+    }
+    $tokenKhach = '';
+    if (preg_match('/Bearer\s+(\S+)/i', $authHeader, $matches)) {
+        $tokenKhach = trim($matches[1]);
+    }
+
+    // Nếu là key của Zplay / Taphoaai (64 ký tự hex) thì forward sang Zplay
+    if (preg_match('/^sk-[0-9a-f]{64}$/i', $tokenKhach)) {
+        $ch = curl_init('https://zplay.io.vn/v1/models');
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $tokenKhach]);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 6);
+        $res = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($res && $code === 200) {
+            echo $res;
+            exit;
+        }
+    }
     
     // Thu thập danh sách model mặc định & từ các sản phẩm đang bán
     $modelMap = [
+        'gpt-5.6-sol'       => 'openai',
+        'gpt-6.1-sol'       => 'openai',
+        'gpt-5.6-luna'      => 'openai',
+        'gpt-5.6-terra'     => 'openai',
+        'gpt-5.4-mini'      => 'openai',
+        'claude-opus-5.5'   => 'anthropic',
+        'claude-sonnet-5'   => 'anthropic',
         'claude-3-5-sonnet' => 'anthropic',
         'deepseek-reasoner' => 'deepseek',
         'deepseek-chat'     => 'deepseek',
@@ -174,16 +207,61 @@ if (!$userInfo && !str_starts_with($tokenKhach, 'sk-') && !str_starts_with($toke
 $bodyRaw = file_get_contents('php://input');
 $bodyJson = json_decode($bodyRaw, true);
 
-// D. Chuẩn bị chuyển tiếp (Forward) sang nhà cung cấp đối tác
-$supplier = $pdo->query("SELECT * FROM `suppliers` WHERE `is_active` = 1 ORDER BY `id` ASC LIMIT 1")->fetch();
-$targetUrl = rtrim($supplier['api_url'] ?? SUPPLIER_API_URL, '/') . '/chat/completions';
-$targetKey = $supplier['api_key'] ?? SUPPLIER_API_KEY;
+// D. Chuẩn bị chuyển tiếp (Forward) sang nhà cung cấp đối tác tương ứng với Key
+$targetUrl = '';
+$forwardKey = $tokenKhach;
 
-// Nếu khách dùng chính mã Key của nhà cung cấp đã giao (sk-... hoặc gzsk_...)
-// thì chuyển tiếp trực tiếp mã Key đó để nhà cung cấp trừ quota đúng gói của khách
-$forwardKey = $targetKey;
-if (str_starts_with($tokenKhach, 'sk-') || str_starts_with($tokenKhach, 'gzsk_')) {
-    $forwardKey = $tokenKhach;
+// 1. Kiểm tra xem key này được mua từ đơn hàng nào để biết chính xác đối tác cấp key
+$stmtFindSupplier = $pdo->prepare("
+    SELECT s.* 
+    FROM `orders` o 
+    JOIN `suppliers` s ON o.supplier_id = s.id 
+    WHERE o.delivered_data LIKE ? 
+    ORDER BY o.id DESC LIMIT 1
+");
+$stmtFindSupplier->execute(["%$tokenKhach%"]);
+$matchedSup = $stmtFindSupplier->fetch();
+
+if ($matchedSup && stripos($matchedSup['api_url'], 'taphoaai') !== false) {
+    // Key từ Taphoaai / Zplay: Cổng Chat Completions chuẩn là https://zplay.io.vn/v1/chat/completions
+    $targetUrl = 'https://zplay.io.vn/v1/chat/completions';
+} elseif (preg_match('/^sk-[0-9a-f]{64}$/i', $tokenKhach)) {
+    // Key 64 ký tự hex của hệ thống Zplay / Taphoaai
+    $targetUrl = 'https://zplay.io.vn/v1/chat/completions';
+} elseif ($matchedSup) {
+    $targetUrl = rtrim($matchedSup['api_url'], '/') . '/chat/completions';
+} else {
+    // Mặc định lấy nhà cung cấp số 1 (Genzshop)
+    $supplier = $pdo->query("SELECT * FROM `suppliers` WHERE `is_active` = 1 ORDER BY `id` ASC LIMIT 1")->fetch();
+    $targetUrl = rtrim($supplier['api_url'] ?? SUPPLIER_API_URL, '/') . '/chat/completions';
+    if (!str_starts_with($tokenKhach, 'sk-') && !str_starts_with($tokenKhach, 'gzsk_')) {
+        $forwardKey = $supplier['api_key'] ?? SUPPLIER_API_KEY;
+    }
+}
+
+// 2. Tự động tương thích và chuyển đổi Model nếu cổng Zplay không hỗ trợ trực tiếp model yêu cầu
+if ($targetUrl === 'https://zplay.io.vn/v1/chat/completions') {
+    $zplaySupported = [
+        'gpt-5.6-sol', 'gpt-6.1-sol', 'gpt-6-sol', 'gpt-5.6-luna', 'gpt-6-luna',
+        'gpt-5.6-terra', 'gpt-5.4-mini', 'claude-opus-5.5', 'claude-opus-5-5',
+        'claude-sonnet-5', 'claude-opus-5', 'claude-opus-4.8', 'claude-opus-4.7', 'claude-opus-4.6'
+    ];
+    $rawReqModel = trim($bodyJson['model'] ?? '');
+    $reqModelLower = strtolower($rawReqModel);
+
+    if (!empty($rawReqModel) && !in_array($reqModelLower, $zplaySupported, true)) {
+        if (stripos($reqModelLower, 'claude') !== false) {
+            $bodyJson['model'] = 'claude-opus-5.5';
+        } elseif (stripos($reqModelLower, 'mini') !== false || stripos($reqModelLower, 'small') !== false) {
+            $bodyJson['model'] = 'gpt-5.4-mini';
+        } elseif (stripos($reqModelLower, '6') !== false) {
+            $bodyJson['model'] = 'gpt-6.1-sol';
+        } else {
+            // Mặc định chuyển sang model mạnh nhất gpt-5.6-sol (thay vì báo lỗi 404 cho deepseek-reasoner, gpt-4o...)
+            $bodyJson['model'] = 'gpt-5.6-sol';
+        }
+        $bodyRaw = json_encode($bodyJson, JSON_UNESCAPED_UNICODE);
+    }
 }
 
 // Kiểm tra xem yêu cầu có yêu cầu Streaming (truyền dòng ký tự từng chữ) không

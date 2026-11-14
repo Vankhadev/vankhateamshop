@@ -321,6 +321,11 @@ switch ($hanhDong) {
             }
 
             // Thiết lập hạn mức & thông số chu kỳ
+            $isTokenRPM = false;
+            $tokenDisplay = '';
+            $shortDisplay = '';
+            $conLaiText = '';
+
             if ($isDailyReset) {
                 $resetLuc = '07:00 AM (Hàng ngày)';
                 $tuanChuKy = 'Reset 07:00 AM mỗi ngày';
@@ -328,6 +333,30 @@ switch ($hanhDong) {
                 $requestsCapacityNumber = 300;
                 $tokenLimit = 'Không giới hạn (Full Model)';
                 $costLimit = 'Đã bao gồm trọn gói';
+                $conLaiText = '200 - 400 tin nhắn/ngày';
+            } elseif (preg_match('/(\d+)\s*(TRIỆU|TỶ|M|B)\s*Token(\s*RPM)?/iu', $combinedInfo, $mTok)) {
+                $isTokenRPM = true;
+                $num = (int)$mTok[1];
+                $unit = mb_strtoupper(trim($mTok[2]));
+                $isRPM = (stripos($mTok[0], 'RPM') !== false);
+
+                if ($unit === 'TRIỆU' || $unit === 'M') {
+                    $tokenCount = $num * 1000000;
+                    $tokenDisplay = number_format($tokenCount, 0, ',', '.') . ($isRPM ? ' Token RPM' : ' Tokens');
+                    $shortDisplay = $num . 'M' . ($isRPM ? ' Token RPM' : ' Token');
+                } else {
+                    $tokenCount = $num * 1000000000;
+                    $tokenDisplay = number_format($tokenCount, 0, ',', '.') . ($isRPM ? ' Token RPM' : ' Tokens');
+                    $shortDisplay = $num . 'B' . ($isRPM ? ' Token' : ' Token');
+                }
+
+                $resetLuc = 'Theo chu kỳ gói (' . $soNgay . ' ngày)';
+                $tuanChuKy = 'Gói ' . $soNgay . ' ngày (' . $shortDisplay . ')';
+                $requestsLimitDisplay = $shortDisplay;
+                $requestsCapacityNumber = 1000000; // Không giới hạn số lượng request
+                $tokenLimit = $tokenDisplay;
+                $costLimit = 'Đã bao gồm trọn gói';
+                $conLaiText = $tokenDisplay . ' (Không giới hạn req)';
             } elseif (preg_match('/(\d+)\$\s*Credit/iu', $combinedInfo, $mCredit)) {
                 $creditVal = $mCredit[1];
                 $resetLuc = 'Theo chu kỳ gói (' . $soNgay . ' ngày)';
@@ -336,6 +365,7 @@ switch ($hanhDong) {
                 $requestsCapacityNumber = (int)$creditVal * 100;
                 $tokenLimit = 'Theo hạn mức ' . $creditVal . '$';
                 $costLimit = '$' . $creditVal . '.00 USD';
+                $conLaiText = '$' . $creditVal . '.00 Credit';
             } elseif (preg_match('/([\d\.]+)\s*Request/iu', $combinedInfo, $mReq)) {
                 $reqNum = (int)str_replace('.', '', $mReq[1]);
                 $resetLuc = 'Theo chu kỳ gói (' . $soNgay . ' ngày)';
@@ -344,6 +374,7 @@ switch ($hanhDong) {
                 $requestsCapacityNumber = $reqNum;
                 $tokenLimit = 'Không giới hạn (Full Model)';
                 $costLimit = 'Đã bao gồm trọn gói';
+                $conLaiText = number_format($reqNum) . ' Request';
             } else {
                 $resetLuc = 'Theo chu kỳ gói (' . $soNgay . ' ngày)';
                 $tuanChuKy = 'Gói ' . $soNgay . ' ngày';
@@ -351,13 +382,21 @@ switch ($hanhDong) {
                 $requestsCapacityNumber = 700;
                 $tokenLimit = 'Không giới hạn (Full Model)';
                 $costLimit = 'Đã bao gồm trọn gói';
+                $conLaiText = 'Tốc độ cao 24/7';
             }
 
             // Lấy key giao thực tế
             $actualKey = $keyCanCheck;
             $deliveredArr = json_decode($order['delivered_data'] ?? '[]', true);
             if (is_array($deliveredArr) && !empty($deliveredArr)) {
-                $actualKey = trim($deliveredArr[0]);
+                $rawDelivered = trim($deliveredArr[0]);
+                if (preg_match('/(sk-[0-9a-fA-F]{32,64}|sk-[a-zA-Z0-9_\-]+|gzsk_[a-zA-Z0-9_\-]+)/', $rawDelivered, $mK)) {
+                    $actualKey = $mK[1];
+                } else {
+                    $actualKey = $rawDelivered;
+                }
+            } elseif (preg_match('/(sk-[0-9a-fA-F]{32,64}|sk-[a-zA-Z0-9_\-]+|gzsk_[a-zA-Z0-9_\-]+)/', $actualKey, $mK)) {
+                $actualKey = $mK[1];
             }
             $shortKey = substr($actualKey, 0, 12);
 
@@ -407,7 +446,29 @@ switch ($hanhDong) {
                 $models = array_values(array_filter(array_map('trim', explode(',', $order['supported_models']))));
             }
             if (empty($models)) {
-                $models = ['claude-3-5-sonnet', 'deepseek-reasoner', 'deepseek-chat', 'gpt-4o', 'cursor-small'];
+                if (stripos($combinedInfo, 'codex') !== false || preg_match('/^sk-[0-9a-f]{64}$/i', $actualKey)) {
+                    $models = [
+                        'gpt-5.6-sol',
+                        'gpt-6.1-sol',
+                        'gpt-5.6-luna',
+                        'gpt-5.6-terra',
+                        'gpt-5.4-mini',
+                        'claude-opus-5.5',
+                        'claude-sonnet-5',
+                        'claude-opus-5',
+                        'claude-opus-4.8'
+                    ];
+                } elseif (stripos($combinedInfo, 'claude_code') !== false || stripos($combinedInfo, 'claude') !== false) {
+                    $models = [
+                        'claude-opus-5.5',
+                        'claude-sonnet-5',
+                        'claude-opus-5',
+                        'claude-opus-4.8',
+                        'claude-3-5-sonnet'
+                    ];
+                } else {
+                    $models = ['claude-3-5-sonnet', 'deepseek-reasoner', 'deepseek-chat', 'gpt-4o', 'cursor-small'];
+                }
             }
 
             // Lịch sử 7 ngày (Daily Usage)
@@ -454,21 +515,31 @@ switch ($hanhDong) {
                 'gateway'          => 'Gateway',
                 
                 // 3 Cột thống kê chính
-                'requests_val'     => $daDungPeriod . ' / ' . ($isDailyReset ? '200 - 400' : number_format($requestsCapacityNumber)),
-                'requests_sub'     => $isDailyReset ? '200 - 400 tin nhắn/ngày' : $requestsLimitDisplay,
-                'tokens_val'       => number_format($daDungTotal * 1250) . ' Tokens',
-                'tokens_sub'       => 'Không giới hạn tokens',
+                'requests_val'     => $isTokenRPM 
+                                        ? ($daDungPeriod . ' requests') 
+                                        : ($daDungPeriod . ' / ' . ($isDailyReset ? '200 - 400' : number_format($requestsCapacityNumber))),
+                'requests_sub'     => $isTokenRPM 
+                                        ? ('Băng thông: ' . $shortDisplay) 
+                                        : ($isDailyReset ? '200 - 400 tin nhắn/ngày' : $requestsLimitDisplay),
+                'tokens_val'       => $isTokenRPM 
+                                        ? $tokenDisplay 
+                                        : (number_format($daDungTotal * 1250) . ' Tokens'),
+                'tokens_sub'       => $isTokenRPM 
+                                        ? ('Đã tiêu thụ: ' . number_format($daDungTotal * 1250) . ' tokens') 
+                                        : 'Không giới hạn tokens',
                 'cost_val'         => $isDailyReset ? '0 đ' : (strpos($requestsLimitDisplay, 'Credit') !== false ? '$0.00 / ' . ($creditVal ?? 10) . '$' : '0 đ'),
                 'cost_sub'         => 'Đã bao gồm trọn gói',
 
                 // Tiến độ & Hết hạn
-                'progress_text'    => $daDungPeriod . ' / ' . ($isDailyReset ? '300' : $requestsCapacityNumber),
-                'phan_tram'        => $phanTramDung,
+                'progress_text'    => $isTokenRPM 
+                                        ? ($daDungPeriod . ' req / Không giới hạn') 
+                                        : ($daDungPeriod . ' / ' . ($isDailyReset ? '300' : $requestsCapacityNumber)),
+                'phan_tram'        => $isTokenRPM ? min(100, round(($daDungPeriod / 100) * 100)) : $phanTramDung,
                 'ngay_het_han'     => date('d/m/Y H:i', $thoiGianHetHan),
                 'han_dung'         => $hanDungText,
 
                 // Thẻ thông tin dưới
-                'con_lai'          => $isDailyReset ? '200 - 400 tin nhắn/ngày' : (number_format($conLaiRequest) . ' Request'),
+                'con_lai'          => $conLaiText,
                 'tuan_chu_ky'      => $tuanChuKy,
                 'reset_luc'        => $resetLuc,
                 'cap_nhat'         => 'Vừa xong',

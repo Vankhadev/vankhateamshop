@@ -441,7 +441,7 @@ $keyTuUrl = htmlspecialchars(trim($_GET['key'] ?? ''));
                     <ol class="list-decimal list-inside space-y-1 text-gray-400 font-mono text-[11px]">
                         <li>Override OpenAI Base URL: <span class="text-amber-300 font-bold"><?= $baseUrlWebsite ?></span></li>
                         <li>OpenAI API Key: <span class="text-blue-300 font-bold" x-text="oNhapKey || 'dán key của bạn vào đây'"></span></li>
-                        <li>Bật các Model: <span class="text-green-300 font-bold">claude-3-5-sonnet, deepseek-reasoner, cursor-small</span></li>
+                        <li>Bật các Model tương ứng gói: <span class="text-green-300 font-bold" x-text="ketQua?.models ? ketQua.models.slice(0, 5).join(', ') : 'gpt-5.6-sol, claude-opus-5.5, deepseek-reasoner'"></span></li>
                     </ol>
                 </div>
             </div>
