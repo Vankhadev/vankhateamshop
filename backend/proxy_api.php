@@ -37,6 +37,21 @@ if (strpos($uri, '/models') !== false && $phuongThuc === 'GET') {
     }
 
     // Nếu là key của Zplay / Taphoaai (64 ký tự hex) thì forward sang Zplay
+    if (empty($tokenKhach)) {
+        http_response_code(401);
+        echo json_encode(['error' => ['message' => 'Thiếu API Key trong Authorization Bearer', 'code' => 'missing_api_key']], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // /models cũng phải xác thực key thật, không cho truy cập công khai.
+    $stmtModelAuth = $pdo->prepare("\n        SELECT id FROM `users` WHERE (`api_token` = ? OR `reseller_key` = ?) AND `is_active` = 1\n        UNION\n        SELECT o.user_id AS id FROM `orders` o WHERE (o.delivered_data LIKE ? OR o.order_code = ?) AND o.status = 'COMPLETED'\n        LIMIT 1\n    ");
+    $stmtModelAuth->execute([$tokenKhach, $tokenKhach, "%$tokenKhach%", $tokenKhach]);
+    if (!$stmtModelAuth->fetch()) {
+        http_response_code(401);
+        echo json_encode(['error' => ['message' => 'API Key không hợp lệ hoặc đã hết hạn.', 'code' => 'invalid_api_key']], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     if (preg_match('/^sk-[0-9a-f]{64}$/i', $tokenKhach)) {
         $ch = curl_init('https://zplay.io.vn/v1/models');
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $tokenKhach]);
@@ -121,6 +136,15 @@ if ((strpos($uri, '/usage') !== false || strpos($uri, '/key/check') !== false) &
     if (empty($tokenKhach)) {
         http_response_code(400);
         echo json_encode(['error' => ['message' => 'Missing API Key in Authorization Bearer or ?key= parameter', 'code' => 'missing_key']]);
+        exit;
+    }
+
+    // Không trả quota giả cho token chưa tồn tại trong hệ thống.
+    $stmtUsageAuth = $pdo->prepare("\n        SELECT id FROM `users` WHERE (`api_token` = ? OR `reseller_key` = ?) AND `is_active` = 1\n        UNION\n        SELECT o.user_id AS id FROM `orders` o WHERE (o.delivered_data LIKE ? OR o.order_code = ?) AND o.status = 'COMPLETED'\n        LIMIT 1\n    ");
+    $stmtUsageAuth->execute([$tokenKhach, $tokenKhach, "%$tokenKhach%", $tokenKhach]);
+    if (!$stmtUsageAuth->fetch()) {
+        http_response_code(401);
+        echo json_encode(['error' => ['message' => 'API Key không hợp lệ hoặc đã hết hạn.', 'code' => 'invalid_api_key']], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
