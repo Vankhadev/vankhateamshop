@@ -37,7 +37,7 @@ CREATE TABLE `users` (
     `role` ENUM('admin', 'user') NOT NULL DEFAULT 'user',
     `api_token` VARCHAR(80) NULL UNIQUE COMMENT 'Key để khách gọi API đại lý',
     `is_reseller` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1: Là Đại Lý, 0: Khách Thường',
-    `reseller_key` VARCHAR(80) NULL UNIQUE COMMENT 'Khóa API riêng biệt dành riêng cho đại lý',
+    `reseller_key` VARCHAR(128) NULL UNIQUE COMMENT 'Khóa API riêng biệt dành riêng cho đại lý',
     `reseller_discount` DECIMAL(5, 2) NOT NULL DEFAULT 5.00 COMMENT 'Chiết khấu % riêng cho đại lý',
     `is_active` TINYINT(1) NOT NULL DEFAULT 1,
     `remember_token` VARCHAR(100) NULL,

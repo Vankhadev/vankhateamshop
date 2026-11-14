@@ -1092,7 +1092,7 @@ switch ($hanhDong) {
         }
 
         // Tự động sinh mã đại lý riêng biệt duy nhất cho mỗi đại lý
-        $resellerKey = 'vk_partner_' . bin2hex(random_bytes(16));
+        $resellerKey = 'vkts_' . bin2hex(random_bytes(32));
 
         $stmt = $pdo->prepare("UPDATE `users` SET `is_reseller` = 1, `reseller_key` = ?, `reseller_discount` = ? WHERE `id` = ?");
         $stmt->execute([$resellerKey, $discount, $userId]);
@@ -1112,7 +1112,7 @@ switch ($hanhDong) {
             exit;
         }
         $userId = (int)($_POST['user_id'] ?? 0);
-        $resellerKey = 'vk_partner_' . bin2hex(random_bytes(16));
+        $resellerKey = 'vkts_' . bin2hex(random_bytes(32));
         $pdo->prepare("UPDATE `users` SET `reseller_key` = ? WHERE `id` = ? AND `is_reseller` = 1")->execute([$resellerKey, $userId]);
         
         ghiNhatKyHeThong('INFO', 'DOI_KEY_DAI_LY', "Tạo lại Key API Đại Lý cho User ID {$userId}");
@@ -1188,7 +1188,7 @@ switch ($hanhDong) {
 
         $resellerKey = $currentKey;
         if ($isReseller === 1 && empty($currentKey)) {
-            $resellerKey = 'vk_partner_' . bin2hex(random_bytes(16));
+            $resellerKey = 'vkts_' . bin2hex(random_bytes(32));
         }
 
         $stmtUp = $pdo->prepare("

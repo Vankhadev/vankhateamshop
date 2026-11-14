@@ -10,7 +10,7 @@ require_once __DIR__ . '/config.php';
 function dongBoBangGiaModelTuNguon() {
     $dataFile = __DIR__ . '/data/models_pricing.json';
     
-    // Nguồn cấp chính: GenzShop / 1gw.gwai.cloud
+    // Đồng bộ bảng giá model từ tất cả các đối tác kết nối (Modelapi.vn, 1gw.gwai.cloud)
     $url = 'https://genzshop.vn/vi/models-pricing';
     
     $ch = curl_init($url);
