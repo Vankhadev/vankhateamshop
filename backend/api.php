@@ -1198,6 +1198,7 @@ switch ($hanhDong) {
                 'cost_price'     => (float)($it['walletPricing'] ?? 0),
                 'cost_text'      => $it['walletPricingText'] ?? (number_format($it['walletPricing'] ?? 0, 0, ',', '.') . ' VNĐ'),
                 'stock'          => (int)($it['available'] ?? 0),
+                'image'          => $it['image'] ?? ($mapBySku[$sku]['image'] ?? null),
                 'is_mapped'      => $isMapped,
                 'shop_product'   => $isMapped ? $mapBySku[$sku] : null
             ];

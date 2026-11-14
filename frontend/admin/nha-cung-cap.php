@@ -274,8 +274,20 @@ $suppliers = $pdo->query("SELECT * FROM `suppliers` ORDER BY `id` ASC")->fetchAl
                                         <tr class="hover:bg-gray-900/60 transition">
                                             <td class="py-3 px-3 font-mono text-purple-400 font-bold" x-text="p.supplier_sku"></td>
                                             <td class="py-3 px-4">
-                                                <div class="font-bold text-white" x-text="p.name"></div>
-                                                <div class="text-[10px] text-gray-500 truncate max-w-xs" x-text="p.description"></div>
+                                                <div class="flex items-center gap-2.5">
+                                                    <template x-if="p.image">
+                                                        <img :src="p.image" class="w-8 h-8 rounded-lg object-contain bg-gray-800 p-0.5 border border-gray-700 shrink-0">
+                                                    </template>
+                                                    <template x-if="!p.image">
+                                                        <div class="w-8 h-8 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-purple-400 text-xs shrink-0">
+                                                            <i class="fas fa-cube"></i>
+                                                        </div>
+                                                    </template>
+                                                    <div class="min-w-0">
+                                                        <div class="font-bold text-white truncate" x-text="p.name"></div>
+                                                        <div class="text-[10px] text-gray-500 truncate max-w-xs" x-text="p.description"></div>
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td class="py-3 px-3">
                                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-800 text-gray-300 uppercase" x-text="p.type"></span>
