@@ -75,14 +75,8 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
             <div class="flex items-center justify-between h-16 gap-3">
                 
                 <!-- Logo Shop -->
-                <a href="/" class="flex items-center gap-2.5 shrink-0 mr-1 xl:mr-4">
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-base shadow-lg shadow-blue-500/20 shrink-0">
-                        VK
-                    </div>
-                    <div class="hidden sm:block shrink-0">
-                        <span class="text-base font-bold text-white tracking-wide block leading-tight whitespace-nowrap"><?= htmlspecialchars($tenNganHeader) ?></span>
-                        <span class="text-[9px] text-gray-400 font-semibold tracking-wider uppercase block leading-tight whitespace-nowrap">Cổng API AI Tự Động</span>
-                    </div>
+                <a href="/" class="flex items-center gap-2.5 shrink-0 mr-1 xl:mr-4 group" title="Tiệm AI - tiemai.io.vn">
+                    <img src="/assets/images/logo.png" alt="Tiệm AI" class="h-8 sm:h-9 md:h-10 w-auto object-contain transition duration-200 group-hover:scale-105 filter drop-shadow-[0_2px_10px_rgba(37,99,235,0.2)]">
                 </a>
 
                 <!-- Menu điều hướng trung tâm (Đồng bộ mọi trang) -->

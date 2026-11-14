@@ -182,9 +182,13 @@ if (empty($supportedModels)) {
         ];
     } elseif (strpos($catSlug, 'gemini') !== false || strpos($prodName, 'gemini') !== false) {
         $supportedModels = [
-            ['name' => 'gemini-1.5-pro', 'desc' => 'Gemini 1.5 Pro ngữ cảnh 2 triệu token siêu khổng lồ', 'status' => 'Online', 'tag' => '2M Context'],
-            ['name' => 'gemini-2.0-flash', 'desc' => 'Gemini 2.0 Flash thế hệ mới nhất siêu nhanh', 'status' => 'Online', 'tag' => 'Next Gen'],
-            ['name' => 'gemini-1.5-flash', 'desc' => 'Gemini 1.5 Flash tối ưu tốc độ và độ phản hồi', 'status' => 'Online', 'tag' => 'Ultra Low Latency'],
+            ['name' => 'gemini-3.8-flash', 'desc' => 'Gemini 3.8 Flash (In: $0.75/1M, Out: $3.75/1M, Cache: $0.075/1M)', 'status' => 'Online', 'tag' => 'Flagship Fast'],
+            ['name' => 'gemini-4-argon', 'desc' => 'Gemini 4 Argon suy luận chuyên sâu (In: $2.00/1M, Out: $10.00/1M, Cache: $0.20/1M)', 'status' => 'Online', 'tag' => 'Next Gen'],
+            ['name' => 'gemini-4-carbon', 'desc' => 'Gemini 4 Carbon hiệu năng cao đa tác vụ (In: $2.00/1M, Out: $10.00/1M, Cache: $0.20/1M)', 'status' => 'Online', 'tag' => 'High Performance'],
+            ['name' => 'nano-banana-2', 'desc' => 'Nano Banana 2 mô hình siêu nhẹ ($0.30 / request)', 'status' => 'Online', 'tag' => 'Per Request'],
+            ['name' => 'nano-banana-2-2k', 'desc' => 'Nano Banana 2-2k ngữ cảnh mở rộng ($0.40 / request)', 'status' => 'Online', 'tag' => '2K Context'],
+            ['name' => 'nano-banana-2-4k', 'desc' => 'Nano Banana 2-4k ngữ cảnh cao ($0.60 / request)', 'status' => 'Online', 'tag' => '4K Context'],
+            ['name' => 'gemini-4-hydrogen', 'desc' => 'Gemini 4 Hydrogen tốc độ cực đại (In: $2.00/1M, Out: $10.00/1M, Cache: $0.20/1M)', 'status' => 'Online', 'tag' => 'Ultra Speed'],
         ];
     } elseif (strpos($catSlug, 'grok') !== false || strpos($prodName, 'grok') !== false) {
         $supportedModels = [

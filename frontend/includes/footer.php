@@ -32,17 +32,11 @@ $danhSachSanPhamFooter = [
             
             <!-- Cột 1: Thương hiệu & Giới thiệu -->
             <div class="space-y-3 sm:col-span-2 md:col-span-3 lg:col-span-1">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 flex-shrink-0">
-                        <i class="fas fa-brain text-lg"></i>
-                    </div>
-                    <div>
-                        <div class="text-base font-black text-white tracking-wide">Tiệm AI</div>
-                        <div class="text-[9px] uppercase tracking-wider text-blue-400 font-extrabold">AI API & PHÁT TRIỂN PHẦN MỀM</div>
-                    </div>
-                </div>
+                <a href="/" class="inline-block group" title="Tiệm AI - tiemai.io.vn">
+                    <img src="/assets/images/logo.png" alt="Tiệm AI" class="h-9 sm:h-10 w-auto object-contain transition duration-200 group-hover:scale-105 filter drop-shadow-[0_2px_8px_rgba(37,99,235,0.2)]">
+                </a>
                 <p class="text-xs text-gray-400 leading-relaxed pt-1">
-                    Nền tảng cung cấp AI API & phần mềm tại Việt Nam.
+                    Nền tảng cung cấp AI API &amp; phần mềm tại Việt Nam.
                 </p>
             </div>
 

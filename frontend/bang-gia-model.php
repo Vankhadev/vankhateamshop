@@ -218,7 +218,8 @@ $siteName = 'Tiệm AI';
             active: "Hoạt động",
             paused: "Tạm dừng",
             credit: "Key credit",
-            both: "Cả hai",
+            both: "Credit + Tháng",
+            thang: "Key tháng",
             copied: "Đã copy!",
             empty: "Không tìm thấy model nào phù hợp với bộ lọc."
         };
@@ -302,7 +303,7 @@ $siteName = 'Tiệm AI';
         function rowHtml(r) {
             var effortCls = r.effort === 'Max' ? 'mp-chip-green' : (r.effort === 'High' ? 'mp-chip-amber' : 'mp-chip-gray');
             var keyCls = r.key === 'credit' ? 'mp-chip-blue' : 'mp-chip-green';
-            var keyLabel = r.key === 'credit' ? T.credit : (r.key === 'thang' ? "Key tháng" : T.both);
+            var keyLabel = r.key === 'credit' ? T.credit : (r.key === 'thang' ? T.thang : T.both);
             var extra = '';
             if (r.extra) {
                 extra = '<tr>' +
