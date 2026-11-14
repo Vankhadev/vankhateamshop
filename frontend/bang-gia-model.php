@@ -3,7 +3,7 @@
 // TRANG BẢNG GIÁ MODEL AI CHUYÊN NGHIỆP
 // Tiệm AI - tiemai.io.vn
 // Tra cứu chi tiết giá token theo nhà cung cấp & nền tảng
-// Chuẩn giao diện cao cấp 100% theo phong cách GenzShop
+// Chuẩn cấu trúc GenzShop - Tối ưu 100% Giao diện Nền Tối (Dark Theme)
 // ========================================================
 
 require_once __DIR__ . '/../backend/config.php';
@@ -64,48 +64,161 @@ $siteName = 'Tiệm AI';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* Phong cách Beige / Ivory Luxury chuẩn 100% GenzShop */
-        .mp-wrap { background: #FAF6EE; min-height: 80vh; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-        .mp-card { background: #ffffff; border: 1px solid #e8edf1; border-radius: 12px; }
-        .mp-filters { background: #FBF7EE; border-color: #EAD9B8; }
-        .mp-hero { text-align: center; margin-bottom: 20px; }
-        .mp-hero h1 { font-size: 1.5rem; font-weight: 800; color: #111827; }
-        @media (min-width: 768px) { .mp-hero h1 { font-size: 1.875rem; } }
-        .mp-hero p { color: #6b7280; margin-top: 6px; font-size: 13.5px; }
-        .mp-notice { background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 12px; padding: 14px 18px; margin-bottom: 18px; font-size: 13px; line-height: 1.65; color: #92400E; }
-        .mp-notice strong { color: #78350F; }
-        .mp-notice .mp-notice-title { display: flex; align-items: center; gap: 8px; font-weight: 800; margin-bottom: 4px; color: #78350F; font-size: 13.5px; }
-        .mp-filter-label { font-size: 11px; font-weight: 800; color: #111827; letter-spacing: .04em; }
-        .mp-pill { border: 1px solid #e2e8f0; border-radius: 9999px; padding: 6px 14px; font-size: 13px; color: #334155; background: #fff; cursor: pointer; transition: all .15s; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-weight: 500; }
-        .mp-pill:hover { border-color: #16a34a; color: #15803d; }
-        .mp-pill.active { background: #16a34a; border-color: #16a34a; color: #fff; font-weight: 700; box-shadow: 0 1px 3px rgba(22, 163, 74, 0.2); }
+        /* Phong cách Dark Modern Luxury cao cấp đồng bộ 100% với website */
+        body { 
+            background: #060913; 
+            color: #f1f5f9; 
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+        }
+        .mp-wrap { background: #060913; min-height: 85vh; }
+        .mp-card { background: #0d1322; border: 1px solid #1e293b; border-radius: 14px; }
+        .mp-filters { background: #0a0f1d; border-color: #1e293b; }
+        .mp-hero { text-align: center; margin-bottom: 24px; }
+        .mp-hero h1 { font-size: 1.75rem; font-weight: 900; color: #ffffff; letter-spacing: -0.02em; }
+        @media (min-width: 768px) { .mp-hero h1 { font-size: 2.25rem; } }
+        .mp-hero p { color: #94a3b8; margin-top: 6px; font-size: 14px; }
+
+        /* Hộp lưu ý cách đọc bảng giá phong cách Dark Amber phát sáng */
+        .mp-notice { 
+            background: rgba(245, 158, 11, 0.08); 
+            border: 1px solid rgba(245, 158, 11, 0.25); 
+            border-radius: 14px; 
+            padding: 14px 18px; 
+            margin-bottom: 20px; 
+            font-size: 13px; 
+            line-height: 1.65; 
+            color: #fde68a; 
+        }
+        .mp-notice strong { color: #fbbf24; }
+        .mp-notice .mp-notice-title { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            font-weight: 800; 
+            margin-bottom: 4px; 
+            color: #fbbf24; 
+            font-size: 13.5px; 
+        }
+
+        /* Nhãn bộ lọc */
+        .mp-filter-label { font-size: 11px; font-weight: 800; color: #94a3b8; letter-spacing: .05em; }
+
+        /* Nút Pills bộ lọc */
+        .mp-pill { 
+            border: 1px solid #1e293b; 
+            border-radius: 9999px; 
+            padding: 6px 14px; 
+            font-size: 12.5px; 
+            color: #cbd5e1; 
+            background: #0f172a; 
+            cursor: pointer; 
+            transition: all .15s; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 6px; 
+            white-space: nowrap; 
+            font-weight: 500; 
+        }
+        .mp-pill:hover { border-color: #38bdf8; color: #ffffff; background: #1e293b; }
+        .mp-pill.active { 
+            background: #10b981; 
+            border-color: #10b981; 
+            color: #ffffff; 
+            font-weight: 700; 
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.35); 
+        }
         .mp-pill .dot { width: 7px; height: 7px; border-radius: 9999px; display: inline-block; }
-        .mp-table th { font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: .03em; padding: 12px; text-align: left; border-bottom: 1px solid #eef2f5; white-space: nowrap; background: #fafbfc; }
-        .mp-table td { padding: 12px; font-size: 13px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
-        .mp-table tbody tr:hover td { background-color: #f8fafc; }
-        .mp-table .price { color: #16a34a; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
-        .mp-chip { display: inline-flex; align-items: center; border-radius: 9999px; padding: 3px 10px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
-        .mp-chip-gray { background: #f1f5f9; color: #475569; }
-        .mp-chip-green { background: #dcfce7; color: #15803d; }
-        .mp-chip-blue { background: #dbeafe; color: #1d4ed8; }
-        .mp-chip-amber { background: #fef3c7; color: #b45309; }
-        .mp-status { background: #dcfce7; color: #15803d; }
-        .mp-status.off { background: #fee2e2; color: #b91c1c; }
-        .mp-search { border: 1px solid #e2e8f0; border-radius: 8px; padding: 9px 14px; font-size: 13px; width: 100%; outline: none; background: #fff; color: #111827; }
-        .mp-search:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,.12); }
-        .mp-select { border: 1px solid #e2e8f0; border-radius: 8px; padding: 9px 12px; font-size: 13px; background: #fff; outline: none; color: #111827; }
-        .mp-select:focus { border-color: #16a34a; }
-        .mp-provider-title { display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 1px solid #eef2f5; font-weight: 800; font-size: 14px; color: #111827; background: #fafbfc; border-top-left-radius: 12px; border-top-right-radius: 12px; }
-        .mp-provider-title .count { background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 700; border-radius: 9999px; padding: 2px 8px; }
-        .mp-family { font-weight: 700; font-size: 13.5px; color: #111827; }
-        .mp-family .count { background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 700; border-radius: 9999px; padding: 2px 8px; margin-left: 6px; }
-        .mp-slug { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; color: #334155; font-weight: 600; }
-        .mp-copy { color: #94a3b8; cursor: pointer; border: 0; background: transparent; padding: 3px 6px; font-size: 12px; border-radius: 4px; transition: all .15s; }
-        .mp-copy:hover { color: #16a34a; background: #e2e8f0; }
-        .mp-copy.copied { color: #16a34a; font-weight: bold; }
-        .mp-group-card { border-bottom: 1px solid #eef2f5; }
+
+        /* Bảng hiển thị Model */
+        .mp-table th { 
+            font-size: 11px; 
+            font-weight: 700; 
+            color: #94a3b8; 
+            text-transform: uppercase; 
+            letter-spacing: .04em; 
+            padding: 12px 14px; 
+            text-align: left; 
+            border-bottom: 1px solid #1e293b; 
+            white-space: nowrap; 
+            background: #0b101d; 
+        }
+        .mp-table td { 
+            padding: 12px 14px; 
+            font-size: 13px; 
+            border-bottom: 1px solid #162032; 
+            vertical-align: middle; 
+            color: #e2e8f0; 
+        }
+        .mp-table tbody tr:hover td { background-color: rgba(30, 41, 59, 0.4); }
+        .mp-table .price { 
+            color: #34d399; 
+            font-weight: 700; 
+            font-variant-numeric: tabular-nums; 
+            white-space: nowrap; 
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; 
+            font-size: 13px; 
+        }
+
+        /* Chips Badges */
+        .mp-chip { display: inline-flex; align-items: center; border-radius: 9999px; padding: 2.5px 9px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+        .mp-chip-gray { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+        .mp-chip-green { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .mp-chip-blue { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+        .mp-chip-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        
+        .mp-status { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .mp-status.off { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        /* Ô tìm kiếm & Chọn cấp độ */
+        .mp-search { 
+            border: 1px solid #1e293b; 
+            border-radius: 8px; 
+            padding: 9px 14px; 
+            font-size: 13px; 
+            width: 100%; 
+            outline: none; 
+            background: #0a0f1d; 
+            color: #ffffff; 
+            transition: all .15s; 
+        }
+        .mp-search:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15); }
+        .mp-select { 
+            border: 1px solid #1e293b; 
+            border-radius: 8px; 
+            padding: 9px 12px; 
+            font-size: 13px; 
+            background: #0a0f1d; 
+            outline: none; 
+            color: #ffffff; 
+            transition: all .15s; 
+        }
+        .mp-select:focus { border-color: #10b981; }
+
+        /* Thanh tiêu đề Provider & Family */
+        .mp-provider-title { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            padding: 14px 16px; 
+            border-bottom: 1px solid #1e293b; 
+            font-weight: 800; 
+            font-size: 14px; 
+            color: #ffffff; 
+            background: #0b101d; 
+            border-top-left-radius: 14px; 
+            border-top-right-radius: 14px; 
+        }
+        .mp-provider-title .count { background: #1e293b; color: #94a3b8; font-size: 11px; font-weight: 700; border-radius: 9999px; padding: 2px 8px; }
+        .mp-family { font-weight: 700; font-size: 13.5px; color: #ffffff; }
+        .mp-family .count { background: #1e293b; color: #94a3b8; font-size: 11px; font-weight: 700; border-radius: 9999px; padding: 2px 8px; margin-left: 6px; }
+        .mp-slug { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12.5px; color: #e2e8f0; font-weight: 600; }
+        .mp-copy { color: #64748b; cursor: pointer; border: 0; background: transparent; padding: 3px 6px; font-size: 12px; border-radius: 4px; transition: all .15s; }
+        .mp-copy:hover { color: #38bdf8; background: #1e293b; }
+        .mp-copy.copied { color: #34d399; font-weight: bold; }
+        .mp-group-card { border-bottom: 1px solid #162032; }
         .mp-group-card:last-child { border-bottom: none; }
         .mp-empty { padding: 48px 16px; text-align: center; color: #64748b; font-size: 14px; }
+        
         @media (max-width: 1024px) { 
             .mp-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; } 
             .mp-table { min-width: 960px; } 
@@ -116,13 +229,16 @@ $siteName = 'Tiệm AI';
     <!-- Header chuẩn Tiệm AI -->
     <?php require_once __DIR__ . '/includes/header.php'; ?>
 
-    <!-- Khung chính Bảng Giá Model (mp-wrap Chuẩn GenzShop) -->
+    <!-- Khung chính Bảng Giá Model (mp-wrap Chuẩn Nền Tối Cao Cấp) -->
     <div class="mp-wrap flex-1">
         <div class="container mx-auto px-3 md:px-4 py-6 md:py-8">
             <div class="max-w-6xl mx-auto">
                 
                 <!-- Tiêu đề Hero -->
                 <div class="mp-hero">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-wider mb-2">
+                        <i class="fas fa-tag"></i> Bảng giá Model AI chính thức
+                    </div>
                     <h1>Bảng giá theo Model</h1>
                     <p>Tra cứu giá token theo nhà cung cấp, nền tảng và loại key.</p>
                 </div>
@@ -134,7 +250,7 @@ $siteName = 'Tiệm AI';
                 </div>
 
                 <!-- Khối bộ lọc thông minh (mp-filters) -->
-                <div class="mp-card mp-filters p-4 md:p-5 mb-4 shadow-sm">
+                <div class="mp-card mp-filters p-4 md:p-5 mb-4 shadow-xl">
                     <!-- 1. Nhà cung cấp -->
                     <div class="flex flex-wrap items-center gap-2 mb-3">
                         <span class="mp-filter-label w-24 shrink-0">NHÀ CUNG CẤP</span>
@@ -328,7 +444,7 @@ $siteName = 'Tiệm AI';
             if (r.extra) {
                 extra = '<tr>' +
                     '<td></td><td></td>' +
-                    '<td colspan="2" style="color:#6b7280; font-size:12px;">' + escapeHtml(r.extra.label) + '</td>' +
+                    '<td colspan="2" style="color:#94a3b8; font-size:12px;">' + escapeHtml(r.extra.label) + '</td>' +
                     '<td class="price">' + escapeHtml(r.extra.input) + '</td>' +
                     '<td class="price">' + escapeHtml(r.extra.output) + '</td>' +
                     '<td class="price">' + escapeHtml(r.extra.cread) + '</td>' +
@@ -352,7 +468,7 @@ $siteName = 'Tiệm AI';
                 '<button type="button" class="mp-copy" data-copy="' + escapeHtml(r.slug) + '" title="Copy" aria-label="Copy"><i class="fas fa-copy"></i></button></td>' +
                 '<td><span class="mp-chip ' + keyCls + '">' + escapeHtml(keyLabel) + '</span></td>' +
                 '<td><span class="mp-chip ' + levelCls + '">' + escapeHtml(r.level || 'Standard') + '</span></td>' +
-                '<td style="font-weight:600">' + escapeHtml(r.context) + '</td>' +
+                '<td style="font-weight:600; color:#f8fafc;">' + escapeHtml(r.context) + '</td>' +
                 priceCells +
                 '<td><span class="mp-chip ' + (r.status ? 'mp-status' : 'mp-status off') + '">' + (r.status ? T.active : T.paused) + '</span></td>' +
                 '</tr>' + extra;
@@ -393,7 +509,7 @@ $siteName = 'Tiệm AI';
                 if (g.platform !== lastPlatform) {
                     if (lastPlatform !== null) html += '</div></div>';
                     var pl = platforms[g.platform] || { label: g.platform, dot: '#9ca3af' };
-                    html += '<div class="mp-card mb-4 shadow-sm"><div class="mp-provider-title">' +
+                    html += '<div class="mp-card mb-4 shadow-xl"><div class="mp-provider-title">' +
                         '<span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:9999px;background:' + escapeHtml(pl.dot) + '"></span>' +
                         escapeHtml(pl.label) + ' <span class="count">' + filtered.filter(function (x) { return x.platform === g.platform; }).length + '</span></div><div>';
                     lastPlatform = g.platform;
