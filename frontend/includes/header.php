@@ -136,12 +136,8 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                              x-transition:enter-end="opacity-100 translate-y-0"
                              class="absolute left-0 mt-2 w-52 bg-[#1E293B] border border-gray-700/80 rounded-2xl shadow-2xl p-2 z-50 space-y-1 text-xs font-semibold" style="display: none;">
                             <a href="/docs" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
-                                <i class="fas fa-handshake text-amber-400 w-4 text-center"></i>
-                                <span>Tài Liệu Buyer API</span>
-                            </a>
-                            <a href="/user/api-docs" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
-                                <i class="fas fa-laptop-code text-blue-400 w-4 text-center"></i>
-                                <span>Kết Nối Cursor IDE</span>
+                                <i class="fas fa-book-bookmark text-amber-400 w-4 text-center"></i>
+                                <span>Tài Liệu API & Tích Hợp</span>
                             </a>
                             <a href="/chinh-sach" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
                                 <i class="fas fa-shield-halved text-green-400 w-4 text-center"></i>
@@ -288,17 +284,14 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                 <a href="https://status.gwai.cloud/" target="_blank" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-green-500 transition">
                     <i class="fas fa-wave-square text-green-400 w-4 text-center"></i> <span>Status Model</span>
                 </a>
-                <a href="javascript:void(0)" @click="moMenuMobile = false; moPopupKiemTraKey = true" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-blue-500 transition">
+                <button type="button" @click="moMenuMobile = false; moPopupKiemTraKey = true" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-blue-500 transition text-left w-full">
                     <i class="fas fa-chart-line text-blue-400 w-4 text-center"></i> <span>Tra Cứu Key</span>
-                </a>
-                <a href="javascript:void(0)" @click="moMenuMobile = false; moPopupBangXepHang = true" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-amber-500 transition">
+                </button>
+                <button type="button" @click="moMenuMobile = false; moPopupBangXepHang = true" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-amber-500 transition text-left w-full">
                     <i class="fas fa-trophy text-amber-400 w-4 text-center"></i> <span>Bảng Xếp Hạng</span>
-                </a>
-                <a href="/docs" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-amber-500 transition">
-                    <i class="fas fa-book-bookmark text-amber-400 w-4 text-center"></i> <span>Tài Liệu API</span>
-                </a>
-                <a href="/user/api-docs" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-blue-500 transition">
-                    <i class="fas fa-terminal text-cyan-400 w-4 text-center"></i> <span>Kết Nối Cursor</span>
+                </button>
+                <a href="/docs" @click="moMenuMobile = false" class="col-span-2 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-amber-600/20 to-orange-600/20 border border-amber-500/40 text-amber-300 hover:text-white transition">
+                    <i class="fas fa-book-bookmark text-amber-400"></i> <span>Tài Liệu API & Hướng Dẫn Tích Hợp</span>
                 </a>
             </div>
 
@@ -316,16 +309,13 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                     </div>
                 </div>
             <?php endif; ?>
-        </div>
 
-                <div class="flex items-center justify-between text-[11px] text-gray-400 pt-2 border-t border-gray-800/60">
-                    <span>Hỗ trợ nhanh:</span>
-                    <div class="flex items-center gap-3">
-                        <a href="https://zalo.me/<?= htmlspecialchars($soZaloHeader) ?>" target="_blank" class="text-blue-400 font-bold hover:underline"><i class="fas fa-comment-dots mr-1"></i>Zalo: <?= htmlspecialchars($soZaloHeader) ?></a>
-                    </div>
+            <div class="flex items-center justify-between text-[11px] text-gray-400 pt-2 border-t border-gray-800/60">
+                <span>Hỗ trợ nhanh:</span>
+                <div class="flex items-center gap-3">
+                    <a href="https://zalo.me/<?= htmlspecialchars($soZaloHeader) ?>" target="_blank" class="text-blue-400 font-bold hover:underline"><i class="fas fa-comment-dots mr-1"></i>Zalo: <?= htmlspecialchars($soZaloHeader) ?></a>
                 </div>
             </div>
-
         </div>
     </header>
 

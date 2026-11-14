@@ -253,9 +253,22 @@ $soZaloDisplay = layCaiDatHeThong('site_contact_zalo', SHOP_ZALO);
                 <textarea id="dtKey" readonly class="w-full h-28 bg-gray-950 border border-gray-800 rounded-xl p-3 text-xs font-mono text-emerald-300 resize-none select-all focus:outline-none"></textarea>
             </div>
 
-            <div id="dtBoxLoi" class="hidden p-3 rounded-xl bg-red-950/40 border border-red-800/60 text-xs text-red-300">
-                <strong><i class="fas fa-circle-exclamation mr-1"></i> Ghi chú lỗi:</strong>
-                <p id="dtLoiLog" class="mt-1 text-[11px] text-red-400"></p>
+            <!-- Base URL Kết Nối API Chuẩn OpenAI -->
+            <div class="p-3.5 bg-gray-950 rounded-2xl border border-blue-900/50 space-y-2">
+                <div class="flex items-center justify-between text-xs">
+                    <span class="text-blue-400 font-bold uppercase text-[11px] flex items-center gap-1.5">
+                        <i class="fas fa-link"></i> Base URL (OpenAI Compatible)
+                    </span>
+                    <button type="button" onclick="navigator.clipboard.writeText('https://tiemai.io.vn/v1'); alert('Đã sao chép Base URL: https://tiemai.io.vn/v1')" class="px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-white text-[11px] font-bold transition flex items-center gap-1 border border-blue-500/30">
+                        <i class="fas fa-copy"></i> Sao chép
+                    </button>
+                </div>
+                <div class="flex items-center">
+                    <code class="text-amber-300 font-mono text-xs bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-800 flex-1 select-all">https://tiemai.io.vn/v1</code>
+                </div>
+                <div class="text-[11px] text-gray-400 flex items-center gap-1">
+                    <span>Chat Endpoint:</span> <code class="text-gray-300 font-mono text-[10px]">https://tiemai.io.vn/v1/chat/completions</code>
+                </div>
             </div>
 
             <div class="flex items-center justify-between pt-2 border-t border-gray-800">
@@ -297,14 +310,6 @@ $soZaloDisplay = layCaiDatHeThong('site_contact_zalo', SHOP_ZALO);
             } else {
                 elStatus.className = 'text-red-400 font-bold';
                 elStatus.innerText = don.status;
-            }
-
-            const boxLoi = document.getElementById('dtBoxLoi');
-            if (don.error_log && don.error_log.trim() !== '') {
-                boxLoi.classList.remove('hidden');
-                document.getElementById('dtLoiLog').innerText = don.error_log;
-            } else {
-                boxLoi.classList.add('hidden');
             }
 
             document.getElementById('modalChiTietDon').classList.remove('hidden');

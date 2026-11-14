@@ -871,12 +871,26 @@ $seoKeywords = htmlspecialchars($product['name']) . ", mua " . htmlspecialchars(
                 <h3 class="text-lg font-bold text-white mb-1">Thanh Toán Thành Công!</h3>
                 <p class="text-xs text-gray-400 mb-4">Mã đơn hàng: <span class="font-mono text-white" x-text="maDonHang"></span></p>
 
-                <div class="bg-gray-900 border border-green-500/40 rounded-xl p-4 text-left mb-4">
+                <div class="bg-gray-900 border border-green-500/40 rounded-xl p-4 text-left mb-3">
                     <p class="text-[11px] font-bold text-green-400 uppercase mb-2">Thông tin API Key / Tài khoản của bạn:</p>
                     <textarea readonly class="w-full h-24 bg-gray-950 border border-gray-700 rounded-lg p-2.5 font-mono text-xs text-white focus:outline-none resize-none" x-text="thongTinKeyNhanDuoc"></textarea>
                     <button @click="saoChep(thongTinKeyNhanDuoc)" class="mt-2.5 w-full py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5">
                         <i class="fas fa-copy"></i> Sao chép Key vào bộ nhớ tạm
                     </button>
+                </div>
+
+                <!-- Base URL Kết Nối API Chuẩn OpenAI -->
+                <div class="bg-gray-900 border border-blue-500/40 rounded-xl p-3 text-left mb-4 space-y-1.5">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-blue-400 font-bold uppercase text-[10px] flex items-center gap-1">
+                            <i class="fas fa-link"></i> Base URL (OpenAI Compatible)
+                        </span>
+                        <button @click="saoChep('https://tiemai.io.vn/v1')" class="text-blue-400 hover:text-white text-[10px] font-bold flex items-center gap-1">
+                            <i class="fas fa-copy"></i> Sao chép
+                        </button>
+                    </div>
+                    <code class="text-white font-mono text-xs bg-black/80 px-2.5 py-1.5 rounded-lg border border-gray-800 block select-all">https://tiemai.io.vn/v1</code>
+                    <p class="text-[10px] text-gray-400">Chat Endpoint: <code class="text-gray-300">https://tiemai.io.vn/v1/chat/completions</code></p>
                 </div>
 
                 <button @click="dongThanhToan()" class="w-full py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold transition">

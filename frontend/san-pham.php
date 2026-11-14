@@ -170,20 +170,41 @@ if ($daDangNhap) {
 
             </div>
 
-            <!-- TABS CHỌN DANH MỤC -->
-            <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-1 text-xs font-semibold scrollbar-none">
-                <button @click="danhMucChon = 0" 
-                        class="px-4 py-2 rounded-xl transition whitespace-nowrap"
-                        :class="danhMucChon === 0 ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'bg-gray-900 text-gray-400 hover:text-white border border-gray-800'">
-                    <i class="fas fa-border-all mr-1.5"></i> Tất Cả Sản Phẩm
-                </button>
-                <?php foreach ($categories as $cat): ?>
-                    <button @click="danhMucChon = <?= $cat['id'] ?>" 
-                            class="px-4 py-2 rounded-xl transition whitespace-nowrap"
-                            :class="danhMucChon === <?= $cat['id'] ?> ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'bg-gray-900 text-gray-400 hover:text-white border border-gray-800'">
-                        <i class="fas <?= !empty($cat['icon']) ? htmlspecialchars($cat['icon']) : 'fa-cube' ?> mr-1.5"></i> <?= htmlspecialchars($cat['name']) ?>
+            <!-- TABS CHỌN DANH MỤC KÈM 2 NÚT MŨI TÊN CUỘN CHUYỂN THẺ -->
+            <div class="relative w-full max-w-full">
+                <div class="flex items-center gap-2">
+                    <!-- Nút cuộn sang trái -->
+                    <button type="button" 
+                            @click="$refs.spTabsScroll.scrollBy({ left: -220, behavior: 'smooth' })" 
+                            class="p-2 sm:p-2.5 rounded-xl bg-gray-900/90 hover:bg-gray-800 text-gray-400 hover:text-white border border-gray-800 shadow-md shrink-0 flex items-center justify-center transition active:scale-95 z-10"
+                            title="Xem danh mục trước">
+                        <i class="fas fa-chevron-left text-xs"></i>
                     </button>
-                <?php endforeach; ?>
+
+                    <!-- Thanh cuộn ngang danh mục -->
+                    <div x-ref="spTabsScroll" class="flex-1 flex items-center gap-2 overflow-x-auto py-1 scroll-smooth no-scrollbar text-xs font-semibold">
+                        <button @click="danhMucChon = 0" 
+                                class="px-4 py-2 rounded-xl transition whitespace-nowrap shrink-0"
+                                :class="danhMucChon === 0 ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'bg-gray-900 text-gray-400 hover:text-white border border-gray-800'">
+                            <i class="fas fa-border-all mr-1.5"></i> Tất Cả Sản Phẩm
+                        </button>
+                        <?php foreach ($categories as $cat): ?>
+                            <button @click="danhMucChon = <?= $cat['id'] ?>" 
+                                    class="px-4 py-2 rounded-xl transition whitespace-nowrap shrink-0"
+                                    :class="danhMucChon === <?= $cat['id'] ?> ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'bg-gray-900 text-gray-400 hover:text-white border border-gray-800'">
+                                <i class="fas <?= !empty($cat['icon']) ? htmlspecialchars($cat['icon']) : 'fa-cube' ?> mr-1.5"></i> <?= htmlspecialchars($cat['name']) ?>
+                            </button>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <!-- Nút cuộn sang phải -->
+                    <button type="button" 
+                            @click="$refs.spTabsScroll.scrollBy({ left: 220, behavior: 'smooth' })" 
+                            class="p-2 sm:p-2.5 rounded-xl bg-gray-900/90 hover:bg-gray-800 text-gray-400 hover:text-white border border-gray-800 shadow-md shrink-0 flex items-center justify-center transition active:scale-95 z-10"
+                            title="Xem thêm danh mục tiếp theo">
+                        <i class="fas fa-chevron-right text-xs"></i>
+                    </button>
+                </div>
             </div>
 
         </div>

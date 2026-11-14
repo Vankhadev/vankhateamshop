@@ -139,6 +139,19 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+        @keyframes marqueeScroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+        .animate-marquee-track {
+            display: inline-flex;
+            white-space: nowrap;
+            padding-left: 100%;
+            animation: marqueeScroll 25s linear infinite;
+        }
+        .animate-marquee-track:hover {
+            animation-play-state: paused;
+        }
     </style>
 </head>
 <body x-data="ungDungBanHang()" class="min-h-screen flex flex-col antialiased">
@@ -146,20 +159,28 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
     <!-- HEADER DÙNG CHUNG ĐỒNG BỘ TOÀN BỘ WEBSITE -->
     <?php require_once __DIR__ . '/includes/header.php'; ?>
 
-    <!-- BANNER THÔNG BÁO TỪ HỆ THỐNG NẾU CÓ -->
+    <!-- BANNER THÔNG BÁO TỪ HỆ THỐNG NẾU CÓ (MARQUEE SCROLL TRÊN MOBILE & DESKTOP) -->
     <?php if (!empty($announcements)): ?>
-        <div class="bg-gradient-to-r from-blue-900/60 via-indigo-900/60 to-purple-900/60 border-b border-blue-800/80 py-2 px-4 text-xs">
-            <div class="max-w-7xl mx-auto flex items-center justify-between">
-                <div class="flex items-center space-x-2 text-white overflow-hidden">
-                    <span class="px-2 py-0.5 rounded bg-amber-500 text-black font-bold text-[10px] uppercase shrink-0">
-                        <i class="fas fa-bullhorn mr-1"></i> Tin Mới
+        <div class="bg-gradient-to-r from-blue-900/60 via-indigo-900/60 to-purple-900/60 border-b border-blue-800/80 py-2 px-3 sm:px-4 text-xs overflow-hidden">
+            <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+                <div class="flex items-center space-x-2 text-white overflow-hidden flex-1 min-w-0">
+                    <span class="px-2 py-0.5 rounded bg-amber-500 text-black font-bold text-[10px] uppercase shrink-0 flex items-center gap-1 shadow">
+                        <i class="fas fa-bullhorn"></i> <span>Tin Mới</span>
                     </span>
-                    <span class="truncate font-medium text-gray-200">
-                        <strong><?= htmlspecialchars($announcements[0]['title']) ?>:</strong> <?= htmlspecialchars($announcements[0]['content']) ?>
-                    </span>
+                    <div class="overflow-hidden relative flex-1 min-w-0 h-5 flex items-center">
+                        <div class="animate-marquee-track text-gray-200 font-medium cursor-default">
+                            <?php 
+                            $noiDungThongBao = [];
+                            foreach ($announcements as $tb) {
+                                $noiDungThongBao[] = '<span class="inline-flex items-center gap-1.5"><strong class="text-amber-300">' . htmlspecialchars($tb['title']) . ':</strong> ' . htmlspecialchars($tb['content']) . '</span>';
+                            }
+                            echo implode('<span class="mx-6 text-blue-400 font-black">&bull;&bull;&bull;</span>', $noiDungThongBao);
+                            ?>
+                        </div>
+                    </div>
                 </div>
-                <a href="/docs" class="text-blue-300 hover:text-white shrink-0 font-semibold text-[11px] ml-4">
-                    Xem hướng dẫn &rarr;
+                <a href="/docs" class="text-blue-300 hover:text-white shrink-0 font-semibold text-[11px] ml-1 flex items-center gap-1 whitespace-nowrap">
+                    <span>Hướng dẫn</span> &rarr;
                 </a>
             </div>
         </div>
@@ -229,20 +250,41 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
     <!-- KHU VỰC DANH MỤC & SẢN PHẨM -->
     <section id="san-pham" class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         
-        <!-- Bộ lọc danh mục dạng thẻ Tab -->
-        <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 no-scrollbar">
-            <button @click="danhMucDangChon = 0" 
-                    :class="danhMucDangChon === 0 ? 'bg-blue-600 text-white font-bold' : 'bg-gray-900 text-gray-400 hover:text-white border border-gray-800'"
-                    class="px-4 py-2 rounded-xl text-xs whitespace-nowrap transition">
-                <i class="fas fa-border-all mr-1.5"></i> Tất Cả Gói API
-            </button>
-            <?php foreach ($categories as $cat): ?>
-                <button @click="danhMucDangChon = <?= $cat['id'] ?>" 
-                        :class="danhMucDangChon === <?= $cat['id'] ?> ? 'bg-blue-600 text-white font-bold' : 'bg-gray-900 text-gray-400 hover:text-white border border-gray-800'"
-                        class="px-4 py-2 rounded-xl text-xs whitespace-nowrap transition flex items-center gap-1.5">
-                    <i class="fas <?= $cat['icon'] ?>"></i> <?= htmlspecialchars($cat['name']) ?>
+        <!-- Bộ lọc danh mục dạng thẻ Tab kèm 2 nút điều hướng mũi tên chuyển thẻ trên Mobile & Desktop -->
+        <div class="relative w-full max-w-full mb-8">
+            <div class="flex items-center gap-2">
+                <!-- Nút cuộn sang trái -->
+                <button type="button" 
+                        @click="$refs.danhMucScroll.scrollBy({ left: -220, behavior: 'smooth' })" 
+                        class="p-2 sm:p-2.5 rounded-xl bg-gray-900/90 hover:bg-gray-800 text-gray-400 hover:text-white border border-gray-800 shadow-md shrink-0 flex items-center justify-center transition active:scale-95 z-10"
+                        title="Xem danh mục trước">
+                    <i class="fas fa-chevron-left text-xs"></i>
                 </button>
-            <?php endforeach; ?>
+
+                <!-- Thanh cuộn ngang danh mục -->
+                <div x-ref="danhMucScroll" class="flex-1 flex items-center gap-2 overflow-x-auto py-1 scroll-smooth no-scrollbar">
+                    <button @click="danhMucDangChon = 0" 
+                            :class="danhMucDangChon === 0 ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/30' : 'bg-gray-900 text-gray-400 hover:text-white border border-gray-800'"
+                            class="px-4 py-2 rounded-xl text-xs whitespace-nowrap transition shrink-0">
+                        <i class="fas fa-border-all mr-1.5"></i> Tất Cả Gói API
+                    </button>
+                    <?php foreach ($categories as $cat): ?>
+                        <button @click="danhMucDangChon = <?= $cat['id'] ?>" 
+                                :class="danhMucDangChon === <?= $cat['id'] ?> ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/30' : 'bg-gray-900 text-gray-400 hover:text-white border border-gray-800'"
+                                class="px-4 py-2 rounded-xl text-xs whitespace-nowrap transition flex items-center gap-1.5 shrink-0">
+                            <i class="fas <?= $cat['icon'] ?>"></i> <?= htmlspecialchars($cat['name']) ?>
+                        </button>
+                    <?php endforeach; ?>
+                </div>
+
+                <!-- Nút cuộn sang phải -->
+                <button type="button" 
+                        @click="$refs.danhMucScroll.scrollBy({ left: 220, behavior: 'smooth' })" 
+                        class="p-2 sm:p-2.5 rounded-xl bg-gray-900/90 hover:bg-gray-800 text-gray-400 hover:text-white border border-gray-800 shadow-md shrink-0 flex items-center justify-center transition active:scale-95 z-10"
+                        title="Xem thêm danh mục tiếp theo">
+                    <i class="fas fa-chevron-right text-xs"></i>
+                </button>
+            </div>
         </div>
 
         <!-- LƯỚI DANH SÁCH CÁC GÓI SẢN PHẨM -->
@@ -489,13 +531,27 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                 <h3 class="text-lg font-bold text-white mb-1">Thanh Toán Thành Công!</h3>
                 <p class="text-xs text-gray-400 mb-4">Mã đơn hàng: <span class="font-mono text-white" x-text="maDonHang"></span></p>
 
-                <div class="bg-gray-900 border border-green-500/40 rounded-xl p-4 text-left mb-4">
+                <div class="bg-gray-900 border border-green-500/40 rounded-xl p-4 text-left mb-3">
                     <p class="text-[11px] font-bold text-green-400 uppercase mb-2">Thông tin API Key / Tài khoản của bạn:</p>
                     <div class="bg-black/80 p-2.5 rounded-lg font-mono text-xs text-amber-300 break-all select-all flex justify-between items-center border border-gray-800">
                         <span x-text="keyDaTraVe"></span>
-                        <button @click="saoChep(keyDaTraVe)" class="ml-2 text-gray-400 hover:text-white"><i class="fas fa-copy"></i></button>
+                        <button @click="saoChep(keyDaTraVe)" class="ml-2 text-gray-400 hover:text-white" title="Sao chép Key"><i class="fas fa-copy"></i></button>
                     </div>
                     <p class="text-[11px] text-gray-400 mt-2">Hệ thống đã gửi bản sao lưu về email: <span class="text-white" x-text="emailKhachHang"></span></p>
+                </div>
+
+                <!-- Base URL Kết Nối API Chuẩn OpenAI -->
+                <div class="bg-gray-900 border border-blue-500/40 rounded-xl p-3 text-left mb-4 space-y-1.5">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-blue-400 font-bold uppercase text-[10px] flex items-center gap-1">
+                            <i class="fas fa-link"></i> Base URL (OpenAI Compatible)
+                        </span>
+                        <button @click="saoChep('https://tiemai.io.vn/v1')" class="text-blue-400 hover:text-white text-[10px] font-bold flex items-center gap-1">
+                            <i class="fas fa-copy"></i> Sao chép
+                        </button>
+                    </div>
+                    <code class="text-white font-mono text-xs bg-black/80 px-2.5 py-1.5 rounded-lg border border-gray-800 block select-all">https://tiemai.io.vn/v1</code>
+                    <p class="text-[10px] text-gray-400">Chat Endpoint: <code class="text-gray-300">https://tiemai.io.vn/v1/chat/completions</code></p>
                 </div>
 
                 <button @click="dongThanhToan()" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition">
@@ -503,33 +559,6 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                 </button>
             </div>
 
-        </div>
-    </div>
-
-    <!-- POPUP TRA CỨU SỐ LƯỢT DÙNG KEY -->
-    <div x-show="moPopupKiemTraKey" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" style="display: none;" x-transition>
-        <div class="bg-[#111827] border border-gray-800 rounded-2xl max-w-md w-full p-6 relative shadow-2xl">
-            <button @click="moPopupKiemTraKey = false" class="absolute top-4 right-4 text-gray-400 hover:text-white">
-                <i class="fas fa-times text-lg"></i>
-            </button>
-            <h3 class="text-base font-bold text-white mb-2 flex items-center gap-2">
-                <i class="fas fa-chart-line text-blue-400"></i> Tra Cứu Usage Của Key
-            </h3>
-            <p class="text-xs text-gray-400 mb-4">Dán API Key đã mua để xem số request còn lại và ngày hết hạn.</p>
-            
-            <div class="space-y-3">
-                <input type="text" x-model="oNhapKey" placeholder="sk-..." class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 font-mono">
-                <button @click="kiemTraKey()" class="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition">
-                    Kiểm Tra Ngay
-                </button>
-            </div>
-
-            <div x-show="ketQuaTraCuu" class="mt-4 p-3 bg-gray-900 rounded-xl text-xs space-y-1.5 border border-gray-800">
-                <div class="flex justify-between"><span class="text-gray-400">Trạng thái:</span><span class="text-green-400 font-bold" x-text="ketQuaTraCuu?.trang_thai"></span></div>
-                <div class="flex justify-between"><span class="text-gray-400">Đã dùng:</span><span class="text-white font-semibold" x-text="ketQuaTraCuu?.da_dung"></span></div>
-                <div class="flex justify-between"><span class="text-gray-400">Còn lại:</span><span class="text-amber-400 font-bold" x-text="ketQuaTraCuu?.con_lai"></span></div>
-                <div class="flex justify-between"><span class="text-gray-400">Hạn sử dụng:</span><span class="text-gray-300" x-text="ketQuaTraCuu?.han_dung"></span></div>
-            </div>
         </div>
     </div>
 
