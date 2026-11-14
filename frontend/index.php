@@ -351,7 +351,9 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
     <?php endif; ?>
 
     <!-- BANNER CHÍNH (HERO SECTION CHUẨN PIXEL NIGHT CAMPSITE THEO ẢNH 2) -->
-    <section class="relative overflow-hidden bg-[#060913] border-b border-gray-800/80 pt-4 sm:pt-14 pb-0">
+    <section id="heroSection" class="relative overflow-hidden bg-[#060913] border-b border-gray-800/80 pt-4 sm:pt-14 pb-0">
+        <!-- Canvas vẽ tia Laser và Request Chips kết nối trực tiếp Quả cầu Mặt trăng và 5 Nhân vật Pixel -->
+        <canvas id="heroLaserCanvas" class="absolute inset-0 pointer-events-none z-15"></canvas>
         <!-- Bầu trời đêm & Các ngôi sao lấp lánh (Twinkle Stars) -->
         <div class="absolute inset-0 pointer-events-none overflow-hidden">
             <div class="absolute top-6 left-[12%] w-1.5 h-1.5 bg-white rounded-full star-blink-1"></div>
@@ -364,7 +366,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
         </div>
 
         <!-- Quả cầu phát sáng Glowing Orb (Mặt trăng AI) trên góc phải CHỨA LOGO WEB VÀ NHẬN REQUEST BẮN TỚI -->
-        <div class="absolute top-4 right-4 sm:top-6 sm:right-20 z-20 hidden md:block pointer-events-none select-none">
+        <div id="heroMoonOrb" class="absolute top-4 right-4 sm:top-6 sm:right-20 z-20 hidden md:block pointer-events-none select-none">
             <div class="relative flex flex-col items-center">
                 <!-- Vòng tròn hào quang chứa LOGO WEB -->
                 <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-amber-400 via-amber-200 to-amber-500 animate-orb-glow flex items-center justify-center p-1 shadow-[0_0_55px_rgba(251,191,36,0.65)]">
@@ -380,86 +382,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                     </div>
                 </div>
 
-                <!-- Tia laser & các REQUEST BAY VÚT TỪ MASCOT LÊN VÒNG TRÒN -->
-                <svg class="absolute top-14 right-8 w-[680px] h-[360px] pointer-events-none opacity-90" viewBox="0 0 680 360" fill="none">
-                    <!-- Các đường ray dẫn hướng -->
-                    <path d="M 40 340 L 610 30" stroke="#F59E0B" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.35"/>
-                    <path d="M 160 340 L 610 30" stroke="#38BDF8" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.35"/>
-                    <path d="M 280 340 L 610 30" stroke="#EC4899" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.35"/>
-                    <path d="M 410 340 L 610 30" stroke="#FBBF24" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.45"/>
-                    <path d="M 510 340 L 610 30" stroke="#A855F7" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.35"/>
-                    <path d="M 600 340 L 610 30" stroke="#4ADE80" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.35"/>
-
-                    <!-- REQUEST 1 TỪ CLAUDE CODE: POST /chat -->
-                    <g>
-                        <circle r="4" fill="#F59E0B" filter="drop-shadow(0 0 5px #F59E0B)">
-                            <animateMotion dur="2.4s" repeatCount="indefinite" path="M 40 340 L 610 30"/>
-                        </circle>
-                        <rect width="66" height="15" rx="4" fill="#0f172a" stroke="#F59E0B" stroke-width="1" opacity="0.95" x="-33" y="-22">
-                            <animateMotion dur="2.4s" repeatCount="indefinite" path="M 40 340 L 610 30"/>
-                        </rect>
-                        <text font-size="7.5" fill="#FDE68A" font-weight="bold" font-family="monospace" text-anchor="middle" y="-12">
-                            POST /chat
-                            <animateMotion dur="2.4s" repeatCount="indefinite" path="M 40 340 L 610 30"/>
-                        </text>
-                    </g>
-
-                    <!-- REQUEST 2 TỪ DEEPSEEK: GET /models -->
-                    <g>
-                        <circle r="4" fill="#38BDF8" filter="drop-shadow(0 0 5px #38BDF8)">
-                            <animateMotion dur="2.8s" repeatCount="indefinite" path="M 160 340 L 610 30" begin="0.8s"/>
-                        </circle>
-                        <rect width="68" height="15" rx="4" fill="#0f172a" stroke="#38BDF8" stroke-width="1" opacity="0.95" x="-34" y="-22">
-                            <animateMotion dur="2.8s" repeatCount="indefinite" path="M 160 340 L 610 30" begin="0.8s"/>
-                        </rect>
-                        <text font-size="7.5" fill="#BAE6FD" font-weight="bold" font-family="monospace" text-anchor="middle" y="-12">
-                            GET /models
-                            <animateMotion dur="2.8s" repeatCount="indefinite" path="M 160 340 L 610 30" begin="0.8s"/>
-                        </text>
-                    </g>
-
-                    <!-- REQUEST 3 TỪ PI: tokens:400 -->
-                    <g>
-                        <circle r="4" fill="#EC4899" filter="drop-shadow(0 0 5px #EC4899)">
-                            <animateMotion dur="2.2s" repeatCount="indefinite" path="M 280 340 L 610 30" begin="1.4s"/>
-                        </circle>
-                        <rect width="64" height="15" rx="4" fill="#0f172a" stroke="#EC4899" stroke-width="1" opacity="0.95" x="-32" y="-22">
-                            <animateMotion dur="2.2s" repeatCount="indefinite" path="M 280 340 L 610 30" begin="1.4s"/>
-                        </rect>
-                        <text font-size="7.5" fill="#FBCFE8" font-weight="bold" font-family="monospace" text-anchor="middle" y="-12">
-                            tokens:400
-                            <animateMotion dur="2.2s" repeatCount="indefinite" path="M 280 340 L 610 30" begin="1.4s"/>
-                        </text>
-                    </g>
-
-                    <!-- REQUEST 4 TỪ CODEX: 200 OK -->
-                    <g>
-                        <circle r="4" fill="#A855F7" filter="drop-shadow(0 0 5px #A855F7)">
-                            <animateMotion dur="2.6s" repeatCount="indefinite" path="M 510 340 L 610 30" begin="0.4s"/>
-                        </circle>
-                        <rect width="52" height="15" rx="4" fill="#0f172a" stroke="#A855F7" stroke-width="1" opacity="0.95" x="-26" y="-22">
-                            <animateMotion dur="2.6s" repeatCount="indefinite" path="M 510 340 L 610 30" begin="0.4s"/>
-                        </rect>
-                        <text font-size="7.5" fill="#E9D5FF" font-weight="bold" font-family="monospace" text-anchor="middle" y="-12">
-                            200 OK
-                            <animateMotion dur="2.6s" repeatCount="indefinite" path="M 510 340 L 610 30" begin="0.4s"/>
-                        </text>
-                    </g>
-
-                    <!-- REQUEST 5 TỪ OPENCODE: Bearer vk_... -->
-                    <g>
-                        <circle r="4" fill="#4ADE80" filter="drop-shadow(0 0 5px #4ADE80)">
-                            <animateMotion dur="2.5s" repeatCount="indefinite" path="M 600 340 L 610 30" begin="1.1s"/>
-                        </circle>
-                        <rect width="64" height="15" rx="4" fill="#0f172a" stroke="#4ADE80" stroke-width="1" opacity="0.95" x="-32" y="-22">
-                            <animateMotion dur="2.5s" repeatCount="indefinite" path="M 600 340 L 610 30" begin="1.1s"/>
-                        </rect>
-                        <text font-size="7.5" fill="#BBF7D0" font-weight="bold" font-family="monospace" text-anchor="middle" y="-12">
-                            Bearer vk
-                            <animateMotion dur="2.5s" repeatCount="indefinite" path="M 600 340 L 610 30" begin="1.1s"/>
-                        </text>
-                    </g>
-                </svg>
+                
             </div>
         </div>
 
@@ -536,7 +459,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
             <div id="heroCampInner" class="w-[820px] max-w-7xl mx-auto px-4 sm:px-8 pb-3 flex items-end justify-between gap-3 text-xs font-mono origin-top-left transition-transform duration-75">
                 
                 <!-- 1. CLAUDE CODE (Nhân vật tóc cam + Bàn làm việc laptop + Hạt bắn hiệu ứng + Di chuyển qua lại) -->
-                <div class="flex flex-col items-center group relative cursor-pointer animate-hero-claude">
+                <div id="heroCharClaude" class="flex flex-col items-center group relative cursor-pointer animate-hero-claude">
                     <!-- Hạt năng lượng pixel bắn vút lên trên -->
                     <div class="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center">
                         <span class="animate-shoot-spark-1 text-amber-400 font-bold text-xs select-none">✦</span>
@@ -571,7 +494,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                 </div>
 
                 <!-- 2. DEEPSEEK HARNESS (Nhân vật tóc xanh dương + Chồng sách/tài liệu + Hạt bắn hiệu ứng + Di chuyển qua lại) -->
-                <div class="flex flex-col items-center group relative cursor-pointer animate-hero-deepseek">
+                <div id="heroCharDeepSeek" class="flex flex-col items-center group relative cursor-pointer animate-hero-deepseek">
                     <!-- Hạt năng lượng pixel bắn vút lên trên -->
                     <div class="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center">
                         <span class="animate-shoot-spark-2 text-cyan-400 font-bold text-xs select-none">✦</span>
@@ -603,7 +526,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                 </div>
 
                 <!-- 3. PI (Nhân vật kỳ nhông hồng Axolotl + Bàn chế tác + Hạt bắn hiệu ứng + Di chuyển qua lại) -->
-                <div class="flex flex-col items-center group relative cursor-pointer animate-hero-pi">
+                <div id="heroCharPi" class="flex flex-col items-center group relative cursor-pointer animate-hero-pi">
                     <!-- Hạt năng lượng pixel bắn vút lên trên -->
                     <div class="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center">
                         <span class="animate-shoot-spark-3 text-pink-400 font-bold text-xs select-none">✦</span>
@@ -665,7 +588,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                 </div>
 
                 <!-- 6. CODEX (Nhân vật tóc tím + Server trạm thu phát + Hạt bắn hiệu ứng + Di chuyển qua lại) -->
-                <div class="flex flex-col items-center group relative cursor-pointer animate-hero-codex">
+                <div id="heroCharCodex" class="flex flex-col items-center group relative cursor-pointer animate-hero-codex">
                     <!-- Hạt năng lượng pixel bắn vút lên trên -->
                     <div class="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center">
                         <span class="animate-shoot-spark-4 text-purple-300 font-bold text-xs select-none">✦</span>
@@ -697,7 +620,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                 </div>
 
                 <!-- 7. OPENCODE (Robot terminal đầu vuông xanh lá + Hạt bắn hiệu ứng + Di chuyển qua lại) -->
-                <div class="flex flex-col items-center group relative cursor-pointer animate-hero-opencode">
+                <div id="heroCharOpenCode" class="flex flex-col items-center group relative cursor-pointer animate-hero-opencode">
                     <!-- Hạt năng lượng pixel bắn vút lên trên -->
                     <div class="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center">
                         <span class="animate-shoot-spark-1 text-green-300 font-bold text-xs select-none">✦</span>
@@ -1840,6 +1763,126 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                 }
             };
         }
+    </script>
+
+
+    <!-- Script Điều Khiển Tia Laser & Badges Kết Nối Chuẩn 100% Theo Từng Nhân Vật Pixel -->
+    <script>
+    (function() {
+        const canvas = document.getElementById('heroLaserCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const heroSection = document.getElementById('heroSection');
+        const moon = document.getElementById('heroMoonOrb');
+
+        const beams = [
+            { id: 'heroCharClaude',   label: 'POST /chat',   color: '#F59E0B', textCol: '#FDE68A', dur: 2.6, delay: 0 },
+            { id: 'heroCharDeepSeek', label: 'GET /models',  color: '#38BDF8', textCol: '#BAE6FD', dur: 2.8, delay: 0.8 },
+            { id: 'heroCharPi',       label: 'tokens:400',   color: '#EC4899', textCol: '#FBCFE8', dur: 2.2, delay: 1.4 },
+            { id: 'heroCharCodex',    label: '200 OK',       color: '#A855F7', textCol: '#E9D5FF', dur: 2.5, delay: 0.4 },
+            { id: 'heroCharOpenCode', label: 'Bearer vk',    color: '#4ADE80', textCol: '#BBF7D0', dur: 2.5, delay: 1.1 }
+        ];
+
+        function drawBeams() {
+            if (!heroSection || !moon) return;
+            // Nếu màn hình mobile hoặc moon bị ẩn (display: none), xóa canvas và đợi
+            if (window.getComputedStyle(moon).display === 'none') {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                requestAnimationFrame(drawBeams);
+                return;
+            }
+
+            const secRect = heroSection.getBoundingClientRect();
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const w = Math.round(secRect.width);
+            const h = Math.round(secRect.height);
+
+            if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+                canvas.width = w * dpr;
+                canvas.height = h * dpr;
+                canvas.style.width = w + 'px';
+                canvas.style.height = h + 'px';
+            }
+
+            ctx.resetTransform();
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, w, h);
+
+            const mRect = moon.getBoundingClientRect();
+            // Gốc xuất phát: Điểm dưới bên trái của Quả Cầu Vàng Mặt Trăng
+            const originX = mRect.left - secRect.left + mRect.width * 0.35;
+            const originY = mRect.top - secRect.top + mRect.height * 0.65;
+            const now = performance.now() / 1000;
+
+            beams.forEach(function(b) {
+                const el = document.getElementById(b.id);
+                if (!el) return;
+                const cRect = el.getBoundingClientRect();
+                // Đích đến: Ngay trên đầu của nhân vật Pixel cụ thể
+                const targetX = cRect.left - secRect.left + cRect.width / 2;
+                const targetY = cRect.top - secRect.top + 6;
+
+                // 1. Vẽ đường tia laser đứt nét từ Mặt trăng đến nhân vật pixel
+                ctx.save();
+                ctx.setLineDash([3, 3]);
+                ctx.strokeStyle = b.color;
+                ctx.lineWidth = 1.2;
+                ctx.globalAlpha = 0.35;
+                ctx.beginPath();
+                ctx.moveTo(originX, originY);
+                ctx.lineTo(targetX, targetY);
+                ctx.stroke();
+                ctx.restore();
+
+                // 2. Tính vị trí gói tin request di chuyển từ nhân vật bay lên Mặt trăng
+                const t = ((now - b.delay) % b.dur + b.dur) % b.dur / b.dur;
+                const px = targetX + (originX - targetX) * t;
+                const py = targetY + (originY - targetY) * t;
+
+                // 3. Hạt phát sáng phát quang (Glow dot)
+                ctx.save();
+                ctx.shadowColor = b.color;
+                ctx.shadowBlur = 8;
+                ctx.fillStyle = b.color;
+                ctx.beginPath();
+                ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                // 4. Hộp Chip Badge tên Request
+                ctx.save();
+                ctx.font = 'bold 9px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+                const tw = ctx.measureText(b.label).width;
+                const bw = tw + 14;
+                const bh = 15;
+                const bx = px - bw / 2;
+                const by = py - 18;
+
+                ctx.fillStyle = '#0f172a';
+                ctx.strokeStyle = b.color;
+                ctx.lineWidth = 1;
+                ctx.globalAlpha = 0.95;
+                ctx.beginPath();
+                if (ctx.roundRect) {
+                    ctx.roundRect(bx, by, bw, bh, 4);
+                } else {
+                    ctx.rect(bx, by, bw, bh);
+                }
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = b.textCol;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(b.label, px, by + bh / 2);
+                ctx.restore();
+            });
+
+            requestAnimationFrame(drawBeams);
+        }
+
+        requestAnimationFrame(drawBeams);
+    })();
     </script>
 
 </body>
