@@ -71,9 +71,10 @@
     RewriteRule ^kiem-tra-key/?$ frontend/tra-cuu-key.php [QSA,L]
     RewriteRule ^bang-xep-hang/?$ frontend/bang-xep-hang.php [QSA,L]
     RewriteRule ^xep-hang/?$ frontend/bang-xep-hang.php [QSA,L]
+     # /docs: tài liệu tích hợp extension; /buyer-api: tài liệu đại lý.
      RewriteRule ^api-guide/?$ frontend/api-guide.php [QSA,L]
      RewriteRule ^huong-dan-api/?$ frontend/api-guide.php [QSA,L]
-     RewriteRule ^docs/?$ frontend/docs.php [QSA,L]
+     RewriteRule ^docs/?$ frontend/api-guide.php [QSA,L]
      RewriteRule ^buyer-api/?$ frontend/docs.php [QSA,L]
 
     RewriteRule ^bang-gia-model/?$ frontend/bang-gia-model.php [QSA,L]

@@ -52,9 +52,13 @@ $products = $pdo->query("SELECT * FROM `products` WHERE `is_active` = 1 ORDER BY
             <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">
                 <?= SHOP_NAME ?> Buyer API
             </h1>
-            <p class="text-base text-gray-400 mt-2 max-w-3xl leading-relaxed">
-                API chính thức do <strong><?= SHOP_NAME ?></strong> phát hành, dành cho đối tác bán sản phẩm tự động trên website, ứng dụng hoặc bot Telegram/Discord của mình.
-            </p>
+<p class="text-base text-gray-400 mt-2 max-w-3xl leading-relaxed">
+                 API chính thức do <strong><?= SHOP_NAME ?></strong> phát hành, dành cho đối tác bán sản phẩm tự động trên website, ứng dụng hoặc bot Telegram/Discord của mình.
+             </p>
+             <div class="mt-4 inline-flex flex-wrap items-center gap-2 text-xs">
+                 <span class="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-300"><i class="fas fa-store mr-1"></i>Đây là Buyer API lấy sản phẩm về bán</span>
+                 <a href="/docs" class="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-gray-300 hover:text-white">Docs tích hợp Codex / Claude / Kilo / Cursor</a>
+             </div>
         </div>
 
         <!-- HƯỚNG DẪN DÙNG NHANH & CẦN NHỚ -->

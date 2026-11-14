@@ -305,7 +305,7 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                     <i class="fas fa-trophy text-amber-400 w-4 text-center"></i> <span>Bảng Xếp Hạng</span>
                 </a>
                 <a href="/api-guide" @click="moMenuMobile = false" class="col-span-2 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-amber-600/20 to-orange-600/20 border border-amber-500/40 text-amber-300 hover:text-white transition">
-                    <i class="fas fa-book-bookmark text-amber-400"></i> <span>Tài Liệu API & Hướng Dẫn Tích Hợp</span>
+                    <i class="fas fa-book-bookmark text-amber-400"></i> <span>Docs Extension: Codex, Claude, Kilo, Cursor</span>
                 </a>
             </div>
 

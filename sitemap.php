@@ -72,9 +72,9 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
         </url>
     <?php endforeach; ?>
 
-    <!-- Tài liệu tích hợp API dành cho người dùng -->
+    <!-- Tài liệu tích hợp extension dành cho người dùng -->
     <url>
-        <loc><?= $baseUrl ?>/api-guide</loc>
+        <loc><?= $baseUrl ?>/docs</loc>
         <lastmod><?= $ngayHomNay ?></lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
@@ -82,7 +82,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
 
     <!-- Tài liệu kết nối Buyer API dành cho đại lý -->
     <url>
-        <loc><?= $baseUrl ?>/docs</loc>
+        <loc><?= $baseUrl ?>/buyer-api</loc>
         <lastmod><?= $ngayHomNay ?></lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>

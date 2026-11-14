@@ -26,11 +26,11 @@ $tenWebsite = htmlspecialchars(defined('SHOP_NAME') ? SHOP_NAME : 'TiemAI.io.vn'
     </style>
 </head>
 <body>
-<header class="topbar"><div class="topbar-inner"><a class="brand" href="/">TiemAI <small>API Docs</small></a><nav class="nav"><a href="/">Trang chủ</a><a href="/tra-cuu-key">Tra cứu Key</a><a href="/login">Đăng nhập</a></nav></div></header>
+<header class="topbar"><div class="topbar-inner"><a class="brand" href="/">TiemAI <small>Extension API Docs</small></a><nav class="nav"><a href="/">Trang chủ</a><a href="/buyer-api">API đại lý</a><a href="/tra-cuu-key">Tra cứu Key</a><a href="/login">Đăng nhập</a></nav></div></header>
 <div class="layout">
-    <aside class="toc"><h2>☰ Mục lục</h2><a class="active" href="#quickstart">1. Base URL & API Key</a><a href="#curl">2. Test nhanh cURL</a><a href="#base-urls">3. Base URL theo Client</a><a href="#tools">4. Cài đặt theo công cụ</a><a href="#troubleshooting">5. Xử lý sự cố</a><a href="#security">6. Bảo mật API Key</a></aside>
+    <aside class="toc"><h2>☰ Mục lục</h2><a class="active" href="#quickstart">1. Base URL & API Key</a><a href="#curl">2. Test nhanh cURL</a><a href="#base-urls">3. Base URL theo Client</a><a href="#tools">4. Cài đặt theo công cụ</a><a href="#sdk">5. SDK & HTTP</a><a href="#troubleshooting">6. Xử lý sự cố</a><a href="#security">7. Bảo mật API Key</a></aside>
     <main>
-        <section class="hero"><span class="pill"><span class="dot"></span>Tài liệu cổng API trực tuyến</span><h1>Hướng dẫn tích hợp & sử dụng API</h1><p>Kết nối Claude Code, Codex CLI, OpenCode, DeepSeek TUI, Gemini CLI, Cline, Roo Code, Cursor, Continue và SDK trong vài bước. Tài liệu này dùng endpoint của <strong><?= $tenWebsite ?></strong>; không công khai URL nhà cung cấp.</p><div class="chips"><a class="chip" href="#claude">⚡ Claude Code</a><a class="chip" href="#codex">⚡ Codex CLI</a><a class="chip" href="#opencode">⚡ OpenCode</a><a class="chip" href="#gemini">✨ Gemini CLI</a><a class="chip" href="#cline">🧩 Cline</a><a class="chip" href="#cursor">💻 Cursor / Continue</a><a class="chip" href="#troubleshooting">🛠️ Fix 401 / 404</a></div></section>
+        <section class="hero"><span class="pill"><span class="dot"></span>Tài liệu cổng API trực tuyến</span><h1>Hướng dẫn tích hợp & sử dụng API</h1><p>Kết nối Claude Code, Codex CLI, OpenCode, DeepSeek TUI, Gemini CLI, Cline, Roo Code, Cursor, Continue và SDK trong vài bước. Tài liệu này dùng endpoint của <strong><?= $tenWebsite ?></strong>; không công khai URL nhà cung cấp.</p><div class="chips"><a class="chip" href="#claude">⚡ Claude Code</a><a class="chip" href="#codex">⚡ Codex CLI</a><a class="chip" href="#opencode">⚡ OpenCode</a><a class="chip" href="#gemini">✨ Gemini CLI</a><a class="chip" href="#cline">🧩 Cline</a><a class="chip" href="#kilo">⚙️ Kilo Code</a><a class="chip" href="#cursor">💻 Cursor / Continue</a><a class="chip" href="#troubleshooting">🛠️ Fix 401 / 404</a></div></section>
         <section id="quickstart" class="section"><div class="section-head"><span class="num">01</span><h2>Cấu hình Base URL & API Key</h2></div><p>Dùng Base URL bên dưới cho các ứng dụng của bạn. API key thật chỉ được nhập ở ứng dụng của bạn hoặc lấy qua khu vực tài khoản đã đăng nhập.</p><div class="grid"><div class="field"><div class="label">Base URL (Origin)<span class="tag good">Website hiện tại</span></div><div class="value"><?= $baseUrlHtml ?></div><div class="hint">Claude Code và Gemini CLI dùng domain gốc, không thêm <code>/v1</code>.</div></div><div class="field"><div class="label">OpenAI-compatible Base URL</div><div class="value"><?= $apiBaseHtml ?></div><div class="hint">Codex, OpenCode, Cline, Roo Code, Cursor, Continue và OpenAI SDK dùng hậu tố <code>/v1</code>.</div></div></div><div class="callout warn"><strong>Không nhập API key vào URL.</strong> Không đưa key vào query string, GitHub, ảnh chụp màn hình hoặc mã nguồn frontend công khai. Trang tài liệu này chỉ dùng placeholder <code>YOUR_API_KEY</code>.</div></section>
         <section id="curl" class="section"><div class="section-head"><span class="num">02</span><h2>Kiểm tra kết nối nhanh với cURL</h2></div><p>Thay <code>YOUR_API_KEY</code> bằng API key của bạn trong terminal. Key không được lưu trong trang web này.</p><div class="grid"><div class="code"><div class="code-head"><span>GET /v1/models</span><button class="copy" data-copy="curl <?= htmlspecialchars($baseUrl . '/v1/models', ENT_QUOTES, 'UTF-8') ?> -H &quot;Authorization: Bearer YOUR_API_KEY&quot;">Sao chép</button></div><pre>curl "<?= $apiBaseHtml ?>/models" \
   -H "Authorization: Bearer YOUR_API_KEY"</pre></div><div class="code"><div class="code-head"><span>POST /v1/chat/completions</span><button class="copy" data-copy="curl -X POST <?= htmlspecialchars($baseUrl . '/v1/chat/completions', ENT_QUOTES, 'UTF-8') ?> -H &quot;Content-Type: application/json&quot; -H &quot;Authorization: Bearer YOUR_API_KEY&quot;">Sao chép</button></div><pre>curl -X POST "<?= $apiBaseHtml ?>/chat/completions" \
@@ -55,9 +55,44 @@ wire_api = "responses"</pre></div></div><div id="opencode" class="tool"><h3>⚡ 
 }</pre></div></div><div id="gemini" class="tool"><h3>✨ Gemini CLI <span class="tag warn">Không /v1</span></h3><div class="code"><div class="code-head"><span>macOS / Linux</span><button class="copy" data-copy="export GOOGLE_GEMINI_BASE_URL=<?= htmlspecialchars($baseUrl, ENT_QUOTES, 'UTF-8') ?>\nexport GEMINI_API_KEY=YOUR_API_KEY">Sao chép</button></div><pre>export GOOGLE_GEMINI_BASE_URL="<?= $baseUrlHtml ?>"
 export GEMINI_API_KEY="YOUR_API_KEY"
 gemini</pre></div></div><div id="cline" class="tool"><h3>🧩 Cline / Roo Code <span class="tag good">Có /v1</span></h3><p>Chọn provider <strong>OpenAI Compatible</strong>, nhập Base URL <code><?= $apiBaseHtml ?></code>, API Key và Model ID.</p></div><div id="cursor" class="tool"><h3>💻 Cursor / Continue <span class="tag good">Có /v1</span></h3><p>Chọn OpenAI-compatible provider, Base URL <code><?= $apiBaseHtml ?></code>, sau đó nhập API key trong phần cài đặt riêng của ứng dụng.</p></div></section>
-        <section id="troubleshooting" class="section"><div class="section-head"><span class="num">05</span><h2>Xử lý sự cố</h2></div><div class="grid"><div class="callout"><strong>401 Unauthorized</strong><br>Key thiếu, sai, bị khóa hoặc đã hết hạn. Kiểm tra header Authorization.</div><div class="callout warn"><strong>404 Not Found</strong><br>Claude Code/Gemini CLI dùng domain gốc; Codex/OpenCode/Cline/Cursor dùng <code>/v1</code>.</div><div class="callout"><strong>429 Too Many Requests</strong><br>Giảm số request đồng thời hoặc đợi hệ thống ổn định rồi thử lại.</div><div class="callout warn"><strong>403 Forbidden</strong><br>Key chưa được cấp quyền cho model hoặc gói đã hết hạn mức.</div></div></section>
-        <section id="security" class="section"><div class="section-head"><span class="num">06</span><h2>Bảo mật API Key</h2></div><ul><li>Key được lưu ở backend/database của hệ thống; không hardcode vào file JavaScript công khai.</li><li>Ở trang tài liệu này, key chỉ xuất hiện dưới dạng <code>YOUR_API_KEY</code>.</li><li>Không gửi key qua URL, email công khai, GitHub hoặc ảnh chụp màn hình.</li><li>Nếu nghi ngờ lộ key, vào khu vực tài khoản để tạo key mới và vô hiệu hóa key cũ.</li></ul><div class="support"><a class="button" href="/user/api-docs">Khu vực quản lý API Key</a><a class="button secondary" href="/tra-cuu-key">Tra cứu Usage</a></div></section>
-        <div class="footer-note">Base URL trên trang này được lấy từ cấu hình domain website hiện tại. Tài liệu Buyer API dành cho đại lý vẫn có tại <a href="/buyer-api">/buyer-api</a>.</div>
+        <section id="sdk" class="section"><div class="section-head"><span class="num">05</span><h2>SDK & HTTP: cấu hình chi tiết</h2></div><p>Với SDK chuẩn OpenAI, luôn dùng endpoint có <code>/v1</code>. API key được đọc từ biến môi trường trên máy của bạn.</p><div class="grid"><div id="kilo" class="tool"><h3>⚙️ Kilo Code</h3><p>Trong Kilo Code, chọn provider <strong>OpenAI Compatible</strong> hoặc provider tương thích OpenAI. Nhập Base URL và Model ID như sau:</p><div class="code"><div class="code-head"><span>Kilo Code / OpenAI Compatible</span><button class="copy" data-copy="Provider: OpenAI Compatible\nBase URL: <?= htmlspecialchars($baseUrl . '/v1', ENT_QUOTES, 'UTF-8') ?>\nAPI Key: YOUR_API_KEY\nModel: YOUR_MODEL_ID">Sao chép</button></div><pre>Provider: OpenAI Compatible
+Base URL: <?= $apiBaseHtml ?>
+API Key: YOUR_API_KEY
+Model: YOUR_MODEL_ID</pre></div><p class="hint">Tên model phải đúng model thuộc gói/key bạn đã mua. Không dùng URL nhà cung cấp trong Kilo Code.</p></div><div id="anthropic-sdk" class="tool"><h3>🟠 Anthropic SDK</h3><p>Anthropic SDK tự nối <code>/v1/messages</code>, vì vậy dùng domain gốc, không thêm <code>/v1</code>.</p><div class="code"><div class="code-head"><span>Python</span><button class="copy" data-copy="from anthropic import Anthropic\nclient = Anthropic(api_key=\"YOUR_API_KEY\", base_url=\"<?= htmlspecialchars($baseUrl, ENT_QUOTES, 'UTF-8') ?>\")">Sao chép</button></div><pre>from anthropic import Anthropic
+
+client = Anthropic(
+    api_key="YOUR_API_KEY",
+    base_url="<?= $baseUrlHtml ?>"
+)
+message = client.messages.create(
+    model="claude-sonnet-4-6",
+    max_tokens=256,
+    messages=[{"role": "user", "content": "Hello!"}]
+)</pre></div></div></div><div class="grid"><div class="tool"><h3>🐍 OpenAI SDK Python</h3><div class="code"><div class="code-head"><span>Python</span><button class="copy" data-copy="from openai import OpenAI\nclient = OpenAI(api_key=\"YOUR_API_KEY\", base_url=\"<?= htmlspecialchars($baseUrl . '/v1', ENT_QUOTES, 'UTF-8') ?>\")">Sao chép</button></div><pre>import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["OPENAI_API_KEY"],
+    base_url="<?= $apiBaseHtml ?>"
+)
+response = client.chat.completions.create(
+    model="YOUR_MODEL_ID",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+print(response.choices[0].message.content)</pre></div></div><div class="tool"><h3>🟩 OpenAI SDK Node.js</h3><div class="code"><div class="code-head"><span>Node.js</span><button class="copy" data-copy="import OpenAI from 'openai';\nconst client = new OpenAI({ apiKey: 'YOUR_API_KEY', baseURL: '<?= htmlspecialchars($baseUrl . '/v1', ENT_QUOTES, 'UTF-8') ?>' });">Sao chép</button></div><pre>import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: "<?= $apiBaseHtml ?>"
+});
+const response = await client.chat.completions.create({
+  model: "YOUR_MODEL_ID",
+  messages: [{ role: "user", content: "Hello!" }]
+});
+console.log(response.choices[0].message.content);</pre></div></div></div></section>
+        <section id="troubleshooting" class="section"><div class="section-head"><span class="num">06</span><h2>Xử lý sự cố</h2></div><div class="grid"><div class="callout"><strong>401 Unauthorized</strong><br>Key thiếu, sai, bị khóa hoặc đã hết hạn. Kiểm tra header Authorization.</div><div class="callout warn"><strong>404 Not Found</strong><br>Claude Code/Gemini CLI dùng domain gốc; Codex/OpenCode/Cline/Cursor dùng <code>/v1</code>.</div><div class="callout"><strong>429 Too Many Requests</strong><br>Giảm số request đồng thời hoặc đợi hệ thống ổn định rồi thử lại.</div><div class="callout warn"><strong>403 Forbidden</strong><br>Key chưa được cấp quyền cho model hoặc gói đã hết hạn mức.</div></div></section>
+        <section id="security" class="section"><div class="section-head"><span class="num">07</span><h2>Bảo mật API Key</h2></div><ul><li>Key được lưu ở backend/database của hệ thống; không hardcode vào file JavaScript công khai.</li><li>Ở trang tài liệu này, key chỉ xuất hiện dưới dạng <code>YOUR_API_KEY</code>.</li><li>Không gửi key qua URL, email công khai, GitHub hoặc ảnh chụp màn hình.</li><li>Nếu nghi ngờ lộ key, vào khu vực tài khoản để tạo key mới và vô hiệu hóa key cũ.</li></ul><div class="support"><a class="button" href="/user/api-docs">Khu vực quản lý API Key</a><a class="button secondary" href="/tra-cuu-key">Tra cứu Usage</a></div></section>
+        <div class="footer-note">Base URL trên trang này lấy từ cấu hình website hiện tại. Tài liệu API đại lý để lấy sản phẩm về bán vẫn có tại <a href="/buyer-api">/buyer-api</a>.</div>
     </main>
 </div>
 <script>
