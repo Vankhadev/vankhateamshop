@@ -88,7 +88,7 @@ $chinhSach = [
                     'Website: https://tiemai.io.vn',
                     'Email: vankhaqc@gmail.com',
                     'Telegram hỗ trợ: @Vankhateam ',
-                    'Zalo / Hotline: 0847154088 ',
+                    'Zalo / Hotline: 0904045075 ',
                     'Khung giờ làm việc: 08:30 – 24:00 hàng ngày (kể cả Thứ 7, Chủ Nhật và ngày Lễ).'
                 ]
             ]
@@ -145,7 +145,7 @@ $chinhSach = [
                     'Website: https://tiemai.io.vn',
                     'Email điều hành: vankhaqc@gmail.com',
                     'Telegram: @Vankhateam ',
-                    'Zalo: 0847154088 '
+                    'Zalo: 0904045075 '
                 ]
             ]
         ]
@@ -177,7 +177,7 @@ $chinhSach = [
                 'items' => [
                     'Đơn hàng được xác nhận là "Đã thanh toán" ngay khi tiền về đúng số tài khoản ngân hàng của Tiệm AI kèm đúng nội dung chuyển khoản hiển thị trên màn hình.',
                     'Mỗi mã QR thanh toán có hiệu lực trong vòng 05 phút. Sau 05 phút, đơn hàng chưa nhận tiền sẽ tự động hủy trên giao diện.',
-                    'Trường hợp khách hàng chuyển nhầm nội dung, chuyển thiếu hoặc chuyển sau khi đơn đã hủy: Bạn vui lòng chụp biên lai giao dịch và nhắn ngay cho Admin qua Telegram @Vankhateam hoặc Zalo 0847154088. Hệ thống sẽ đối soát thủ công và kích hoạt đơn hoặc nạp thẳng tiền vào ví cho bạn trong vòng 5–15 phút.'
+                    'Trường hợp khách hàng chuyển nhầm nội dung, chuyển thiếu hoặc chuyển sau khi đơn đã hủy: Bạn vui lòng chụp biên lai giao dịch và nhắn ngay cho Admin qua Telegram @Vankhateam hoặc Zalo 0904045075. Hệ thống sẽ đối soát thủ công và kích hoạt đơn hoặc nạp thẳng tiền vào ví cho bạn trong vòng 5–15 phút.'
                 ]
             ],
             [
@@ -194,7 +194,7 @@ $chinhSach = [
                     'Website: https://tiemai.io.vn',
                     'Email kế toán: vankhaqc@gmail.com',
                     'Telegram hỗ trợ: @Vankhateam ',
-                    'Zalo trực ban: 0847154088'
+                    'Zalo trực ban: 0904045075'
                 ]
             ]
         ]
@@ -245,7 +245,7 @@ $chinhSach = [
                     'Website: https://tiemai.io.vn',
                     'Email: vankhaqc@gmail.com',
                     'Telegram: @Vankhateam ',
-                    'Zalo: 0847154088 '
+                    'Zalo: 0904045075 '
                 ]
             ]
         ]
@@ -294,7 +294,7 @@ $chinhSach = [
             [
                 'title' => 'Quy trình 5 bước nhận bảo hành & hoàn tiền',
                 'items' => [
-                    'Bước 1: Nhắn tin cho Ban quản trị Tiệm AI qua Telegram @Vankhateam hoặc Zalo 0847154088.',
+                    'Bước 1: Nhắn tin cho Ban quản trị Tiệm AI qua Telegram @Vankhateam hoặc Zalo 0904045075.',
                     'Bước 2: Cung cấp Mã đơn hàng (hoặc mã thanh toán VietQR) và địa chỉ email đã đặt hàng.',
                     'Bước 3: Mô tả rõ hiện tượng lỗi kèm ảnh chụp màn hình / log lỗi (nếu có).',
                     'Bước 4: Tạm dừng sử dụng mã đó để Tiệm AI kiểm tra lịch sử truy cập trên hệ thống.',
@@ -308,7 +308,7 @@ $chinhSach = [
                     'Website: https://tiemai.io.vn',
                     'Email xử lý khiếu nại: vankhaqc@gmail.com',
                     'Telegram trực tiếp: @Vankhateam ',
-                    'Zalo bảo hành: 0847154088 ',
+                    'Zalo bảo hành: 0904045075 ',
                     'Tiệm AI cam kết xử lý công tâm, nhanh gọn và đặt quyền lợi khách hàng lên hàng đầu.'
                 ]
             ]
@@ -375,7 +375,7 @@ $chinhSach = [
                     'Website: https://tiemai.io.vn',
                     'Email đối tác: vankhaqc@gmail.com',
                     'Telegram quản lý đại lý: @Vankhateam ',
-                    'Zalo quản lý: 0847154088 '
+                    'Zalo quản lý: 0904045075 '
                 ]
             ]
         ]
@@ -395,7 +395,7 @@ $chinhSach = [
                     'Website: https://tiemai.io.vn',
                     'Email liên hệ bảo mật: vankhaqc@gmail.com',
                     'Telegram hỗ trợ: @Vankhateam ',
-                    'Zalo / Hotline: 0847154088'
+                    'Zalo / Hotline: 0904045075'
                 ]
             ],
             [
@@ -444,7 +444,7 @@ $chinhSach = [
                     'Website: https://tiemai.io.vn',
                     'Email phụ trách bảo mật: vankhaqc@gmail.com',
                     'Telegram: @Vankhateam ',
-                    'Zalo: 0847154088 '
+                    'Zalo: 0904045075 '
                 ]
             ]
         ]
@@ -548,11 +548,11 @@ $tenWebsite = 'Tiệm AI';
                                 <div class="text-xs font-bold text-white truncate">@Vankhateam</div>
                             </div>
                         </a>
-                        <a href="https://zalo.me/0847154088" target="_blank" rel="noopener noreferrer" class="bg-gray-900/80 border border-gray-800 hover:border-blue-500/40 p-3.5 rounded-2xl flex items-center gap-3 transition group">
+                        <a href="https://zalo.me/0904045075" target="_blank" rel="noopener noreferrer" class="bg-gray-900/80 border border-gray-800 hover:border-blue-500/40 p-3.5 rounded-2xl flex items-center gap-3 transition group">
                             <i class="fas fa-comment-dots text-emerald-400 text-lg group-hover:scale-110 transition-transform"></i>
                             <div class="overflow-hidden">
                                 <div class="text-[10px] text-gray-400 uppercase font-bold">Zalo / Hotline</div>
-                                <div class="text-xs font-bold text-white truncate">0847154088</div>
+                                <div class="text-xs font-bold text-white truncate">0904045075</div>
                             </div>
                         </a>
                     </div>

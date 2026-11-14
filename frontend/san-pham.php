@@ -15,10 +15,14 @@ thietLapBaoMatHeaders();
 $categories = $pdo->query("SELECT * FROM `categories` WHERE `is_active` = 1 ORDER BY `sort_order` ASC")->fetchAll();
 
 // Xác định danh mục đang chọn nếu có từ URL
+$catSlugParam = $_GET['category_slug'] ?? $_GET['category'] ?? $_GET['cat'] ?? '';
+if ($catSlugParam === 'glm') {
+    $catSlugParam = 'zhipu';
+}
 $selectedCatId = (int)($_GET['category_id'] ?? 0);
-if (!$selectedCatId && !empty($_GET['category_slug'])) {
+if (!$selectedCatId && !empty($catSlugParam)) {
     foreach ($categories as $cat) {
-        if ($cat['slug'] === $_GET['category_slug']) {
+        if ($cat['slug'] === $catSlugParam) {
             $selectedCatId = (int)$cat['id'];
             break;
         }
@@ -473,6 +477,17 @@ if ($daDangNhap) {
             danhMucChon: <?= $selectedCatId ?>,
             tuKhoaTim: '',
             kieuSapXep: 'mac_dinh',
+
+            init() {
+                if (this.danhMucChon > 0) {
+                    this.$nextTick(() => {
+                        let tabBtn = this.$refs.spTabsScroll ? this.$refs.spTabsScroll.querySelector('.bg-blue-600') : null;
+                        if (tabBtn) {
+                            tabBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                        }
+                    });
+                }
+            },
 
             // Quản lý Modal mua hàng
             moPopupThanhToan: false,

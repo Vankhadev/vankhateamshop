@@ -105,8 +105,8 @@ $tenWebsite = 'Tiệm AI';
                     <a href="mailto:vankhaqc@gmail.com" class="flex items-center gap-2 text-xs text-amber-400 hover:text-amber-300 transition px-1 py-1">
                         <i class="fas fa-envelope w-4 text-center"></i> <span>vankhaqc@gmail.com</span>
                     </a>
-                    <a href="https://zalo.me/0847154088" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-xs text-emerald-400 hover:text-emerald-300 transition px-1 py-1">
-                        <i class="fas fa-comment-dots w-4 text-center"></i> <span>Zalo: 0847154088</span>
+                    <a href="https://zalo.me/0904045075" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-xs text-emerald-400 hover:text-emerald-300 transition px-1 py-1">
+                        <i class="fas fa-comment-dots w-4 text-center"></i> <span>Zalo: 0904045075</span>
                     </a>
                 </div>
             </aside>
@@ -154,11 +154,11 @@ $tenWebsite = 'Tiệm AI';
                                 <div class="text-xs font-bold text-white truncate">@Vankhateam</div>
                             </div>
                         </a>
-                        <a href="https://zalo.me/0847154088" target="_blank" rel="noopener noreferrer" class="bg-gray-900/80 border border-gray-800 hover:border-blue-500/40 p-3.5 rounded-2xl flex items-center gap-3 transition group">
+                        <a href="https://zalo.me/0904045075" target="_blank" rel="noopener noreferrer" class="bg-gray-900/80 border border-gray-800 hover:border-blue-500/40 p-3.5 rounded-2xl flex items-center gap-3 transition group">
                             <i class="fas fa-comment-dots text-emerald-400 text-lg group-hover:scale-110 transition-transform"></i>
                             <div class="overflow-hidden">
                                 <div class="text-[10px] text-gray-400 uppercase font-bold">Zalo / Hotline</div>
-                                <div class="text-xs font-bold text-white truncate">0847154088</div>
+                                <div class="text-xs font-bold text-white truncate">0904045075</div>
                             </div>
                         </a>
                     </div>

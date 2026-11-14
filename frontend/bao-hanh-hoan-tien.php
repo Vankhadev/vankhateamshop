@@ -63,7 +63,7 @@ $cacMuc = array (
     'title' => 'Quy trình 5 bước nhận bảo hành & hoàn tiền',
     'items' => 
     array (
-      0 => 'Bước 1: Nhắn tin cho Ban quản trị Tiệm AI qua Telegram @Vankhateam hoặc Zalo 0847154088.',
+      0 => 'Bước 1: Nhắn tin cho Ban quản trị Tiệm AI qua Telegram @Vankhateam hoặc Zalo 0904045075.',
       1 => 'Bước 2: Cung cấp Mã đơn hàng (hoặc mã thanh toán VietQR) và địa chỉ email đã đặt hàng.',
       2 => 'Bước 3: Mô tả rõ hiện tượng lỗi kèm ảnh chụp màn hình / log lỗi (nếu có).',
       3 => 'Bước 4: Tạm dừng sử dụng mã đó để Tiệm AI kiểm tra lịch sử truy cập trên hệ thống.',
@@ -79,7 +79,7 @@ $cacMuc = array (
       1 => 'Website: https://tiemai.io.vn',
       2 => 'Email xử lý khiếu nại: vankhaqc@gmail.com',
       3 => 'Telegram trực tiếp: @Vankhateam ',
-      4 => 'Zalo bảo hành: 0847154088 (https://zalo.me/0847154088)',
+      4 => 'Zalo bảo hành: 0904045075 (https://zalo.me/0904045075)',
       5 => 'Tiệm AI cam kết xử lý công tâm, nhanh gọn và đặt quyền lợi khách hàng lên hàng đầu.',
     ),
   ),

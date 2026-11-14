@@ -311,7 +311,7 @@ INSERT INTO `supplier_product_mappings` (`product_id`, `supplier_id`, `supplier_
 -- 6. Cấu hình hệ thống (Chuẩn bị sẵn cho SePay và Telegram)
 INSERT INTO `settings` (`key`, `value`, `description`) VALUES
 ('site_name', 'VanKha Team Shop - API AI Chính Hãng', 'Tên thương hiệu website'),
-('site_contact_zalo', '0847154088', 'Số Zalo hỗ trợ khách hàng'),
+('site_contact_zalo', '0904045075', 'Số Zalo hỗ trợ khách hàng'),
 ('site_contact_telegram', 'https://t.me/vankhateam', 'Link kênh Telegram CSKH'),
 ('sepay_api_key', '', 'API Key tài khoản SePay.vn để nhận tiền tự động'),
 ('sepay_bank_account', '', 'Số tài khoản ngân hàng nhận tiền'),

@@ -5,7 +5,7 @@
 // ========================================================
 
 $tenWebsiteFooter = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_name', defined('SHOP_NAME') ? SHOP_NAME : 'TiemAI.io.vn') : (defined('SHOP_NAME') ? SHOP_NAME : 'TiemAI.io.vn');
-$soZaloFooter = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_contact_zalo', defined('SHOP_ZALO') ? SHOP_ZALO : '0847154088') : (defined('SHOP_ZALO') ? SHOP_ZALO : '0847154088');
+$soZaloFooter = '0904045075';
 $teleFooter = 'https://t.me/vankhateam';
 $tiktokFooter = 'https://www.tiktok.com/@vankhateam';
 $emailFooter = 'vankhaqc@gmail.com';
@@ -13,43 +13,17 @@ $emailFooter = 'vankhaqc@gmail.com';
 $daDangNhapFooter = !empty($_SESSION['user_id']);
 $curUri = $_SERVER['REQUEST_URI'] ?? '/';
 
-// 1. Danh sách sản phẩm đang bán kèm đường dẫn trực tiếp
+// 1. Danh sách sản phẩm API - Click mở trực tiếp trang sản phẩm và lọc đúng API đó
 $danhSachSanPhamFooter = [
-    ['ten' => 'API Cursor',    'link' => '/san-pham/api-cursor-1-ngay'],
-    ['ten' => 'API Codex',     'link' => '/san-pham/codex-gpt-api-30trieu-token-rpm-1-ngay-27'],
-    ['ten' => 'API Claude',    'link' => '/san-pham/claude-code-api-goi-10-1-ngay-190'],
-    ['ten' => 'API DeepSeek',  'link' => '/san-pham/api-deepseek-toc-do-nhanh-50-credit-50-000-vnd-khuyen-nghi-188'],
-    ['ten' => 'API Kimi',      'link' => '/san-pham/api-kimi-kmi0087'],
-    ['ten' => 'API GLM',       'link' => '/san-pham/api-glm-zhp0092'],
-    ['ten' => 'API Gemini',    'link' => '/san-pham/api-gemini-10-gem0097'],
-    ['ten' => 'API Grok',      'link' => '/san-pham/api-grok-grk0078'],
+    ['ten' => 'API Cursor',    'link' => '/san-pham/cursor'],
+    ['ten' => 'API Gemini',    'link' => '/san-pham/gemini'],
+    ['ten' => 'API GLM',       'link' => '/san-pham/glm'],
+    ['ten' => 'API Kimi',      'link' => '/san-pham/kimi'],
+    ['ten' => 'API Grok',      'link' => '/san-pham/grok'],
+    ['ten' => 'API DeepSeek',  'link' => '/san-pham/deepseek'],
+    ['ten' => 'API Codex',     'link' => '/san-pham/codex'],
+    ['ten' => 'API Claude',    'link' => '/san-pham/claude'],
 ];
-
-// Nếu kết nối database hoạt động, tự động cập nhật sản phẩm hot/mới nhất
-if (isset($pdo)) {
-    try {
-        $stmtP = $pdo->query("SELECT name, slug FROM products WHERE is_active = 1 ORDER BY is_hot DESC, id ASC LIMIT 8");
-        $prodsDb = $stmtP->fetchAll(PDO::FETCH_ASSOC);
-        if (!empty($prodsDb)) {
-            $tmp = [];
-            foreach ($prodsDb as $p) {
-                $nameDisplay = $p['name'];
-                if (preg_match('/^(API (?:Cursor|Codex|Claude|DeepSeek|Kimi|GLM|Gemini|Grok))/i', $nameDisplay, $m)) {
-                    $nameDisplay = $m[1];
-                } elseif (mb_strlen($nameDisplay, 'UTF-8') > 24) {
-                    $nameDisplay = mb_substr($nameDisplay, 0, 22, 'UTF-8') . '...';
-                }
-                $tmp[] = [
-                    'ten' => $nameDisplay,
-                    'link' => '/san-pham/' . $p['slug']
-                ];
-            }
-            if (count($tmp) >= 4) {
-                $danhSachSanPhamFooter = $tmp;
-            }
-        }
-    } catch (\Throwable $e) {}
-}
 ?>
 <footer class="border-t border-gray-800/80 bg-[#0B0F19] pt-12 pb-28 lg:pb-12 text-xs text-gray-400 mt-auto">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -109,12 +83,6 @@ if (isset($pdo)) {
                         </a>
                     </li>
                     <li>
-                        <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-white transition flex items-center gap-2">
-                            <i class="fab fa-facebook text-gray-400 w-4 text-center"></i>
-                            <span>Facebook</span>
-                        </a>
-                    </li>
-                    <li>
                         <a href="<?= htmlspecialchars($teleFooter) ?>" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-white transition flex items-center gap-2">
                             <i class="fab fa-telegram text-gray-400 w-4 text-center"></i>
                             <span>vankhateam</span>
@@ -124,6 +92,12 @@ if (isset($pdo)) {
                         <a href="<?= htmlspecialchars($tiktokFooter) ?>" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-white transition flex items-center gap-2">
                             <i class="fab fa-tiktok text-gray-400 w-4 text-center"></i>
                             <span>TikTok</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://zalo.me/<?= htmlspecialchars($soZaloFooter) ?>" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-white transition flex items-center gap-2">
+                            <i class="fas fa-comment-dots text-gray-400 w-4 text-center"></i>
+                            <span>Zalo: <?= htmlspecialchars($soZaloFooter) ?></span>
                         </a>
                     </li>
                 </ul>

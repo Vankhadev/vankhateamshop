@@ -172,13 +172,17 @@ if (preg_match('#^/san-pham/([^/]+)(?:/([^/]+))?$#', $uri, $matches)) {
             exit;
         }
 
-        // 2. Kiểm tra xem có phải là Danh mục không (ví dụ /san-pham/cursor, /san-pham/claude)
+        // 2. Kiểm tra xem có phải là Danh mục không (ví dụ /san-pham/cursor, /san-pham/claude, /san-pham/glm)
+        $lookupCatSlug = $singleSlug;
+        if ($lookupCatSlug === 'glm') {
+            $lookupCatSlug = 'zhipu';
+        }
         $stmtC = $pdo->prepare("SELECT id FROM `categories` WHERE `slug` = ? AND `is_active` = 1 LIMIT 1");
-        $stmtC->execute([$singleSlug]);
+        $stmtC->execute([$lookupCatSlug]);
         $catId = $stmtC->fetchColumn();
         if ($catId) {
             $_GET['category_id'] = (int)$catId;
-            $_GET['category_slug'] = $singleSlug;
+            $_GET['category_slug'] = $lookupCatSlug;
             require __DIR__ . '/frontend/san-pham.php';
             exit;
         }

@@ -91,7 +91,7 @@ define('BANK_BIN', layGiaTriEnv('BANK_BIN', '970416'));
 
 // 6. THÔNG TIN CHUNG CỦA WEBSITE
 define('SHOP_NAME', layGiaTriEnv('SHOP_NAME', 'VanKha Team Shop'));
-define('SHOP_ZALO', layGiaTriEnv('SHOP_ZALO', '0847154088'));
+define('SHOP_ZALO', layGiaTriEnv('SHOP_ZALO', '0904045075'));
 define('SHOP_TELEGRAM', layGiaTriEnv('SHOP_TELEGRAM', 'https://t.me/vankhateam'));
 
 /**

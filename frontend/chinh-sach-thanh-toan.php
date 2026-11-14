@@ -42,7 +42,7 @@ $cacMuc = array (
     array (
       0 => 'Đơn hàng được xác nhận là "Đã thanh toán" ngay khi tiền về đúng số tài khoản ngân hàng của Tiệm AI kèm đúng nội dung chuyển khoản hiển thị trên màn hình.',
       1 => 'Mỗi mã QR thanh toán có hiệu lực trong vòng 05 phút. Sau 05 phút, đơn hàng chưa nhận tiền sẽ tự động hủy trên giao diện.',
-      2 => 'Trường hợp khách hàng chuyển nhầm nội dung, chuyển thiếu hoặc chuyển sau khi đơn đã hủy: Bạn vui lòng chụp biên lai giao dịch và nhắn ngay cho Admin qua Telegram @Vankhateam hoặc Zalo 0847154088. Hệ thống sẽ đối soát thủ công và kích hoạt đơn hoặc nạp thẳng tiền vào ví cho bạn trong vòng 5–15 phút.',
+      2 => 'Trường hợp khách hàng chuyển nhầm nội dung, chuyển thiếu hoặc chuyển sau khi đơn đã hủy: Bạn vui lòng chụp biên lai giao dịch và nhắn ngay cho Admin qua Telegram @Vankhateam hoặc Zalo 0904045075. Hệ thống sẽ đối soát thủ công và kích hoạt đơn hoặc nạp thẳng tiền vào ví cho bạn trong vòng 5–15 phút.',
     ),
   ),
   3 => 
@@ -63,7 +63,7 @@ $cacMuc = array (
       1 => 'Website: https://tiemai.io.vn',
       2 => 'Email kế toán: vankhaqc@gmail.com',
       3 => 'Telegram hỗ trợ: @Vankhateam ',
-      4 => 'Zalo trực ban: 0847154088',
+      4 => 'Zalo trực ban: 0904045075',
     ),
   ),
 );
