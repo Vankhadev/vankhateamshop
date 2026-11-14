@@ -46,6 +46,86 @@ function taoSlugVnCron($str) {
     return trim($slug, '-');
 }
 
+// Hàm xác định các model AI hỗ trợ theo từng gói sản phẩm từ đối tác
+function xacDinhSupportedModelsCron($name, $sku, $catName = '', $desc = '') {
+    $combined = mb_strtolower($name . ' ' . $sku . ' ' . $catName . ' ' . $desc);
+
+    // 1. CODEX (Taphoaai & Zplay: RPM, Token, 189, 27, 28)
+    if (str_contains($combined, 'codex') && (str_contains($combined, 'zplay') || str_contains($combined, 'rpm') || str_contains($combined, 'token') || str_contains($combined, 'gpt-6.1') || str_contains($combined, 'vk-27') || str_contains($combined, 'vk-28') || str_contains($combined, 'vk-189'))) {
+        return 'gpt-5.6-sol, gpt-6.1-sol, gpt-5.6-luna, gpt-5.6-terra, gpt-5.4-mini, claude-opus-5.5, claude-sonnet-5, claude-opus-5, claude-opus-4.8';
+    }
+
+    // 2. CODEX API (Genzshop Credit: CDX-0055...CDX-0122)
+    if (str_contains($combined, 'codex')) {
+        return 'gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-3.5-turbo, o1, o1-mini, o3-mini';
+    }
+
+    // 3. CLAUDE_CODE (Taphoaai: 30M, 900M, 10$, 300$)
+    if (str_contains($combined, 'claude_code')) {
+        return 'claude-opus-5.5, claude-sonnet-5, claude-opus-5, claude-opus-4.8, claude-opus-4.7, claude-opus-4.6, claude-3-5-sonnet';
+    }
+
+    // 4. CLAUDE API (Genzshop Claude Max, Claude Credit)
+    if (str_contains($combined, 'claude')) {
+        return 'claude-3-5-sonnet, claude-3-5-haiku, claude-3-opus, claude-3-7-sonnet, claude-3-haiku';
+    }
+
+    // 5. CURSOR API (Tất cả gói Cursor 1 ngày, 3 ngày, 7 ngày, 30 ngày)
+    if (str_contains($combined, 'cursor')) {
+        return 'claude-3-5-sonnet, gpt-4o, deepseek-reasoner, deepseek-chat, cursor-small, claude-3-7-sonnet';
+    }
+
+    // 6. DEEPSEEK API
+    if (str_contains($combined, 'deepseek')) {
+        return 'deepseek-reasoner, deepseek-chat, deepseek-coder, deepseek-r1, deepseek-v3';
+    }
+
+    // 7. GEMINI API
+    if (str_contains($combined, 'gemini')) {
+        if (str_contains($combined, 'pixel pro') || str_contains($combined, 'thẻ visa')) {
+            return 'gemini-advanced, gemini-2.5-pro, gemini-live';
+        }
+        return 'gemini-2.5-pro, gemini-2.5-flash, gemini-2.0-flash, gemini-1.5-pro, gemini-1.5-flash';
+    }
+
+    // 8. GLM (Zhipu AI)
+    if (str_contains($combined, 'glm') || str_contains($combined, 'zhipu')) {
+        return 'glm-4-plus, glm-4, glm-4-air, glm-4-flash, glm-4-long';
+    }
+
+    // 9. KIMI (Moonshot AI)
+    if (str_contains($combined, 'kimi') || str_contains($combined, 'moonshot')) {
+        return 'moonshot-v1-8k, moonshot-v1-32k, moonshot-v1-128k, kimi-k1.5';
+    }
+
+    // 10. GROK (xAI)
+    if (str_contains($combined, 'grok')) {
+        return 'grok-2, grok-2-mini, grok-beta, grok-vision-beta';
+    }
+
+    // 11. MUSE AI
+    if (str_contains($combined, 'muse')) {
+        return 'muse-chat, muse-code, gpt-4o, claude-3-5-sonnet';
+    }
+
+    // 12. KIRO AI
+    if (str_contains($combined, 'kiro')) {
+        return 'gpt-4o, claude-3-5-sonnet, deepseek-reasoner, gemini-1.5-pro, grok-2';
+    }
+
+    // 13. GPT Plus (Tài khoản)
+    if (str_contains($combined, 'gpt plus')) {
+        return 'gpt-4o, gpt-4o-mini, o1, o1-mini, canvas, voice-mode';
+    }
+
+    // 14. Antigravity Pro
+    if (str_contains($combined, 'antigravity')) {
+        return 'claude-3-5-sonnet, gpt-4o, deepseek-reasoner, gemini-1.5-pro';
+    }
+
+    return null;
+}
+
 $thoiGianBatDau = microtime(true);
 $ketQuaTong = [
     'thanh_cong'        => true,
@@ -189,6 +269,12 @@ try {
                     $pdo->prepare("UPDATE `products` SET `image` = ? WHERE `id` = ? AND (`image` IS NULL OR `image` = '')")->execute([$prodImg, $existingPid]);
                 }
 
+                // Tự động đồng bộ supported_models nếu sản phẩm chưa có model
+                $syncModels = xacDinhSupportedModelsCron($name, $ourSku, $catInfo['ten'] ?? '', $it['description'] ?? '');
+                if ($syncModels !== null) {
+                    $pdo->prepare("UPDATE `products` SET `supported_models` = ? WHERE `id` = ? AND (`supported_models` IS NULL OR `supported_models` = '')")->execute([$syncModels, $existingPid]);
+                }
+
                 // TỰ ĐỘNG CẬP NHẬT TRẠNG THÁI: Nếu BẤT KỲ đối tác nào còn hàng thì sản phẩm mở bán, tất cả hết thì ẩn
                 $stmtStockAny = $pdo->prepare("SELECT COUNT(*) FROM `supplier_product_mappings` WHERE `product_id` = ? AND `is_active` = 1 AND `stock` > 0");
                 $stmtStockAny->execute([$existingPid]);
@@ -264,14 +350,15 @@ try {
                 // Thêm vào bảng products (tự ẩn nếu tồn kho = 0)
                 $isActiveNew = ($stock > 0) ? 1 : 0;
                 $prodImg = $it['image'] ?? null;
+                $syncModels = xacDinhSupportedModelsCron($name, $ourSku, $catInfo['ten'] ?? '', $it['description'] ?? '');
                 try {
                     $stmtInsP = $pdo->prepare("
                         INSERT INTO `products` 
-                        (`category_id`, `sku`, `name`, `slug`, `image`, `badge`, `description`, `price`, `original_price`, `request_count`, `duration_days`, `features`, `is_hot`, `is_active`)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+                        (`category_id`, `sku`, `name`, `slug`, `image`, `badge`, `description`, `price`, `original_price`, `request_count`, `duration_days`, `features`, `supported_models`, `is_hot`, `is_active`)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
                     ");
                     $stmtInsP->execute([
-                        $catId, $ourSku, $name, $slug, $prodImg, $badge, $it['description'] ?? '', $price, $originalPrice, $requestCount, $duration, $features, $isActiveNew
+                        $catId, $ourSku, $name, $slug, $prodImg, $badge, $it['description'] ?? '', $price, $originalPrice, $requestCount, $duration, $features, $syncModels, $isActiveNew
                     ]);
                     $newPid = (int)$pdo->lastInsertId();
                 } catch (PDOException $eDup) {
