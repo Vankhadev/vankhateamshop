@@ -121,13 +121,13 @@ $products = $pdo->query("SELECT * FROM `products` WHERE `is_active` = 1 ORDER BY
             </div>
             
             <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div class="bg-[#0F172A] p-3 rounded-xl border border-gray-800">
+                <div class="bg-[#0F172A] p-3 rounded-xl border border-gray-800 overflow-hidden">
                     <span class="text-gray-400 block mb-1">Base URL (OpenAI Compatible):</span>
-                    <code class="text-amber-400 font-mono font-bold"><?= (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] ?>/v1</code>
+                    <code class="text-amber-400 font-mono font-bold break-all"><?= (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] ?>/v1</code>
                 </div>
-                <div class="bg-[#0F172A] p-3 rounded-xl border border-gray-800">
+                <div class="bg-[#0F172A] p-3 rounded-xl border border-gray-800 overflow-hidden">
                     <span class="text-gray-400 block mb-1">Chat Completions Endpoint:</span>
-                    <code class="text-green-400 font-mono font-bold"><?= (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] ?>/v1/chat/completions</code>
+                    <code class="text-green-400 font-mono font-bold break-all"><?= (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] ?>/v1/chat/completions</code>
                 </div>
             </div>
         </div>
@@ -153,10 +153,10 @@ $products = $pdo->query("SELECT * FROM `products` WHERE `is_active` = 1 ORDER BY
                     <!-- Cursor IDE -->
                     <div x-show="tabCode === 'cursor'" class="space-y-3">
                         <p class="text-xs text-gray-300">Cấu hình trong Cursor Settings (<kbd class="bg-gray-800 px-1 py-0.5 rounded text-[10px]">Ctrl + Shift + J</kbd> -> Models):</p>
-                        <div class="bg-[#0B0F19] p-3 rounded-xl border border-gray-800 space-y-2 text-xs font-mono">
-                            <div><span class="text-gray-500">1. Override OpenAI Base URL:</span> <span class="text-amber-400"><?= (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] ?>/v1</span></div>
-                            <div><span class="text-gray-500">2. OpenAI API Key:</span> <span class="text-blue-400" x-text="apiToken"></span></div>
-                            <div><span class="text-gray-500">3. Thêm Model:</span> <span class="text-green-400">claude-3-5-sonnet, deepseek-reasoner, cursor-small</span></div>
+                        <div class="bg-[#0B0F19] p-3 rounded-xl border border-gray-800 space-y-2 text-xs font-mono overflow-hidden">
+                            <div class="break-all"><span class="text-gray-500">1. Override OpenAI Base URL:</span> <span class="text-amber-400"><?= (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] ?>/v1</span></div>
+                            <div class="break-all"><span class="text-gray-500">2. OpenAI API Key:</span> <span class="text-blue-400" x-text="apiToken"></span></div>
+                            <div class="break-all"><span class="text-gray-500">3. Thêm Model:</span> <span class="text-green-400">claude-3-5-sonnet, deepseek-reasoner, cursor-small</span></div>
                         </div>
                     </div>
 

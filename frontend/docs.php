@@ -59,7 +59,7 @@ $products = $pdo->query("SELECT * FROM `products` WHERE `is_active` = 1 ORDER BY
 
         <!-- HƯỚNG DẪN DÙNG NHANH & CẦN NHỚ -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-[#111827] border border-gray-800 rounded-2xl p-6 shadow-xl">
+            <div class="bg-[#111827] border border-gray-800 rounded-2xl p-4 sm:p-6 shadow-xl">
                 <h2 class="text-base font-bold text-white mb-3 flex items-center gap-2">
                     <i class="fas fa-bolt text-amber-400"></i> Cách Dùng Rất Nhanh
                 </h2>
@@ -72,7 +72,7 @@ $products = $pdo->query("SELECT * FROM `products` WHERE `is_active` = 1 ORDER BY
                 </ol>
             </div>
 
-            <div class="bg-[#111827] border border-gray-800 rounded-2xl p-6 shadow-xl">
+            <div class="bg-[#111827] border border-gray-800 rounded-2xl p-4 sm:p-6 shadow-xl">
                 <h2 class="text-base font-bold text-white mb-3 flex items-center gap-2">
                     <i class="fas fa-triangle-exclamation text-amber-500"></i> Cần Ghi Nhớ
                 </h2>
@@ -87,29 +87,29 @@ $products = $pdo->query("SELECT * FROM `products` WHERE `is_active` = 1 ORDER BY
         </div>
 
         <!-- BASE URL & XÁC THỰC -->
-        <div id="buyer-api" class="bg-[#111827] border border-blue-900/60 rounded-2xl p-6 shadow-xl space-y-4">
+        <div id="buyer-api" class="bg-[#111827] border border-blue-900/60 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
             <h2 class="text-lg font-bold text-white flex items-center gap-2">
                 <i class="fas fa-lock text-blue-400"></i> Base URL & Cơ Chế Xác Thực
             </h2>
             <p class="text-xs text-gray-300">
                 Tất cả request gọi tới hệ thống đại lý đều sử dụng Base URL tự động theo tên miền của shop:
             </p>
-            <div class="bg-[#0B0F19] p-3.5 rounded-xl border border-gray-800 font-mono text-sm text-green-400 font-bold flex items-center justify-between">
-                <span>Base URL: <?= htmlspecialchars($partnerApiUrl) ?></span>
-                <button @click="saoChep('<?= htmlspecialchars($partnerApiUrl) ?>')" class="text-xs text-gray-400 hover:text-white font-sans px-2.5 py-1 rounded bg-gray-800">
-                    <i class="fas fa-copy mr-1"></i> Copy
+            <div class="bg-[#0B0F19] p-3.5 rounded-xl border border-gray-800 font-mono text-sm text-green-400 font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 overflow-hidden">
+                <span class="break-all whitespace-normal">Base URL: <?= htmlspecialchars($partnerApiUrl) ?></span>
+                <button @click="saoChep('<?= htmlspecialchars($partnerApiUrl) ?>')" class="self-start sm:self-center shrink-0 text-xs text-gray-400 hover:text-white font-sans px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 transition flex items-center gap-1.5">
+                    <i class="fas fa-copy"></i> <span>Copy</span>
                 </button>
             </div>
 
             <p class="text-xs text-gray-300">Mọi request phải kèm header xác thực (khuyến nghị dùng <code class="text-amber-400 font-mono">X-API-Key</code>):</p>
-            <div class="bg-[#0B0F19] p-3 rounded-xl border border-gray-800 font-mono text-xs text-gray-300 space-y-1">
-                <div><span class="text-gray-500">Cách 1:</span> <span class="text-blue-400 font-bold">X-API-Key:</span> YOUR_PARTNER_API_KEY</div>
-                <div><span class="text-gray-500">Cách 2:</span> <span class="text-blue-400 font-bold">Authorization:</span> Bearer YOUR_PARTNER_API_KEY</div>
+            <div class="bg-[#0B0F19] p-3 rounded-xl border border-gray-800 font-mono text-xs text-gray-300 space-y-1.5 overflow-hidden">
+                <div class="break-all whitespace-normal"><span class="text-gray-500">Cách 1:</span> <span class="text-blue-400 font-bold">X-API-Key:</span> YOUR_PARTNER_API_KEY</div>
+                <div class="break-all whitespace-normal"><span class="text-gray-500">Cách 2:</span> <span class="text-blue-400 font-bold">Authorization:</span> Bearer YOUR_PARTNER_API_KEY</div>
             </div>
         </div>
 
         <!-- 1. ENDPOINT: GET /products.php -->
-        <div class="bg-[#111827] border border-gray-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <div class="bg-[#111827] border border-gray-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
             <div class="flex items-center space-x-3">
                 <span class="px-2.5 py-1 rounded-lg bg-green-500/20 text-green-400 font-mono font-black text-xs">GET</span>
                 <span class="font-mono text-sm text-white font-bold">/products.php</span>
@@ -147,7 +147,7 @@ $products = $pdo->query("SELECT * FROM `products` WHERE `is_active` = 1 ORDER BY
         </div>
 
         <!-- 2. ENDPOINT: GET /balance.php -->
-        <div class="bg-[#111827] border border-gray-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <div class="bg-[#111827] border border-gray-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
             <div class="flex items-center space-x-3">
                 <span class="px-2.5 py-1 rounded-lg bg-green-500/20 text-green-400 font-mono font-black text-xs">GET</span>
                 <span class="font-mono text-sm text-white font-bold">/balance.php</span>
@@ -175,7 +175,7 @@ $products = $pdo->query("SELECT * FROM `products` WHERE `is_active` = 1 ORDER BY
         </div>
 
         <!-- 3. ENDPOINT: POST /purchase.php -->
-        <div class="bg-[#111827] border border-gray-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <div class="bg-[#111827] border border-gray-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
             <div class="flex items-center space-x-3">
                 <span class="px-2.5 py-1 rounded-lg bg-blue-500/20 text-blue-400 font-mono font-black text-xs">POST</span>
                 <span class="font-mono text-sm text-white font-bold">/purchase.php</span>
@@ -257,7 +257,7 @@ $products = $pdo->query("SELECT * FROM `products` WHERE `is_active` = 1 ORDER BY
         </div>
 
         <!-- 4. BẢNG MÃ LỖI (ERROR CODE) -->
-        <div class="bg-[#111827] border border-gray-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <div class="bg-[#111827] border border-gray-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
             <h2 class="text-base font-bold text-white flex items-center gap-2">
                 <i class="fas fa-shield-virus text-red-400"></i> Bảng Mã Lỗi (errorCode)
             </h2>

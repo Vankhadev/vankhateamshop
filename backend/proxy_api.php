@@ -24,19 +24,101 @@ $phuongThuc = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 // 1. ENDPOINT LẤY DANH SÁCH MODEL (/v1/models)
 if (strpos($uri, '/models') !== false && $phuongThuc === 'GET') {
     header('Content-Type: application/json; charset=utf-8');
+    
+    // Thu thập danh sách model mặc định & từ các sản phẩm đang bán
+    $modelMap = [
+        'claude-3-5-sonnet' => 'anthropic',
+        'deepseek-reasoner' => 'deepseek',
+        'deepseek-chat'     => 'deepseek',
+        'gpt-4o'            => 'openai',
+        'cursor-small'      => 'cursor'
+    ];
+
+    try {
+        $stmtM = $pdo->query("SELECT DISTINCT supported_models FROM `products` WHERE `is_active` = 1 AND supported_models IS NOT NULL AND supported_models != ''");
+        while ($row = $stmtM->fetch()) {
+            $parts = array_map('trim', explode(',', $row['supported_models']));
+            foreach ($parts as $p) {
+                if (!empty($p) && !isset($modelMap[$p])) {
+                    $owner = 'openai';
+                    if (str_contains($p, 'claude')) $owner = 'anthropic';
+                    elseif (str_contains($p, 'deepseek')) $owner = 'deepseek';
+                    elseif (str_contains($p, 'cursor')) $owner = 'cursor';
+                    elseif (str_contains($p, 'gemini')) $owner = 'google';
+                    $modelMap[$p] = $owner;
+                }
+            }
+        }
+    } catch (Exception $e) {}
+
+    $data = [];
+    foreach ($modelMap as $modelId => $owner) {
+        $data[] = [
+            'id' => $modelId,
+            'object' => 'model',
+            'created' => 1700000000,
+            'owned_by' => $owner,
+            'permission' => []
+        ];
+    }
+
     echo json_encode([
         'object' => 'list',
-        'data' => [
-            ['id' => 'claude-3-5-sonnet', 'object' => 'model', 'owned_by' => 'anthropic'],
-            ['id' => 'deepseek-chat', 'object' => 'model', 'owned_by' => 'deepseek'],
-            ['id' => 'deepseek-reasoner', 'object' => 'model', 'owned_by' => 'deepseek'],
-            ['id' => 'gpt-4o', 'object' => 'model', 'owned_by' => 'openai']
-        ]
+        'data' => $data
     ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     exit;
 }
 
-// 2. ENDPOINT CHAT COMPLETIONS (/v1/chat/completions)
+// 2. ENDPOINT TRA CỨU QUOTA & HẠN DÙNG QUA API (/v1/usage hoặc /v1/key/check)
+if ((strpos($uri, '/usage') !== false || strpos($uri, '/key/check') !== false) && in_array($phuongThuc, ['GET', 'POST'])) {
+    header('Content-Type: application/json; charset=utf-8');
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
+    if (empty($authHeader) && function_exists('apache_request_headers')) {
+        $headers = apache_request_headers();
+        $authHeader = $headers['Authorization'] ?? ($headers['authorization'] ?? '');
+    }
+    $tokenKhach = '';
+    if (preg_match('/Bearer\s+(\S+)/i', $authHeader, $matches)) {
+        $tokenKhach = trim($matches[1]);
+    }
+    if (empty($tokenKhach)) {
+        $tokenKhach = trim($_GET['key'] ?? ($_POST['key'] ?? ''));
+    }
+
+    if (empty($tokenKhach)) {
+        http_response_code(400);
+        echo json_encode(['error' => ['message' => 'Missing API Key in Authorization Bearer or ?key= parameter', 'code' => 'missing_key']]);
+        exit;
+    }
+
+    // Tra cứu đơn hàng hoặc user
+    $stmtO = $pdo->prepare("SELECT o.*, p.name as product_name FROM `orders` o LEFT JOIN `products` p ON o.product_id = p.id WHERE (o.delivered_data LIKE ? OR o.order_code = ?) AND o.status = 'COMPLETED' LIMIT 1");
+    $stmtO->execute(["%$tokenKhach%", $tokenKhach]);
+    $order = $stmtO->fetch();
+
+    $shortKey = substr($tokenKhach, 0, 10);
+    $stmtCount = $pdo->prepare("SELECT COUNT(*) FROM `api_logs` WHERE `api_key_used` LIKE ?");
+    $stmtCount->execute(["%$shortKey%"]);
+    $usedRequests = (int)$stmtCount->fetchColumn();
+
+    $totalRequests = 700;
+    if ($order && preg_match('/1500/i', $order['product_name'])) $totalRequests = 1500;
+    $remaining = max(0, $totalRequests - $usedRequests);
+
+    echo json_encode([
+        'object' => 'usage',
+        'key' => substr($tokenKhach, 0, 8) . '...' . substr($tokenKhach, -4),
+        'status' => 'active',
+        'total_requests' => $totalRequests,
+        'used_requests' => $usedRequests,
+        'remaining_requests' => $remaining,
+        'package' => $order['product_name'] ?? 'AI Gateway Standard Key',
+        'gateway_base_url' => (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'tiemai.io.vn') . '/v1'
+    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    exit;
+}
+
+// 3. ENDPOINT CHAT COMPLETIONS (/v1/chat/completions)
 // A. Trích xuất Authorization Bearer Token từ Header của khách
 $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
 if (empty($authHeader) && function_exists('apache_request_headers')) {
@@ -69,13 +151,13 @@ $stmtCheck = $pdo->prepare("
     UNION
     SELECT o.user_id AS id, u.name, o.customer_email AS email FROM `orders` o 
     LEFT JOIN `users` u ON o.user_id = u.id 
-    WHERE o.delivered_data LIKE ? AND o.status = 'COMPLETED'
+    WHERE (o.delivered_data LIKE ? OR o.order_code = ?) AND o.status = 'COMPLETED'
     LIMIT 1
 ");
-$stmtCheck->execute([$tokenKhach, $tokenKhach, "%$tokenKhach%"]);
+$stmtCheck->execute([$tokenKhach, $tokenKhach, "%$tokenKhach%", $tokenKhach]);
 $userInfo = $stmtCheck->fetch();
 
-if (!$userInfo && !str_starts_with($tokenKhach, 'sk-vankha-') && !str_starts_with($tokenKhach, 'vk_')) {
+if (!$userInfo && !str_starts_with($tokenKhach, 'sk-') && !str_starts_with($tokenKhach, 'vk_') && !str_starts_with($tokenKhach, 'gzsk_') && !str_starts_with($tokenKhach, 'cur-')) {
     http_response_code(401);
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
@@ -97,6 +179,13 @@ $supplier = $pdo->query("SELECT * FROM `suppliers` WHERE `is_active` = 1 ORDER B
 $targetUrl = rtrim($supplier['api_url'] ?? SUPPLIER_API_URL, '/') . '/chat/completions';
 $targetKey = $supplier['api_key'] ?? SUPPLIER_API_KEY;
 
+// Nếu khách dùng chính mã Key của nhà cung cấp đã giao (sk-... hoặc gzsk_...)
+// thì chuyển tiếp trực tiếp mã Key đó để nhà cung cấp trừ quota đúng gói của khách
+$forwardKey = $targetKey;
+if (str_starts_with($tokenKhach, 'sk-') || str_starts_with($tokenKhach, 'gzsk_')) {
+    $forwardKey = $tokenKhach;
+}
+
 // Kiểm tra xem yêu cầu có yêu cầu Streaming (truyền dòng ký tự từng chữ) không
 $isStream = !empty($bodyJson['stream']);
 
@@ -106,7 +195,7 @@ curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, $bodyRaw);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
     'Content-Type: application/json',
-    'Authorization: Bearer ' . $targetKey,
+    'Authorization: Bearer ' . $forwardKey,
     'Accept: ' . ($isStream ? 'text/event-stream' : 'application/json')
 ]);
 curl_setopt($ch, CURLOPT_TIMEOUT, 120);

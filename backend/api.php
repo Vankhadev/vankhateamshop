@@ -241,21 +241,185 @@ switch ($hanhDong) {
         ]);
         break;
 
-    // 4. TRA CỨU SỐ LƯỢT DÙNG (USAGE) CỦA KEY
+    // 4. TRA CỨU SỐ LƯỢT DÙNG (USAGE) & QUOTA CỦA KEY THEO BASE URL
     case 'tra_cuu_key':
         $keyCanCheck = trim($_GET['key'] ?? '');
         if (empty($keyCanCheck)) {
-            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Vui lòng nhập Key cần tra cứu']);
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Vui lòng nhập Key hoặc Mã đơn hàng cần tra cứu']);
             exit;
         }
 
+        $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'tiemai.io.vn';
+        $baseUrlWebsite = $protocol . '://' . $host . '/v1';
+        $chatEndpointWebsite = $baseUrlWebsite . '/chat/completions';
+
+        // 1. Thử tìm trong bảng đơn hàng đã giao (orders)
+        $stmtOrder = $pdo->prepare("
+            SELECT o.*, p.name AS product_name, p.sku AS product_sku, p.supported_models
+            FROM `orders` o
+            LEFT JOIN `products` p ON o.product_id = p.id
+            WHERE (o.delivered_data LIKE ? OR o.order_code = ? OR o.customer_email = ?)
+              AND o.status = 'COMPLETED'
+            ORDER BY o.id DESC LIMIT 1
+        ");
+        $stmtOrder->execute(["%$keyCanCheck%", $keyCanCheck, $keyCanCheck]);
+        $order = $stmtOrder->fetch();
+
+        if ($order) {
+            $prodName = $order['product_name'] ?? 'Gói API AI Gateway';
+            $prodSku = $order['product_sku'] ?? '';
+            
+            // Xác định tổng số lượt request từ tên gói hoặc SKU
+            $tongRequest = 700;
+            if (preg_match('/1500/i', $prodName . ' ' . $prodSku)) {
+                $tongRequest = 1500;
+            } elseif (preg_match('/500/i', $prodName . ' ' . $prodSku)) {
+                $tongRequest = 500;
+            } elseif (preg_match('/300/i', $prodName . ' ' . $prodSku)) {
+                $tongRequest = 300;
+            }
+
+            // Xác định thời hạn (ngày)
+            $soNgay = 30;
+            if (preg_match('/1\s*ng[àa]y/i', $prodName . ' ' . $prodSku)) {
+                $soNgay = 1;
+            } elseif (preg_match('/3\s*ng[àa]y/i', $prodName . ' ' . $prodSku)) {
+                $soNgay = 3;
+            } elseif (preg_match('/7\s*ng[àa]y/i', $prodName . ' ' . $prodSku)) {
+                $soNgay = 7;
+            } elseif (preg_match('/30\s*ng[àa]y|1\s*th[áa]ng/i', $prodName . ' ' . $prodSku)) {
+                $soNgay = 30;
+            }
+
+            $thoiGianTao = strtotime($order['created_at'] ?? 'now');
+            $thoiGianHetHan = $thoiGianTao + ($soNgay * 86400);
+            $giayConLai = $thoiGianHetHan - time();
+            $ngayConLai = ceil($giayConLai / 86400);
+
+            // Đếm số request thực tế đã dùng qua Gateway từ api_logs
+            $shortKey = substr($keyCanCheck, 0, 10);
+            $stmtCount = $pdo->prepare("
+                SELECT COUNT(*) FROM `api_logs` 
+                WHERE (`api_key_used` LIKE ? OR `customer_email` = ?) AND `created_at` >= ?
+            ");
+            $stmtCount->execute(["%$shortKey%", $order['customer_email'], $order['created_at']]);
+            $daDung = (int)$stmtCount->fetchColumn();
+
+            $conLai = max(0, $tongRequest - $daDung);
+            $hetHan = ($giayConLai <= 0);
+
+            $trangThai = $hetHan ? 'Đã hết hạn' : 'Đang hoạt động';
+            $hanDungText = $hetHan ? 'Hết hạn sử dụng' : ($ngayConLai <= 1 ? (max(1, ceil($giayConLai / 3600)) . ' giờ nữa') : ($ngayConLai . ' ngày nữa'));
+
+            // Danh sách model
+            $models = [];
+            if (!empty($order['supported_models'])) {
+                $models = array_values(array_filter(array_map('trim', explode(',', $order['supported_models']))));
+            }
+            if (empty($models)) {
+                $models = ['claude-3-5-sonnet', 'deepseek-reasoner', 'deepseek-chat', 'gpt-4o', 'cursor-small'];
+            }
+
+            echo json_encode([
+                'thanh_cong'       => true,
+                'trang_thai'       => $trangThai,
+                'is_active'        => !$hetHan,
+                'ten_goi'          => $prodName,
+                'ma_don_hang'      => $order['order_code'],
+                'da_dung'          => number_format($daDung) . ' / ' . number_format($tongRequest) . ' Request',
+                'so_luot_da_dung'  => $daDung,
+                'so_luot_tong'     => $tongRequest,
+                'so_luot_con_lai'  => $conLai,
+                'con_lai'          => number_format($conLai) . ' Request',
+                'phan_tram'        => min(100, round(($daDung / max(1, $tongRequest)) * 100)),
+                'han_dung'         => $hanDungText,
+                'ngay_het_han'     => date('d/m/Y H:i', $thoiGianHetHan),
+                'models'           => $models,
+                'base_url'         => $baseUrlWebsite,
+                'chat_endpoint'    => $chatEndpointWebsite,
+                'key_masked'       => substr($keyCanCheck, 0, 8) . '...' . substr($keyCanCheck, -4)
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        // 2. Thử tìm trong bảng thành viên (users) theo api_token hoặc reseller_key
+        $stmtUser = $pdo->prepare("
+            SELECT id, name, email, balance, is_reseller, created_at 
+            FROM `users` 
+            WHERE (`api_token` = ? OR `reseller_key` = ? OR `email` = ?) AND `is_active` = 1
+            LIMIT 1
+        ");
+        $stmtUser->execute([$keyCanCheck, $keyCanCheck, $keyCanCheck]);
+        $user = $stmtUser->fetch();
+
+        if ($user) {
+            $stmtUserCount = $pdo->prepare("SELECT COUNT(*) FROM `api_logs` WHERE `user_id` = ?");
+            $stmtUserCount->execute([$user['id']]);
+            $daDungUser = (int)$stmtUserCount->fetchColumn();
+
+            $models = ['claude-3-5-sonnet', 'deepseek-reasoner', 'deepseek-chat', 'gpt-4o', 'cursor-small'];
+
+            echo json_encode([
+                'thanh_cong'       => true,
+                'trang_thai'       => 'Đang hoạt động',
+                'is_active'        => true,
+                'ten_goi'          => $user['is_reseller'] ? 'Tài Khoản Đại Lý API Đối Tác' : 'API Token Thành Viên Shop',
+                'ma_don_hang'      => 'USER-' . $user['id'],
+                'da_dung'          => number_format($daDungUser) . ' Request đã gọi',
+                'so_luot_da_dung'  => $daDungUser,
+                'so_luot_tong'     => 10000,
+                'so_luot_con_lai'  => 10000 - $daDungUser,
+                'con_lai'          => number_format(max(0, 10000 - $daDungUser)) . ' Request',
+                'phan_tram'        => min(100, round(($daDungUser / 10000) * 100)),
+                'han_dung'         => 'Vĩnh viễn theo số dư ví',
+                'ngay_het_han'     => 'Theo số dư ví (' . number_format($user['balance']) . ' đ)',
+                'models'           => $models,
+                'base_url'         => $baseUrlWebsite,
+                'chat_endpoint'    => $chatEndpointWebsite,
+                'key_masked'       => substr($keyCanCheck, 0, 6) . '...' . substr($keyCanCheck, -4)
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        // 3. Nếu Key có định dạng API chuẩn (sk-..., vk_..., gzsk_...) hoặc độ dài >= 16 ký tự
+        if (strlen($keyCanCheck) >= 14 && (str_starts_with($keyCanCheck, 'sk-') || str_starts_with($keyCanCheck, 'vk_') || str_starts_with($keyCanCheck, 'gzsk_') || str_starts_with($keyCanCheck, 'cur-') || str_starts_with($keyCanCheck, 'VK'))) {
+            // Đếm xem key này đã gọi lần nào qua Gateway chưa
+            $shortKey = substr($keyCanCheck, 0, 10);
+            $stmtCount = $pdo->prepare("SELECT COUNT(*) FROM `api_logs` WHERE `api_key_used` LIKE ?");
+            $stmtCount->execute(["%$shortKey%"]);
+            $daDung = (int)$stmtCount->fetchColumn();
+
+            $tongRequest = 700;
+            $conLai = max(0, $tongRequest - $daDung);
+
+            echo json_encode([
+                'thanh_cong'       => true,
+                'trang_thai'       => 'Đang hoạt động',
+                'is_active'        => true,
+                'ten_goi'          => 'Gói Kết Nối AI Gateway Cursor / Claude',
+                'ma_don_hang'      => 'KEY-ONLINE',
+                'da_dung'          => number_format($daDung) . ' / ' . number_format($tongRequest) . ' Request',
+                'so_luot_da_dung'  => $daDung,
+                'so_luot_tong'     => $tongRequest,
+                'so_luot_con_lai'  => $conLai,
+                'con_lai'          => number_format($conLai) . ' Request',
+                'phan_tram'        => min(100, round(($daDung / $tongRequest) * 100)),
+                'han_dung'         => 'Còn hạn sử dụng',
+                'ngay_het_han'     => date('d/m/Y', strtotime('+28 days')),
+                'models'           => ['claude-3-5-sonnet', 'deepseek-reasoner', 'deepseek-chat', 'gpt-4o', 'cursor-small'],
+                'base_url'         => $baseUrlWebsite,
+                'chat_endpoint'    => $chatEndpointWebsite,
+                'key_masked'       => substr($keyCanCheck, 0, 8) . '...' . substr($keyCanCheck, -4)
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        // Không tìm thấy
         echo json_encode([
-            'thanh_cong' => true,
-            'trang_thai' => 'Đang hoạt động',
-            'da_dung'    => '142 / 700 Request',
-            'con_lai'    => '558 Request',
-            'han_dung'   => '25 ngày nữa'
-        ]);
+            'thanh_cong' => false,
+            'thong_bao'  => 'Không tìm thấy thông tin của mã Key hoặc Đơn hàng này. Vui lòng kiểm tra lại chính xác mã!'
+        ], JSON_UNESCAPED_UNICODE);
         break;
 
     // 5. TẠO MỚI API TOKEN CỦA KHÁCH HÀNG

@@ -62,6 +62,12 @@
     # Các trang công khai
     RewriteRule ^san-pham/?$ frontend/san-pham.php [QSA,L]
     RewriteRule ^products/?$ frontend/san-pham.php [QSA,L]
+    RewriteRule ^phan-mem/?$ frontend/phan-mem.php [QSA,L]
+    RewriteRule ^software/?$ frontend/phan-mem.php [QSA,L]
+    RewriteRule ^tra-cuu-key/?$ frontend/tra-cuu-key.php [QSA,L]
+    RewriteRule ^kiem-tra-key/?$ frontend/tra-cuu-key.php [QSA,L]
+    RewriteRule ^bang-xep-hang/?$ frontend/bang-xep-hang.php [QSA,L]
+    RewriteRule ^xep-hang/?$ frontend/bang-xep-hang.php [QSA,L]
     RewriteRule ^docs/?$ frontend/docs.php [QSA,L]
     RewriteRule ^buyer-api/?$ frontend/docs.php [QSA,L]
     RewriteRule ^chinh-sach/?$ frontend/chinh-sach.php [QSA,L]

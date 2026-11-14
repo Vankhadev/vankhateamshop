@@ -107,7 +107,7 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                                 <i class="fas fa-tag text-blue-400 w-4 text-center"></i>
                                 <span>Bảng giá Model</span>
                             </a>
-                            <a href="javascript:void(0)" @click="moMenuApi = false; moPopupKiemTraKey = true" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
+                            <a href="/tra-cuu-key" @click="moMenuApi = false" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
                                 <i class="fas fa-chart-line text-green-400 w-4 text-center"></i>
                                 <span>Kiểm tra usage</span>
                             </a>
@@ -147,7 +147,7 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                     </div>
 
                     <!-- BẢNG XẾP HẠNG -->
-                    <a href="javascript:void(0)" @click="moPopupBangXepHang = true" class="text-gray-300 hover:text-amber-400 transition flex items-center gap-1.5 font-medium whitespace-nowrap">
+                    <a href="/bang-xep-hang" class="text-gray-300 hover:text-amber-400 transition flex items-center gap-1.5 font-medium whitespace-nowrap">
                         <i class="fas fa-trophy text-amber-400"></i>
                         <span>Bảng Xếp Hạng</span>
                     </a>
@@ -156,10 +156,10 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                 <!-- Khu vực Người dùng & Công cụ bên phải -->
                 <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
                     <!-- Nút Tra Cứu Key: hiển thị từ tablet sm trở lên -->
-                    <button @click="moPopupKiemTraKey = true" class="hidden sm:inline-flex px-3 py-1.5 rounded-xl border border-gray-700 bg-gray-800/80 text-xs font-semibold text-gray-200 hover:bg-gray-700 hover:text-white transition items-center gap-1.5 shadow-sm whitespace-nowrap">
+                    <a href="/tra-cuu-key" class="hidden sm:inline-flex px-3 py-1.5 rounded-xl border border-gray-700 bg-gray-800/80 text-xs font-semibold text-gray-200 hover:bg-gray-700 hover:text-white transition items-center gap-1.5 shadow-sm whitespace-nowrap">
                         <i class="fas fa-chart-line text-blue-400"></i>
                         <span>Tra Cứu Key</span>
-                    </button>
+                    </a>
 
                     <?php if ($daDangNhap): ?>
                         <!-- Ví tiền thành viên: Luôn hiển thị gọn gàng trên cả Mobile và Desktop -->
@@ -284,12 +284,12 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                 <a href="https://status.gwai.cloud/" target="_blank" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-green-500 transition">
                     <i class="fas fa-wave-square text-green-400 w-4 text-center"></i> <span>Status Model</span>
                 </a>
-                <button type="button" @click="moMenuMobile = false; moPopupKiemTraKey = true" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-blue-500 transition text-left w-full">
+                <a href="/tra-cuu-key" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-blue-500 transition text-left w-full">
                     <i class="fas fa-chart-line text-blue-400 w-4 text-center"></i> <span>Tra Cứu Key</span>
-                </button>
-                <button type="button" @click="moMenuMobile = false; moPopupBangXepHang = true" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-amber-500 transition text-left w-full">
+                </a>
+                <a href="/bang-xep-hang" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-amber-500 transition text-left w-full">
                     <i class="fas fa-trophy text-amber-400 w-4 text-center"></i> <span>Bảng Xếp Hạng</span>
-                </button>
+                </a>
                 <a href="/docs" @click="moMenuMobile = false" class="col-span-2 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-amber-600/20 to-orange-600/20 border border-amber-500/40 text-amber-300 hover:text-white transition">
                     <i class="fas fa-book-bookmark text-amber-400"></i> <span>Tài Liệu API & Hướng Dẫn Tích Hợp</span>
                 </a>

@@ -310,6 +310,78 @@ try {
                     </button>
                 </form>
 
+                <!-- KHỐI 6: THIẾT LẬP CRON JOB TỰ ĐỘNG HÓA (CPANEL & MÁY CHỦ VPS) -->
+                <div class="bg-gray-900 border border-emerald-900/60 rounded-3xl p-6 shadow-xl space-y-5">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-800 pb-3">
+                        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fas fa-clock-rotate-left text-emerald-400"></i> 6. Thiết Lập Cron Job Tự Động Hóa (cPanel & Máy Chủ VPS)
+                        </h2>
+                        <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold self-start sm:self-auto">
+                            <i class="fas fa-check-circle mr-1"></i> Tác vụ chạy định kỳ mỗi 1 phút
+                        </span>
+                    </div>
+
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Cron Job là các tác vụ chạy ngầm tự động để đảm bảo hệ thống luôn đồng bộ kho hàng, cập nhật giá nhà cung cấp, quét đơn hàng SePay ACB và giao Key tức thì cho khách mà không cần can thiệp thủ công.
+                    </p>
+
+                    <!-- LỆNH CRON 1: ĐỒNG BỘ KHO, GIÁ, TỰ ĐỘNG THÊM SẢN PHẨM MỚI -->
+                    <div class="bg-gray-950 p-4 rounded-2xl border border-emerald-900/40 space-y-2.5">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div class="text-xs font-bold text-emerald-400 flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px]">CRON 1</span>
+                                <span>Đồng bộ kho hàng, tự động cập nhật giá & tự thêm sản phẩm mới:</span>
+                            </div>
+                            <button type="button" onclick="saoChepCron('curl -s &quot;https://tiemai.io.vn/backend/cron_sync.php?secret=VK_CRON_SECRET_2026&quot; >/dev/null 2>&1')" class="self-start sm:self-center px-3 py-1 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5 border border-emerald-500/30">
+                                <i class="fas fa-copy"></i> Sao chép lệnh
+                            </button>
+                        </div>
+                        <div class="relative">
+                            <code class="block bg-black/90 p-3 rounded-xl text-emerald-300 font-mono text-xs border border-gray-800 break-all select-all">curl -s "https://tiemai.io.vn/backend/cron_sync.php?secret=VK_CRON_SECRET_2026" >/dev/null 2>&1</code>
+                        </div>
+                        <p class="text-[11px] text-gray-400">
+                            <i class="fas fa-info-circle text-emerald-400 mr-1"></i> Tự động kiểm tra API nhà cung cấp: lấy số lượng tồn kho mới nhất, nếu đối tác tăng giá thì tự tăng giá theo tỷ lệ lợi nhuận, nếu đối tác có sản phẩm mới thì tự thêm vào danh mục shop.
+                        </p>
+                    </div>
+
+                    <!-- LỆNH CRON 2: TỔNG HỢP HỆ THỐNG SEPAY & HỦY ĐƠN TREO -->
+                    <div class="bg-gray-950 p-4 rounded-2xl border border-blue-900/40 space-y-2.5">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div class="text-xs font-bold text-blue-400 flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono text-[10px]">CRON 2</span>
+                                <span>Cron tổng hợp toàn diện (SePay ACB, đối soát đơn và đồng bộ kho):</span>
+                            </div>
+                            <button type="button" onclick="saoChepCron('curl -s &quot;https://tiemai.io.vn/backend/cron.php?secret=VK_CRON_SECRET_2026&quot; >/dev/null 2>&1')" class="self-start sm:self-center px-3 py-1 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5 border border-blue-500/30">
+                                <i class="fas fa-copy"></i> Sao chép lệnh
+                            </button>
+                        </div>
+                        <div class="relative">
+                            <code class="block bg-black/90 p-3 rounded-xl text-blue-300 font-mono text-xs border border-gray-800 break-all select-all">curl -s "https://tiemai.io.vn/backend/cron.php?secret=VK_CRON_SECRET_2026" >/dev/null 2>&1</code>
+                        </div>
+                        <p class="text-[11px] text-gray-400">
+                            <i class="fas fa-info-circle text-blue-400 mr-1"></i> Đối soát giao dịch SePay ACB tự động kích hoạt nạp tiền & mua hàng, tự động hủy các đơn treo quá 15 phút tránh giữ chỗ.
+                        </p>
+                    </div>
+
+                    <!-- HƯỚNG DẪN CÀI ĐẶT CPANEL -->
+                    <div class="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 sm:p-5 space-y-3 text-xs text-amber-200">
+                        <div class="font-bold flex items-center gap-2 text-amber-300 text-sm">
+                            <i class="fas fa-gear"></i> Hướng Dẫn Thiết Lập Cron Job Trong cPanel:
+                        </div>
+                        <ol class="list-decimal list-inside space-y-2 text-gray-300 leading-relaxed text-xs">
+                            <li>Đăng nhập vào tài khoản <strong>cPanel</strong> của bạn.</li>
+                            <li>Trong mục <strong>Advanced (Nâng cao)</strong>, nhấp vào <strong>Cron Jobs</strong>.</li>
+                            <li>Trong phần <strong>Add New Cron Job</strong>:
+                                <ul class="list-disc list-inside ml-5 my-1 text-gray-400 space-y-1">
+                                    <li>Chọn <strong>Common Settings</strong>: <em>Every minute (* * * * *)</em> để cron chạy mỗi phút.</li>
+                                    <li>Trong trường <strong>Command</strong>, nhập lệnh <code class="text-emerald-300 font-mono">curl</code> cho từng cron job (sao chép từ bên trên).</li>
+                                </ul>
+                            </li>
+                            <li>Nhấn <strong>Add New Cron Job</strong> để lưu lại.</li>
+                        </ol>
+                    </div>
+                </div>
+
             </main>
 
             <footer class="bg-gray-950 border-t border-gray-900 py-4 text-center text-xs text-gray-500 mt-auto">
@@ -317,5 +389,12 @@ try {
             </footer>
         </div>
     </div>
+
+    <script>
+    function saoChepCron(lenh) {
+        navigator.clipboard.writeText(lenh);
+        alert('Đã sao chép lệnh Cron vào bộ nhớ tạm:\n\n' + lenh);
+    }
+    </script>
 </body>
 </html>

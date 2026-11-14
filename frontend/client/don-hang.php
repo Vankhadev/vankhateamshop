@@ -254,7 +254,7 @@ $soZaloDisplay = layCaiDatHeThong('site_contact_zalo', SHOP_ZALO);
             </div>
 
             <!-- Base URL Kết Nối API Chuẩn OpenAI -->
-            <div class="p-3.5 bg-gray-950 rounded-2xl border border-blue-900/50 space-y-2">
+            <div class="p-3.5 bg-gray-950 rounded-2xl border border-blue-900/50 space-y-2 overflow-hidden">
                 <div class="flex items-center justify-between text-xs">
                     <span class="text-blue-400 font-bold uppercase text-[11px] flex items-center gap-1.5">
                         <i class="fas fa-link"></i> Base URL (OpenAI Compatible)
@@ -264,10 +264,10 @@ $soZaloDisplay = layCaiDatHeThong('site_contact_zalo', SHOP_ZALO);
                     </button>
                 </div>
                 <div class="flex items-center">
-                    <code class="text-amber-300 font-mono text-xs bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-800 flex-1 select-all">https://tiemai.io.vn/v1</code>
+                    <code class="text-amber-300 font-mono text-xs bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-800 flex-1 select-all break-all">https://tiemai.io.vn/v1</code>
                 </div>
-                <div class="text-[11px] text-gray-400 flex items-center gap-1">
-                    <span>Chat Endpoint:</span> <code class="text-gray-300 font-mono text-[10px]">https://tiemai.io.vn/v1/chat/completions</code>
+                <div class="text-[11px] text-gray-400 flex flex-wrap items-center gap-1">
+                    <span>Chat Endpoint:</span> <code class="text-gray-300 font-mono text-[10px] break-all">https://tiemai.io.vn/v1/chat/completions</code>
                 </div>
             </div>
 

@@ -543,7 +543,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                 </div>
 
                 <!-- Base URL Kết Nối API Chuẩn OpenAI -->
-                <div class="bg-gray-900 border border-blue-500/40 rounded-xl p-3 text-left mb-4 space-y-1.5">
+                <div class="bg-gray-900 border border-blue-500/40 rounded-xl p-3 text-left mb-4 space-y-1.5 overflow-hidden">
                     <div class="flex items-center justify-between text-xs">
                         <span class="text-blue-400 font-bold uppercase text-[10px] flex items-center gap-1">
                             <i class="fas fa-link"></i> Base URL (OpenAI Compatible)
@@ -552,8 +552,8 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                             <i class="fas fa-copy"></i> Sao chép
                         </button>
                     </div>
-                    <code class="text-white font-mono text-xs bg-black/80 px-2.5 py-1.5 rounded-lg border border-gray-800 block select-all">https://tiemai.io.vn/v1</code>
-                    <p class="text-[10px] text-gray-400">Chat Endpoint: <code class="text-gray-300">https://tiemai.io.vn/v1/chat/completions</code></p>
+                    <code class="text-white font-mono text-xs bg-black/80 px-2.5 py-1.5 rounded-lg border border-gray-800 block select-all break-all">https://tiemai.io.vn/v1</code>
+                    <p class="text-[10px] text-gray-400 break-all">Chat Endpoint: <code class="text-gray-300 break-all">https://tiemai.io.vn/v1/chat/completions</code></p>
                 </div>
 
                 <button @click="dongThanhToan()" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition">
