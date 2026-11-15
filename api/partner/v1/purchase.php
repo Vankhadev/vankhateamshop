@@ -12,6 +12,7 @@ require_once __DIR__ . '/../../../backend/config.php';
 require_once __DIR__ . '/../../../backend/db.php';
 require_once __DIR__ . '/../../../backend/security.php';
 require_once __DIR__ . '/../../../backend/dispatcher.php';
+require_once __DIR__ . '/../../../backend/telegram.php';
 
 $thoiDiemBatDau = microtime(true);
 $ipKhach = layIpNguoiDung();
@@ -215,6 +216,17 @@ try {
     $logStmt->execute([
         $reseller['id'], $reseller['email'], $reseller['name'], hash('sha256', $apiKey), $ipKhach, $isHttps,
         $productIdSku, $doTreMs, $inputJson, "Mua thành công đơn {$maDonHang}"
+    ]);
+
+    // Gửi thông báo Telegram tới nhóm Đơn hàng
+    guiThongBaoDonHang([
+        'ma_don'         => $maDonHang,
+        'ten_san_pham'   => $product['name'],
+        'so_luong'       => $quantity,
+        'tong_tien'      => $tongTienPhaiTra,
+        'email_khach'    => "Đại lý: {$reseller['email']}" . ($customerEmail ? " (Khách: {$customerEmail})" : ''),
+        'phuong_thuc'    => 'API Đại Lý',
+        'trang_thai_key' => 'Đã giao key qua API'
     ]);
 
     echo json_encode([

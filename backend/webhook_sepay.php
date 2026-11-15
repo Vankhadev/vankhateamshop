@@ -223,7 +223,7 @@ try {
                     $noiDungTele .= "💵 Số tiền nạp: <b>" . number_format($soTienChuyen, 0, ',', '.') . " VNĐ</b>\n";
                     $noiDungTele .= "🏦 Ngân hàng: <b>{$data['gateway']}</b>\n";
                     $noiDungTele .= "📈 Số dư mới: <b>" . number_format($soDuMoi, 0, ',', '.') . " VNĐ</b>";
-                    guiThongBaoTelegram($noiDungTele);
+                    guiThongBaoTelegram($noiDungTele, 'finance');
                 } else {
                     $pdo->rollBack();
                 }
@@ -267,10 +267,11 @@ try {
                 $noiDungTele .= "💵 Số tiền: <b>" . number_format($soTienChuyen, 0, ',', '.') . " VNĐ</b>\n";
                 $noiDungTele .= "🏦 Cổng: <b>{$data['gateway']}</b> (ID: {$data['id']})\n";
                 $noiDungTele .= "🚀 Trạng thái giao key: " . (!empty($ketQuaGiaoKey['thanh_cong']) ? '<b>ĐÃ GIAO THÀNH CÔNG</b>' : '<b>LỖI NGUỒN / ĐÃ HOÀN TIỀN</b>');
-                guiThongBaoTelegram($noiDungTele);
-            }
-        }
-    }
+guiThongBaoTelegram($noiDungTele, 'order');
+             }
+         }
+     }
+
 
     // 7. Hoàn tất phản hồi hợp lệ cho SePay: HTTP 200 kèm {"success": true}
     echo json_encode(['success' => true]);

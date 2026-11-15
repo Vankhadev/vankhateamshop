@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             . "📌 Tiêu đề: <b>{$title}</b>\n"
                             . "📦 Mã đơn: <code>" . ($orderCode ?: 'Hỏi chung') . "</code>\n"
                             . "💬 Nội dung: <i>{$content}</i>";
-                guiThongBaoTelegram($tbTelegram);
+                guiThongBaoTelegram($tbTelegram, 'support');
 
                 $thongBao = 'Đã gửi yêu cầu hỗ trợ thành công! Kỹ thuật viên sẽ kiểm tra và phản hồi sớm nhất.';
                 $loaiThongBao = 'success';

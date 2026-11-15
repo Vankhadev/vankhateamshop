@@ -12,6 +12,7 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/supplier_api.php';
 require_once __DIR__ . '/dispatcher.php';
+require_once __DIR__ . '/telegram.php';
 
 // Thiết lập các tiêu đề bảo mật HTTP (Chống Clickjacking, XSS...)
 thietLapBaoMatHeaders();
@@ -193,6 +194,17 @@ switch ($hanhDong) {
             // Gọi bộ điều phối giao key ngay lập tức
             $boDieuPhoi = new BoDieuPhoiDonHang($pdo);
             $ketQuaGiao = $boDieuPhoi->xuLyDonHang($maDonHang);
+
+            // Bắn thông báo Telegram tới nhóm Đơn hàng
+            guiThongBaoDonHang([
+                'ma_don'          => $maDonHang,
+                'ten_san_pham'    => $sp['name'],
+                'so_luong'        => 1,
+                'tong_tien'       => $giaTien,
+                'email_khach'     => $user['email'] ?? 'Thành viên',
+                'phuong_thuc'     => 'Số dư ví Shop',
+                'trang_thai_key'  => ($ketQuaGiao['thanh_cong'] || !empty($ketQuaGiao['success'])) ? 'Đã giao key thành công' : 'Lỗi kho nguồn - Đã hoàn tiền ví'
+            ]);
 
             if ($ketQuaGiao['thanh_cong'] || !empty($ketQuaGiao['success'])) {
                 echo json_encode([
@@ -1617,6 +1629,73 @@ switch ($hanhDong) {
             'dem_them'     => $demThem,
             'dem_cap_nhat' => $demCapNhat
         ]);
+        break;
+
+    case 'admin_test_telegram':
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Không có quyền']);
+            exit;
+        }
+        batBuocCsrf();
+        $eventType = trim($_POST['event_type'] ?? 'general');
+        $allowedEvents = ['order', 'product_new', 'product_out', 'product_price', 'catalog', 'finance', 'support', 'general'];
+        if (!in_array($eventType, $allowedEvents, true)) $eventType = 'general';
+
+        $sent = false;
+        if ($eventType === 'order') {
+            $sent = guiThongBaoDonHang([
+                'ma_don'          => 'TEST' . date('ymd') . rand(1000, 9999),
+                'ten_san_pham'    => 'Test Gói OpenAI / Claude API (Thử Nghiệm)',
+                'so_luong'        => 1,
+                'tong_tien'       => 150000,
+                'email_khach'     => 'khachhang_test@tiemai.io.vn',
+                'phuong_thuc'     => 'VietQR ACB / Thử nghiệm Admin',
+                'trang_thai_key'  => 'Đã giao key thử nghiệm thành công'
+            ]);
+        } elseif ($eventType === 'product_new') {
+            $sent = guiThongBaoSanPhamMoi([
+                'name'          => 'Claude 3.7 Sonnet Frontier (Gói Thử Nghiệm)',
+                'price'         => 120000,
+                'category_name' => 'API AI Agent',
+                'supplier'      => 'Chính hãng đối tác',
+                'url'           => (defined('SITE_URL') ? SITE_URL : 'https://tiemai.io.vn') . '/#san-pham'
+            ]);
+        } elseif ($eventType === 'product_out') {
+            $sent = guiThongBaoHetHang([
+                'name'     => 'Codex Pro Unlimited (Gói Thử Nghiệm)',
+                'sku'      => 'CDX-TEST-01',
+                'supplier' => 'Kho nguồn API',
+                'note'     => 'Tin nhắn thử nghiệm kiểm tra tính năng báo hết hàng'
+            ]);
+        } elseif ($eventType === 'product_price') {
+            $sent = guiThongBaoBienDongGia([
+                'name' => 'Gemini 2.5 Flash API (Thử Nghiệm)',
+                'sku'  => 'GEMINI-FLASH'
+            ], 60000, 48000);
+        } elseif ($eventType === 'finance') {
+            $sent = guiThongBaoNapTien([
+                'user_email'       => 'admin@tiemai.io.vn',
+                'amount'           => 500000,
+                'gateway'          => 'Ngân hàng ACB (SePay Auto)',
+                'balance_after'    => 1250000,
+                'transaction_code' => 'SEPAY_TEST_' . rand(10000, 99999)
+            ]);
+        } else {
+            $message = "✅ <b>TEST TELEGRAM THÀNH CÔNG</b>\n";
+            $message .= "━━━━━━━━━━━━━━━━━━\n";
+            $message .= "📌 Loại nhóm: <code>" . telegramEscape($eventType) . "</code>\n";
+            $message .= "🕒 Thời gian: <i>" . date('d/m/Y H:i:s') . "</i>\n";
+            $message .= "🌐 Website: <b>" . telegramEscape(SHOP_NAME) . " (tiemai.io.vn)</b>";
+            $sent = guiThongBaoTelegram($message, $eventType);
+        }
+
+        echo json_encode([
+            'thanh_cong' => $sent, 
+            'thong_bao'  => $sent 
+                ? "Đã gửi tin nhắn thử nghiệm thành công tới nhóm [{$eventType}]!" 
+                : "Chưa gửi được! Vui lòng kiểm tra lại Bot Token và Chat ID của nhóm này (đảm bảo Bot đã được add vào nhóm và có quyền gửi tin)."
+        ], JSON_UNESCAPED_UNICODE);
         break;
 
     default:

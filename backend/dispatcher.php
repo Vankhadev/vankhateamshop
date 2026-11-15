@@ -224,7 +224,7 @@ class BoDieuPhoiDonHang {
                 $msg .= "💵 Số tiền: <b>" . number_format($donHang['total_amount'], 0, ',', '.') . " VNĐ</b>\n";
                 $msg .= "❌ Lỗi đối tác: <i>{$chuoiLoi}</i>\n";
                 $msg .= "👉 Admin vui lòng nạp thêm tiền ví đại lý đối tác hoặc cấp key tay trong Admin!";
-                guiThongBaoTelegram($msg);
+                guiThongBaoTelegram($msg, 'order');
             } catch (Exception $eTele) {}
 
             return [

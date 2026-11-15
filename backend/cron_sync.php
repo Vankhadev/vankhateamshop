@@ -8,7 +8,7 @@
 // ========================================================
 
 // Thiết lập chạy qua CLI hoặc Web có kèm secret token
-$secretKey = 'VK_CRON_SECRET_2026';
+$secretKey = layGiaTriEnv('CRON_SECRET', 'VK_CRON_SECRET_2026');
 if (!defined('IN_CRON_MASTER') && php_sapi_name() !== 'cli') {
     $tokenGet = $_GET['secret'] ?? '';
     if ($tokenGet !== $secretKey) {
@@ -47,6 +47,13 @@ function taoSlugVnCron($str) {
 }
 
 // Hàm xác định các model AI hỗ trợ theo từng gói sản phẩm từ đối tác
+function tinhGiaBanTuGiaVonCron(float $cost): float {
+    if ($cost <= 20000) return $cost + 7000;
+    if ($cost <= 60000) return ceil(($cost * 1.25) / 1000) * 1000;
+    if ($cost <= 150000) return ceil(($cost * 1.20) / 1000) * 1000;
+    return ceil(($cost * 1.15) / 1000) * 1000;
+}
+
 function xacDinhSupportedModelsCron($name, $sku, $catName = '', $desc = '') {
     $combined = mb_strtolower($name . ' ' . $sku . ' ' . $catName . ' ' . $desc);
 
@@ -137,6 +144,10 @@ $ketQuaTong = [
     'tong_them_moi'     => 0,
     'tong_tam_het_hang' => 0
 ];
+// Gom thay đổi theo nhóm để mỗi lần cron chỉ gửi một tin cho từng nhóm.
+$telegramCatalogEvents = [
+    'new' => [], 'out' => [], 'price' => []
+];
 
 try {
     // 1. LẤY TẤT CẢ NHÀ CUNG CẤP ĐANG HOẠT ĐỘNG
@@ -193,7 +204,7 @@ try {
                 $thongDiep .= "🏢 Đối tác: <b>{$sup['name']}</b>\n";
                 $thongDiep .= "💰 Số dư: <b>" . number_format($soDu, 0, ',', '.') . " VNĐ</b>\n";
                 $thongDiep .= "🚨 Ngưỡng báo động: <b>" . number_format($sup['min_balance_alert'], 0, ',', '.') . " VNĐ</b>";
-                guiThongBaoTelegram($thongDiep);
+                guiThongBaoTelegram($thongDiep, 'finance');
             }
         }
 
@@ -246,15 +257,27 @@ try {
 
             if ($existingPid) {
                 // 1. NẾU ĐÃ CÓ: Cập nhật tồn kho (stock) và giá vốn (cost_price)
-                $upMap = $pdo->prepare("UPDATE `supplier_product_mappings` SET `stock` = ?, `cost_price` = ? WHERE `product_id` = ? AND `supplier_id` = ?");
-                $upMap->execute([$stock, $cost, $existingPid, $sup['id']]);
+                 $stmtOldMap = $pdo->prepare("SELECT `stock`, `cost_price` FROM `supplier_product_mappings` WHERE `product_id` = ? AND `supplier_id` = ? LIMIT 1");
+                 $stmtOldMap->execute([$existingPid, $sup['id']]);
+                 $oldMap = $stmtOldMap->fetch() ?: ['stock' => 0, 'cost_price' => 0];
+                 $upMap = $pdo->prepare("UPDATE `supplier_product_mappings` SET `stock` = ?, `cost_price` = ? WHERE `product_id` = ? AND `supplier_id` = ?");
+                 $upMap->execute([$stock, $cost, $existingPid, $sup['id']]);
 
-                // Tự động kiểm tra giá bán: nếu giá vốn tăng cao hơn giá bán thì tự động điều chỉnh giá bán để không bị lỗ
-                $curProd = $pdo->query("SELECT price, category_id FROM `products` WHERE id = {$existingPid}")->fetch();
-                if ($curProd && (float)$curProd['price'] < ($cost + 2000)) {
-                    $giaBanMoi = ceil(($cost * 1.15) / 1000) * 1000;
-                    $pdo->prepare("UPDATE `products` SET `price` = ? WHERE `id` = ?")->execute([$giaBanMoi, $existingPid]);
-                }
+                 // Tự động kiểm tra giá bán: nếu giá vốn tăng cao hơn giá bán thì tự động điều chỉnh giá bán để không bị lỗ
+                 $curProd = $pdo->query("SELECT `name`, `price`, `category_id`, `is_active` FROM `products` WHERE `id` = " . (int)$existingPid)->fetch();
+                 if ($curProd) {
+                     $giaBanCu = (float)$curProd['price'];
+                     $giaBanMoi = tinhGiaBanTuGiaVonCron($cost);
+                     // Chỉ cập nhật khi công thức mới thực sự thay đổi giá; có thể tăng hoặc giảm.
+                     if ($giaBanCu !== $giaBanMoi) {
+                         $pdo->prepare("UPDATE `products` SET `price` = ? WHERE `id` = ?")->execute([$giaBanMoi, $existingPid]);
+                         $telegramCatalogEvents['price'][] = ['name' => $curProd['name'], 'old' => $giaBanCu, 'new' => $giaBanMoi];
+                     }
+                 }
+                 if ((int)$oldMap['stock'] > 0 && $stock <= 0) {
+                     $telegramCatalogEvents['out'][] = ['name' => $curProd['name'] ?? ('Sản phẩm #' . $existingPid), 'stock' => $stock];
+                 }
+
 
                 // Cập nhật lại danh mục chuẩn xác nếu sản phẩm trước đó đang nằm ở danh mục Khác (1009)
                 $type = strtolower($it['type'] ?? 'other');
@@ -302,15 +325,7 @@ try {
                 }
 
                 // Tính giá bán lẻ tự động theo công thức lợi nhuận chuẩn
-                if ($cost <= 20000) {
-                    $price = $cost + 7000;
-                } elseif ($cost <= 60000) {
-                    $price = ceil(($cost * 1.25) / 1000) * 1000;
-                } elseif ($cost <= 150000) {
-                    $price = ceil(($cost * 1.20) / 1000) * 1000;
-                } else {
-                    $price = ceil(($cost * 1.15) / 1000) * 1000;
-                }
+                $price = tinhGiaBanTuGiaVonCron($cost);
                 $originalPrice = ceil(($price * 1.3) / 1000) * 1000;
 
                 // Tính thời hạn (duration_days) từ tên
@@ -379,8 +394,10 @@ try {
                     ");
                     $stmtInsMap->execute([$newPid, $sup['id'], $sku, $cost, $stock]);
 
-                    $supInfo['da_them_moi']++;
-                    $ketQuaTong['tong_them_moi']++;
+                     $supInfo['da_them_moi']++;
+                     $ketQuaTong['tong_them_moi']++;
+                     $telegramCatalogEvents['new'][] = ['name' => $name, 'price' => $price, 'stock' => $stock];
+
                 }
             }
         }
@@ -390,6 +407,28 @@ try {
 
     $ketQuaTong['thoi_gian_xu_ly'] = round(microtime(true) - $thoiGianBatDau, 3) . 's';
     $ketQuaTong['thong_bao'] = "Đồng bộ thành công! Cập nhật kho/giá: {$ketQuaTong['tong_cap_nhat']} sản phẩm. Thêm mới từ đối tác: {$ketQuaTong['tong_them_moi']} sản phẩm. Tạm hết hàng: {$ketQuaTong['tong_tam_het_hang']} sản phẩm.";
+
+    // Gửi tổng hợp theo từng nhóm, tránh spam một tin cho mỗi sản phẩm.
+    if (!empty($telegramCatalogEvents['new'])) {
+        $msg = "🆕 <b>SẢN PHẨM MỚI TỪ HỆ THỐNG ĐỒNG BỘ</b>\n";
+        foreach (array_slice($telegramCatalogEvents['new'], 0, 30) as $item) {
+            $msg .= "• <b>" . telegramEscape($item['name']) . "</b> — " . number_format($item['price'], 0, ',', '.') . "đ — kho: " . (int)$item['stock'] . "\n";
+        }
+        if (count($telegramCatalogEvents['new']) > 30) $msg .= "… và " . (count($telegramCatalogEvents['new']) - 30) . " sản phẩm khác.\n";
+        guiThongBaoTelegram($msg, 'product_new');
+    }
+    if (!empty($telegramCatalogEvents['out'])) {
+        $msg = "📭 <b>SẢN PHẨM VỪA HẾT HÀNG</b>\n";
+        foreach (array_slice($telegramCatalogEvents['out'], 0, 30) as $item) $msg .= "• <b>" . telegramEscape($item['name']) . "</b>\n";
+        if (count($telegramCatalogEvents['out']) > 30) $msg .= "… và " . (count($telegramCatalogEvents['out']) - 30) . " sản phẩm khác.\n";
+        guiThongBaoTelegram($msg, 'product_out');
+    }
+    if (!empty($telegramCatalogEvents['price'])) {
+        $msg = "💸 <b>SẢN PHẨM CÓ THAY ĐỔI GIÁ</b>\n";
+        foreach (array_slice($telegramCatalogEvents['price'], 0, 30) as $item) $msg .= "• <b>" . telegramEscape($item['name']) . "</b>: " . number_format($item['old'], 0, ',', '.') . "đ → <b>" . number_format($item['new'], 0, ',', '.') . "đ</b>\n";
+        if (count($telegramCatalogEvents['price']) > 30) $msg .= "… và " . (count($telegramCatalogEvents['price']) - 30) . " sản phẩm khác.\n";
+        guiThongBaoTelegram($msg, 'product_price');
+    }
 
     // Ghi log hệ thống
     ghiNhatKyHeThong('INFO', 'CRON_SYNC_SUCCESS', $ketQuaTong['thong_bao']);

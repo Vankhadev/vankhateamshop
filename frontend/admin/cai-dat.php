@@ -19,6 +19,12 @@ if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
 
 $thongBao = '';
 $loaiThongBao = '';
+$telegramTokenDangLuu = '';
+try {
+    $telegramTokenDangLuu = trim((string)$pdo->query("SELECT `value` FROM `settings` WHERE `key` = 'telegram_bot_token' LIMIT 1")->fetchColumn());
+} catch (Throwable $e) {
+    $telegramTokenDangLuu = '';
+}
 
 // Xử lý lưu cấu hình
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['luu_cai_dat'])) {
@@ -48,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['luu_cai_dat'])) {
         'captcha_secret_key'    => trim($_POST['captcha_secret_key'] ?? ''),
 
         // 5. Telegram Bot dùng chung, mỗi nhóm nhận một loại thông báo riêng
-        'telegram_bot_token'             => trim($_POST['telegram_bot_token'] ?? ''),
+        'telegram_bot_token'             => trim($_POST['telegram_bot_token'] ?? '') ?: $telegramTokenDangLuu,
         'telegram_chat_id'               => trim($_POST['telegram_chat_id'] ?? ''),
         'telegram_chat_order_id'         => trim($_POST['telegram_chat_order_id'] ?? ''),
         'telegram_chat_product_new_id'   => trim($_POST['telegram_chat_product_new_id'] ?? ''),
@@ -303,14 +309,61 @@ try {
                         </h2>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                            <div>
+                            <div class="sm:col-span-2">
                                 <label class="block text-gray-300 font-semibold mb-1">Telegram Bot Token (tạo từ @BotFather):</label>
-                                <input type="text" name="telegram_bot_token" value="<?= htmlspecialchars($rawSettings['telegram_bot_token'] ?? '') ?>" placeholder="123456789:ABCdefGhI..." class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500">
+                                <input type="password" name="telegram_bot_token" value="" placeholder="<?= $telegramTokenDangLuu !== '' ? 'Đã lưu token, nhập token mới nếu muốn thay' : '123456789:ABCdefGhI...' ?>" autocomplete="new-password" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500">
+                                <p class="text-[11px] text-gray-500 mt-1">Một bot token dùng chung cho tất cả nhóm. Không chia sẻ token này.</p>
                             </div>
                             <div>
-                                <label class="block text-gray-300 font-semibold mb-1">Telegram Chat ID nhận tin nhắn (lấy từ @userinfobot):</label>
-                                <input type="text" name="telegram_chat_id" value="<?= htmlspecialchars($rawSettings['telegram_chat_id'] ?? '') ?>" placeholder="VD: 987654321" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500">
+                                <label class="block text-gray-300 font-semibold mb-1">Nhóm mặc định / nhóm chung:</label>
+                                <input type="text" name="telegram_chat_id" value="<?= htmlspecialchars($rawSettings['telegram_chat_id'] ?? '') ?>" placeholder="VD: -1001234567890" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500">
                             </div>
+                            <div>
+                                <label class="block text-gray-300 font-semibold mb-1">Nhóm báo đơn hàng:</label>
+                                <input type="text" name="telegram_chat_order_id" value="<?= htmlspecialchars($rawSettings['telegram_chat_order_id'] ?? '') ?>" placeholder="-100..." class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-gray-300 font-semibold mb-1">Nhóm sản phẩm mới:</label>
+                                <input type="text" name="telegram_chat_product_new_id" value="<?= htmlspecialchars($rawSettings['telegram_chat_product_new_id'] ?? '') ?>" placeholder="-100..." class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-gray-300 font-semibold mb-1">Nhóm hết hàng:</label>
+                                <input type="text" name="telegram_chat_product_out_id" value="<?= htmlspecialchars($rawSettings['telegram_chat_product_out_id'] ?? '') ?>" placeholder="-100..." class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-gray-300 font-semibold mb-1">Nhóm thay đổi giá:</label>
+                                <input type="text" name="telegram_chat_product_price_id" value="<?= htmlspecialchars($rawSettings['telegram_chat_product_price_id'] ?? '') ?>" placeholder="-100..." class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-gray-300 font-semibold mb-1">Nhóm tổng hợp đồng bộ kho:</label>
+                                <input type="text" name="telegram_chat_catalog_id" value="<?= htmlspecialchars($rawSettings['telegram_chat_catalog_id'] ?? '') ?>" placeholder="-100..." class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-gray-300 font-semibold mb-1">Nhóm tài chính / số dư:</label>
+                                <input type="text" name="telegram_chat_finance_id" value="<?= htmlspecialchars($rawSettings['telegram_chat_finance_id'] ?? '') ?>" placeholder="-100..." class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-gray-300 font-semibold mb-1">Nhóm hỗ trợ:</label>
+                                <input type="text" name="telegram_chat_support_id" value="<?= htmlspecialchars($rawSettings['telegram_chat_support_id'] ?? '') ?>" placeholder="-100..." class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500">
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 pt-1">
+                            <select id="telegram-test-event" class="bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white">
+                                <option value="order">Test nhóm đơn hàng</option>
+                                <option value="product_new">Test nhóm sản phẩm mới</option>
+                                <option value="product_out">Test nhóm hết hàng</option>
+                                <option value="product_price">Test nhóm thay đổi giá</option>
+                                <option value="catalog">Test nhóm tổng hợp kho</option>
+                                <option value="finance">Test nhóm tài chính</option>
+                                <option value="support">Test nhóm hỗ trợ</option>
+                            </select>
+                            <button type="button" onclick="testTelegram()" class="px-4 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-white text-xs font-bold border border-blue-500/30"><i class="fab fa-telegram mr-1"></i> Gửi tin test</button>
+                            <span id="telegram-test-result" class="text-[11px] text-gray-400"></span>
+                        </div>
+                        <div class="p-3.5 bg-gray-950 rounded-2xl border border-blue-900/50 text-[11px] text-gray-400 space-y-1">
+                            <p><i class="fas fa-circle-info text-blue-400 mr-1"></i> Thêm cùng một bot vào nhiều nhóm, cấp quyền gửi tin nhắn cho bot, rồi nhập Chat ID riêng của từng nhóm.</p>
+                            <p><i class="fas fa-route text-emerald-400 mr-1"></i> Đơn hàng → nhóm đơn; sản phẩm mới → nhóm sản phẩm mới; hết hàng → nhóm hết hàng; đổi giá → nhóm thay đổi giá; số dư → nhóm tài chính.</p>
+                            <p><i class="fas fa-reply text-amber-400 mr-1"></i> Có thể lấy Chat ID bằng cách thêm bot vào nhóm rồi gọi <code>getUpdates</code> hoặc dùng bot quản lý ID. Chat ID nhóm thường bắt đầu bằng <code>-100</code>.</p>
                         </div>
                     </div>
 
@@ -403,6 +456,25 @@ try {
     function saoChepCron(lenh) {
         navigator.clipboard.writeText(lenh);
         alert('Đã sao chép lệnh Cron vào bộ nhớ tạm:\n\n' + lenh);
+    }
+
+    async function testTelegram() {
+        const result = document.getElementById('telegram-test-result');
+        const eventType = document.getElementById('telegram-test-event').value;
+        const form = new FormData();
+        form.append('action', 'admin_test_telegram');
+        form.append('event_type', eventType);
+        form.append('csrf_token', '<?= htmlspecialchars(taoCsrfToken(), ENT_QUOTES, 'UTF-8') ?>');
+        result.textContent = 'Đang gửi...';
+        try {
+            const response = await fetch('/backend/api.php?action=admin_test_telegram', {method: 'POST', body: form, headers: {'Accept': 'application/json'}});
+            const data = await response.json();
+            result.textContent = data.thong_bao || 'Đã xử lý';
+            result.className = 'text-[11px] ' + (data.thanh_cong ? 'text-emerald-400' : 'text-red-400');
+        } catch (error) {
+            result.textContent = 'Lỗi kết nối máy chủ';
+            result.className = 'text-[11px] text-red-400';
+        }
     }
     </script>
 </body>

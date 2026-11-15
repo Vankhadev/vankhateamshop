@@ -8,6 +8,7 @@
 require_once __DIR__ . '/../../backend/config.php';
 require_once __DIR__ . '/../../backend/db.php';
 require_once __DIR__ . '/../../backend/security.php';
+require_once __DIR__ . '/../../backend/telegram.php';
 
 // Thiết lập tiêu đề bảo mật HTTP
 thietLapBaoMatHeaders();
@@ -67,6 +68,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
 
                 $pdo->commit();
+
+                // Gửi thông báo Telegram tới nhóm Sản Phẩm Mới
+                guiThongBaoSanPhamMoi([
+                    'name'          => $name,
+                    'price'         => $price,
+                    'sku'           => $sku,
+                    'category_name' => 'API AI',
+                    'supplier'      => !empty($supplierSku) ? 'Nhà cung cấp API' : 'Kho nội bộ',
+                    'url'           => (defined('SITE_URL') ? SITE_URL : 'https://tiemai.io.vn') . '/#san-pham'
+                ]);
+
                 $thongBao = "Thêm sản phẩm '{$name}' thành công!";
                 $loaiThongBao = "success";
             } catch (Exception $e) {
@@ -96,6 +108,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     // 2. Cập nhật giá & thông tin sản phẩm
     if ($action === 'cap_nhat_san_pham') {
         $productId = (int)$_POST['product_id'];
+        $oldProduct = null;
+        try {
+            $stmtOld = $pdo->prepare("SELECT * FROM `products` WHERE `id` = ?");
+            $stmtOld->execute([$productId]);
+            $oldProduct = $stmtOld->fetch();
+        } catch (Exception $e) {}
         $price = (float)$_POST['price'];
         $originalPrice = (float)$_POST['original_price'];
         $image = trim($_POST['image'] ?? '');
@@ -117,6 +135,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 } else {
                     $insertMap = $pdo->prepare("INSERT INTO `supplier_product_mappings` (`product_id`, `supplier_id`, `supplier_sku`, `cost_price`, `stock`, `priority`, `is_active`) VALUES (?, 1, ?, ?, 999, 1, 1)");
                     $insertMap->execute([$productId, $supplierSku, $costPrice]);
+                }
+            }
+
+            // Bắn thông báo Telegram biến động giá hoặc hết hàng
+            if ($oldProduct) {
+                $oldPrice = (float)($oldProduct['price'] ?? 0);
+                if ($oldPrice > 0 && $price > 0 && $oldPrice != $price) {
+                    guiThongBaoBienDongGia($oldProduct, $oldPrice, $price);
+                }
+                if (!empty($oldProduct['is_active']) && $isActive == 0) {
+                    guiThongBaoHetHang($oldProduct);
                 }
             }
 

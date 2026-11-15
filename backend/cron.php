@@ -42,7 +42,7 @@ foreach ($suppliers as $sup) {
                 $thongDiep .= "💰 Số dư hiện tại: <b>" . number_format($soDu, 0, ',', '.') . " VNĐ</b>\n";
                 $thongDiep .= "🚨 Ngưỡng cảnh báo: <b>" . number_format($sup['min_balance_alert'], 0, ',', '.') . " VNĐ</b>\n";
                 $thongDiep .= "👉 Vui lòng nạp thêm tiền ngay để tránh gián đoạn đơn hàng!";
-                guiThongBaoTelegram($thongDiep);
+                guiThongBaoTelegram($thongDiep, 'finance');
                 ghiNhatKyHeThong('WARNING', 'CRON_BALANCE_LOW', "Số dư ví {$sup['name']} thấp: " . number_format($soDu) . "đ");
             }
         } else {
