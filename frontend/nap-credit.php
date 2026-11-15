@@ -13,7 +13,7 @@ $soZaloTraCuu = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_con
 $tenShop = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_name', SHOP_NAME) : SHOP_NAME;
 
 $bankBin = defined('BANK_BIN') ? BANK_BIN : '970416';
-$bankAccountNo = defined('BANK_ACCOUNT_NO') ? BANK_ACCOUNT_NO : '29323787';
+$bankAccountNo = defined('BANK_ACCOUNT_NO') ? BANK_ACCOUNT_NO : '22254531';
 $bankAccountName = defined('BANK_ACCOUNT_NAME') ? BANK_ACCOUNT_NAME : 'VO VAN KHA';
 $bankFullName = defined('BANK_FULL_NAME') ? BANK_FULL_NAME : 'Ngân hàng TMCP Á Châu (ACB)';
 

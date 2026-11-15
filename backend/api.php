@@ -212,7 +212,7 @@ switch ($hanhDong) {
 
         // Thông tin chuyển khoản VietQR
         $bankBin = defined('BANK_BIN') ? BANK_BIN : '970416';
-        $bankAccNo = defined('BANK_ACCOUNT_NO') ? BANK_ACCOUNT_NO : '29323787';
+        $bankAccNo = defined('BANK_ACCOUNT_NO') ? BANK_ACCOUNT_NO : '22254531';
         $bankAccName = defined('BANK_ACCOUNT_NAME') ? BANK_ACCOUNT_NAME : 'VO VAN KHA';
         $bankFullName = defined('BANK_FULL_NAME') ? BANK_FULL_NAME : 'Ngân hàng TMCP Á Châu (ACB)';
 

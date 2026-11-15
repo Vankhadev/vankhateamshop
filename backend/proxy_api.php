@@ -336,6 +336,38 @@ if ($isGwaiKey) {
             'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
         ];
 
+        if ($isStream) {
+            header('Content-Type: text/event-stream; charset=utf-8');
+            header('Cache-Control: no-cache, no-transform');
+            header('Connection: keep-alive');
+            header('X-Accel-Buffering: no');
+            if (function_exists('apache_setenv')) { @apache_setenv('no-gzip', '1'); }
+            @ini_set('zlib.output_compression', '0');
+            @ini_set('output_buffering', 'off');
+            while (ob_get_level() > 0) { ob_end_flush(); }
+
+            $ch = curl_init('https://1gw.gwai.cloud/v1/messages');
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $anthropicPayloadJson);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $gwaiHeaders);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+            curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($curl, $data) {
+                echo $data;
+                if (ob_get_level() > 0) @ob_flush();
+                @flush();
+                return strlen($data);
+            });
+            curl_exec($ch);
+            curl_close($ch);
+
+            $doTreMs = round((microtime(true) - $thoiDiemBatDau) * 1000);
+            try {
+                $logStmt = $pdo->prepare("INSERT INTO `api_logs` (`user_id`, `customer_email`, `customer_name`, `api_key_used`, `ip_address`, `is_https`, `endpoint`, `model`, `http_status`, `latency_ms`, `request_body`, `response_summary`, `created_at`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Anthropic Native SSE stream', NOW())");
+                $logStmt->execute([$userInfo['id'] ?? null, $userInfo['email'] ?? null, $userInfo['name'] ?? null, substr($tokenKhach, 0, 10) . '***', $ipKhach, $isHttps, '/v1/messages', $gwaiModel, 200, $doTreMs, mb_substr($bodyRaw, 0, 300)]);
+            } catch (Exception $e) {}
+            exit;
+        }
+
         $ch = curl_init('https://1gw.gwai.cloud/v1/messages');
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $anthropicPayloadJson);
@@ -349,6 +381,12 @@ if ($isGwaiKey) {
         header('Content-Type: application/json; charset=utf-8');
         http_response_code($httpCode ?: 200);
         echo $res;
+
+        $doTreMs = round((microtime(true) - $thoiDiemBatDau) * 1000);
+        try {
+            $logStmt = $pdo->prepare("INSERT INTO `api_logs` (`user_id`, `customer_email`, `customer_name`, `api_key_used`, `ip_address`, `is_https`, `endpoint`, `model`, `http_status`, `latency_ms`, `request_body`, `response_summary`, `created_at`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Anthropic Native JSON', NOW())");
+            $logStmt->execute([$userInfo['id'] ?? null, $userInfo['email'] ?? null, $userInfo['name'] ?? null, substr($tokenKhach, 0, 10) . '***', $ipKhach, $isHttps, '/v1/messages', $gwaiModel, $httpCode ?: 200, $doTreMs, mb_substr($bodyRaw, 0, 300)]);
+        } catch (Exception $e) {}
         exit;
     }
 
