@@ -205,6 +205,22 @@ if ((strpos($uri, '/usage') !== false || strpos($uri, '/key/check') !== false) &
     if ($order && preg_match('/1500/i', $order['product_name'])) $totalRequests = 1500;
     $remaining = max(0, $totalRequests - $usedRequests);
 
+    $pkgName = $order['product_name'] ?? 'AI Gateway Standard Key';
+    $pkgLower = mb_strtolower($pkgName, 'UTF-8');
+    $recommendedModel = 'claude-sonnet-5';
+    $packageType = 'claude';
+    $supportedModelsList = ['claude-sonnet-5', 'claude-opus-5.5', 'claude-fable-5'];
+
+    if (str_contains($pkgLower, 'codex') || str_contains($pkgLower, 'gpt')) {
+        $recommendedModel = 'gpt-5.6-sol';
+        $packageType = 'codex';
+        $supportedModelsList = ['gpt-5.6-sol', 'gpt-6.1-sol', 'gpt-5.6-terra', 'gpt-5.4-mini'];
+    } elseif (str_contains($pkgLower, 'cursor')) {
+        $recommendedModel = 'claude-sonnet-5';
+        $packageType = 'cursor';
+        $supportedModelsList = ['claude-sonnet-5', 'gpt-5.6-sol', 'cursor-small'];
+    }
+
     echo json_encode([
         'object' => 'usage',
         'key' => substr($tokenKhach, 0, 8) . '...' . substr($tokenKhach, -4),
@@ -212,7 +228,10 @@ if ((strpos($uri, '/usage') !== false || strpos($uri, '/key/check') !== false) &
         'total_requests' => $totalRequests,
         'used_requests' => $usedRequests,
         'remaining_requests' => $remaining,
-        'package' => $order['product_name'] ?? 'AI Gateway Standard Key',
+        'package' => $pkgName,
+        'package_type' => $packageType,
+        'recommended_model' => $recommendedModel,
+        'supported_models' => $supportedModelsList,
         'gateway_base_url' => (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'tiemai.io.vn') . '/v1'
     ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     exit;
