@@ -470,7 +470,8 @@ $matchedSup = $stmtFindSupplier->fetch();
 
 $prodNameLower = mb_strtolower($matchedSup['product_name'] ?? '', 'UTF-8');
 
-$isGwaiGateway = str_starts_with($tokenKhach, 'sk-ant-');
+// Key sk-ant-... chỉ dùng Gwai Cloud khi KHÔNG tìm thấy trong database đơn hàng (không phải key TiemAI)
+$isGwaiGateway = str_starts_with($tokenKhach, 'sk-ant-') && empty($matchedSup);
 
 if ($isGwaiGateway) {
     // Key đối tác GenZShop / Gwai Cloud (Native Anthropic)
