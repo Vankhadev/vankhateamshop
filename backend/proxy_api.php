@@ -13,6 +13,27 @@ require_once __DIR__ . '/security.php';
 // Thiết lập tiêu đề bảo mật
 thietLapBaoMatHeaders();
 
+// === CORS HEADERS: Cho phép các IDE & Extension (Cursor, Cline, Kilo, v.v.) gọi API từ mọi origin ===
+// Các IDE dùng Electron/webview cần CORS đầy đủ để không bị chặn
+$originKhach = $_SERVER['HTTP_ORIGIN'] ?? '*';
+// Whitelist domain tin cậy; nếu không khớp thì phản chiếu origin cho extension local
+$originChoPhep = ['https://cursor.sh', 'https://www.cursor.sh', 'vscode-webview://', 'vscode-file://'];
+$domainChoPhep = false;
+foreach ($originChoPhep as $o) {
+    if (str_starts_with($originKhach, $o)) { $domainChoPhep = true; break; }
+}
+// Trả về Access-Control-Allow-Origin: * khi origin không xác định hoặc từ tool CLI
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Authorization, Content-Type, x-api-key, anthropic-version, Accept, X-Requested-With, api-key');
+header('Access-Control-Max-Age: 86400');
+
+// Trả lời ngay OPTIONS preflight request (trình duyệt / webview gửi trước khi POST thật)
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
+
 $thoiDiemBatDau = microtime(true);
 $ipKhach = layIpNguoiDung();
 $isHttps = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ? 1 : 0;
@@ -194,6 +215,60 @@ if ((strpos($uri, '/usage') !== false || strpos($uri, '/key/check') !== false) &
         'package' => $order['product_name'] ?? 'AI Gateway Standard Key',
         'gateway_base_url' => (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'tiemai.io.vn') . '/v1'
     ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    exit;
+}
+
+// 3b. ENDPOINT LEGACY TEXT COMPLETIONS (/v1/completions) — Chuyển tiếp sang chat/completions
+// Một số tool cũ (aider, OpenAI v0.x SDK) vẫn gọi /v1/completions thay vì /v1/chat/completions
+if (strpos($uri, '/completions') !== false && strpos($uri, '/chat/') === false && $phuongThuc === 'POST') {
+    // Lấy body raw để chuyển đổi format nếu cần
+    $bodyRawLegacy = file_get_contents('php://input');
+    $bodyJsonLegacy = json_decode($bodyRawLegacy, true) ?: [];
+
+    // Chuyển đổi format text completion sang chat completion nếu cần
+    if (!isset($bodyJsonLegacy['messages']) && isset($bodyJsonLegacy['prompt'])) {
+        $bodyJsonLegacy['messages'] = [
+            ['role' => 'user', 'content' => $bodyJsonLegacy['prompt']]
+        ];
+        unset($bodyJsonLegacy['prompt']);
+        $bodyRawLegacy = json_encode($bodyJsonLegacy, JSON_UNESCAPED_UNICODE);
+    }
+
+    // Rewrite URI sang /chat/completions rồi xử lý tiếp bình thường
+    $_SERVER['REQUEST_URI'] = str_replace('/completions', '/chat/completions', $uri);
+    // Đẩy lại body vào stream (không thể đổi php://input, nhưng ta sẽ dùng biến tạm)
+    // Forward ngay tới supplier mặc định
+    if (empty($tokenKhach)) {
+        http_response_code(401);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['error' => ['message' => 'Missing API Key', 'code' => 'missing_api_key']]);
+        exit;
+    }
+
+    $supplierLegacy = $pdo->query("SELECT * FROM `suppliers` WHERE `is_active` = 1 ORDER BY `id` ASC LIMIT 1")->fetch();
+    $urlLegacy = rtrim($supplierLegacy['api_url'] ?? SUPPLIER_API_URL, '/') . '/chat/completions';
+    $keyLegacy = $tokenKhach;
+
+    $isStreamLegacy = !empty($bodyJsonLegacy['stream']);
+    $headersLegacy = [
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . $keyLegacy,
+        'Accept: ' . ($isStreamLegacy ? 'text/event-stream' : 'application/json')
+    ];
+
+    $chL = curl_init($urlLegacy);
+    curl_setopt($chL, CURLOPT_POST, true);
+    curl_setopt($chL, CURLOPT_POSTFIELDS, $bodyRawLegacy);
+    curl_setopt($chL, CURLOPT_HTTPHEADER, $headersLegacy);
+    curl_setopt($chL, CURLOPT_TIMEOUT, 120);
+    curl_setopt($chL, CURLOPT_RETURNTRANSFER, true);
+    $respL = curl_exec($chL);
+    $codeL = curl_getinfo($chL, CURLINFO_HTTP_CODE);
+    curl_close($chL);
+
+    http_response_code($codeL ?: 200);
+    header('Content-Type: application/json; charset=utf-8');
+    echo $respL;
     exit;
 }
 

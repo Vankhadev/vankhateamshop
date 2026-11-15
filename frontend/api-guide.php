@@ -1,351 +1,906 @@
 <?php
-// Tài liệu tích hợp API dành cho người dùng. Không đưa API key thật vào HTML.
+// ========================================================
+// TRANG TÀI LIỆU TÍCH HỢP AI AGENT - API GUIDE
+// tiemai.io.vn - Hướng dẫn kết nối mọi IDE & AI Agent
+// Hỗ trợ: Claude, Cursor, Kilo, Codex, Cline, Windsurf, Continue, Aider...
+// Base URL dùng chung: https://tiemai.io.vn/v1
+// Ghi chú code 100% bằng Tiếng Việt dễ hiểu
+// ========================================================
+
 require_once __DIR__ . '/../backend/config.php';
+require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/security.php';
 
 thietLapBaoMatHeaders();
-header('Cache-Control: no-store, private');
-$baseUrl = rtrim(defined('SITE_URL') ? SITE_URL : 'https://tiemai.io.vn', '/');
-$baseUrlHtml = htmlspecialchars($baseUrl, ENT_QUOTES, 'UTF-8');
-$apiBaseHtml = htmlspecialchars($baseUrl . '/v1', ENT_QUOTES, 'UTF-8');
-$tenWebsite = htmlspecialchars(defined('SHOP_NAME') ? SHOP_NAME : 'TiemAI.io.vn', ENT_QUOTES, 'UTF-8');
 ?>
-<!doctype html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="robots" content="index,follow">
-    <title>Hướng dẫn tích hợp & sử dụng API - <?= $tenWebsite ?></title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tài Liệu Tích Hợp AI Agent - <?= SHOP_NAME ?> | Hướng dẫn kết nối Claude, Cursor, Kilo, Codex</title>
+    <meta name="description" content="Hướng dẫn kết nối các AI Agent (Claude, Cursor, Kilo, Codex, Cline, Windsurf...) với Base URL https://tiemai.io.vn/v1. Cài đặt một lần dùng mọi nơi.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
-        :root{--bg:#020617;--card:#0f172aee;--muted:#94a3b8;--text:#f8fafc;--border:#1e293b;--primary:#6366f1;--primary2:#8b5cf6;--code:#070b14;--success:#34d399;--warn:#fbbf24}
-        *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:86px}body{margin:0;background:var(--bg);color:var(--text);font-family:Manrope,system-ui,sans-serif;line-height:1.65}body:before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 12% 5%,#312e8128,transparent 32%),radial-gradient(circle at 92% 8%,#0ea5e925,transparent 30%),linear-gradient(#6366f10e 1px,transparent 1px),linear-gradient(90deg,#6366f10e 1px,transparent 1px);background-size:auto,auto,32px 32px,32px 32px;mask-image:linear-gradient(#000 35%,transparent 95%);z-index:-1}.topbar{position:sticky;top:0;z-index:20;background:#020617dd;border-bottom:1px solid var(--border);backdrop-filter:blur(16px)}.topbar-inner{max-width:1280px;margin:auto;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:14px}.brand{color:#fff;text-decoration:none;font-weight:800}.brand small{color:#818cf8;margin-left:8px}.nav a{color:#cbd5e1;text-decoration:none;font-size:13px;margin-left:16px}.nav a:hover{color:#fff}.layout{max-width:1280px;margin:auto;padding:28px 20px 80px;display:grid;grid-template-columns:260px minmax(0,1fr);gap:32px}.toc{position:sticky;top:84px;max-height:calc(100vh - 105px);overflow:auto;background:#0f172ad9;border:1px solid var(--border);border-radius:16px;padding:16px 14px}.toc h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 10px 12px}.toc a{display:block;color:#cbd5e1;text-decoration:none;font-size:13px;font-weight:600;padding:8px 10px;border-radius:9px}.toc a:hover,.toc a.active{background:#6366f126;color:#a5b4fc}.hero,.section{background:var(--card);border:1px solid var(--border);border-radius:18px;box-shadow:0 14px 36px #0007;padding:28px 30px;margin-bottom:24px}.pill{display:inline-flex;gap:8px;align-items:center;border:1px solid #6366f160;background:#6366f126;color:#a5b4fc;border-radius:999px;padding:4px 12px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.dot{width:7px;height:7px;border-radius:50%;background:var(--success);box-shadow:0 0 8px var(--success)}h1{font-size:34px;line-height:1.2;margin:14px 0 10px;letter-spacing:-.04em}h2{font-size:21px;margin:0 0 8px}h3{font-size:17px;margin:0 0 8px}p{color:#cbd5e1;margin:0 0 12px}.hero p{max-width:850px;font-size:15px}.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}.chip{color:#cbd5e1;border:1px solid var(--border);background:#0b1222;border-radius:999px;padding:5px 12px;text-decoration:none;font-size:12px}.chip:hover{border-color:#818cf8;color:#a5b4fc}.num{display:inline-flex;width:32px;height:32px;align-items:center;justify-content:center;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--primary2));font-weight:800;margin-right:10px}.section-head{display:flex;align-items:center;margin-bottom:10px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}.field{background:#1e293b;border:1px solid var(--border);border-radius:14px;padding:15px}.label{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}.value{font-family:ui-monospace,monospace;background:#0b1120;border:1px solid #334155;border-radius:9px;padding:9px 12px;color:#93c5fd;word-break:break-all;font-size:13px}.hint{font-size:12px;color:var(--muted);margin-top:8px}.code{background:var(--code);border:1px solid #1e293b;border-radius:13px;overflow:auto;margin:14px 0}.code-head{padding:8px 13px;color:#94a3b8;background:#0f172a;border-bottom:1px solid #1e293b;font-size:12px;display:flex;justify-content:space-between}.copy{border:1px solid #334155;background:#1e293b;color:#e2e8f0;border-radius:7px;padding:4px 9px;cursor:pointer}.copy:hover{background:#334155}.code pre{margin:0;padding:15px 17px;color:#e2e8f0;font:13px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap}.callout{border:1px solid #6366f160;border-left:4px solid var(--primary);background:#6366f11a;border-radius:12px;padding:13px 16px;color:#e2e8f0;margin:14px 0}.warn{border-color:#f59e0b66;border-left-color:var(--warn);background:#f59e0b14}.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:13px}.table{width:100%;border-collapse:collapse;font-size:13px}.table th,.table td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--border)}.table th{font-size:11px;color:var(--muted);text-transform:uppercase;background:#1e293b}.table tr:last-child td{border-bottom:0}.tag{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:800}.tag.good{color:var(--success);background:#10b9811f}.tag.warn{color:var(--warn);background:#f59e0b1f}.tool{padding-top:20px;margin-top:20px;border-top:1px solid var(--border)}.tool:first-child{border-top:0;margin-top:0;padding-top:0}.support{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.button{display:inline-block;background:var(--primary);color:#fff;text-decoration:none;border-radius:10px;padding:9px 15px;font-size:13px;font-weight:800}.button.secondary{background:#1e293b}.footer-note{color:#64748b;text-align:center;font-size:12px;margin-top:30px}@media(max-width:900px){.layout{grid-template-columns:1fr;gap:16px}.toc{position:relative;top:0;max-height:none}h1{font-size:28px}.hero,.section{padding:21px 18px}.nav a{margin-left:8px;font-size:12px}.nav a:first-child{display:none}}
-        #tools, #sdk { display: none; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0B0F19; color: #E5E7EB; }
+        pre, code { font-family: 'Fira Code', 'Cascadia Code', Consolas, Monaco, monospace; }
+        pre { overflow-x: auto; }
+        .tab-active { background: linear-gradient(135deg, #1e40af, #4f46e5); border-color: #3b82f6; color: #fff; }
+        .tab-inactive { background: #111827; border-color: #374151; color: #9ca3af; }
+        .tab-inactive:hover { border-color: #6b7280; color: #e5e7eb; }
+        .copy-btn { transition: all .2s; }
+        .copy-btn:hover { opacity: .8; }
+        .gradient-border { background: linear-gradient(135deg, rgba(59,130,246,.15), rgba(139,92,246,.15)); border: 1px solid rgba(99,102,241,.3); }
+        .ide-card { transition: all .2s; }
+        .ide-card:hover { border-color: #3b82f6; transform: translateY(-2px); }
     </style>
 </head>
-<body>
-<header class="topbar"><div class="topbar-inner"><a class="brand" href="/">TiemAI <small>Extension API Docs</small></a><nav class="nav"><a href="/">Trang chủ</a><a href="/buyer-api">API đại lý</a><a href="/tra-cuu-key">Tra cứu Key</a><a href="/login">Đăng nhập</a></nav></div></header>
-<div class="layout">
-    <aside class="toc"><h2>☰ Mục lục</h2><a class="active" href="#quickstart">1. Base URL & API Key</a><a href="#curl">2. Test nhanh cURL</a><a href="#base-urls">3. Base URL theo Client</a><a href="#detailed-tools">4. Cài đặt theo công cụ</a><a href="#sdk-curl">5. SDK & HTTP</a><a href="#troubleshooting">6. Xử lý sự cố</a><a href="#security">7. Bảo mật API Key</a></aside>
-    <main>
-        <section class="hero"><span class="pill"><span class="dot"></span>Tài liệu cổng API trực tuyến</span><h1>Hướng dẫn tích hợp & sử dụng API</h1><p>Kết nối Claude Code, Codex CLI, OpenCode, DeepSeek TUI, Gemini CLI, Cline, Roo Code, Cursor, Continue và SDK trong vài bước. Tài liệu này dùng endpoint của <strong><?= $tenWebsite ?></strong>; không công khai URL nhà cung cấp.</p><div class="chips"><a class="chip" href="#claude-code">⚡ Claude Code</a><a class="chip" href="#codex-cli">⚡ Codex CLI</a><a class="chip" href="#opencode">⚡ OpenCode</a><a class="chip" href="#gemini-cli">✨ Gemini CLI</a><a class="chip" href="#cline">🧩 Cline</a><a class="chip" href="#kilo-code">⚙️ Kilo Code</a><a class="chip" href="#cursor-continue">💻 Cursor / Continue</a><a class="chip" href="#troubleshooting">🛠️ Fix 401 / 404</a></div></section>
-        <section id="quickstart" class="section"><div class="section-head"><span class="num">01</span><h2>Cấu hình Base URL & API Key</h2></div><p>Dùng Base URL bên dưới cho các ứng dụng của bạn. API key thật chỉ được nhập ở ứng dụng của bạn hoặc lấy qua khu vực tài khoản đã đăng nhập.</p><div class="grid"><div class="field"><div class="label">Base URL (Origin)<span class="tag good">Website hiện tại</span></div><div class="value"><?= $baseUrlHtml ?></div><div class="hint">Claude Code và Gemini CLI dùng domain gốc, không thêm <code>/v1</code>.</div></div><div class="field"><div class="label">OpenAI-compatible Base URL</div><div class="value"><?= $apiBaseHtml ?></div><div class="hint">Codex, OpenCode, Cline, Roo Code, Cursor, Continue và OpenAI SDK dùng hậu tố <code>/v1</code>.</div></div></div><div class="callout warn"><strong>Không nhập API key vào URL.</strong> Không đưa key vào query string, GitHub, ảnh chụp màn hình hoặc mã nguồn frontend công khai. Trang tài liệu này chỉ dùng placeholder <code>YOUR_API_KEY</code>.</div></section>
-        <section id="curl" class="section"><div class="section-head"><span class="num">02</span><h2>Kiểm tra kết nối nhanh với cURL</h2></div><p>Thay <code>YOUR_API_KEY</code> bằng API key của bạn trong terminal. Key không được lưu trong trang web này.</p><div class="grid"><div class="code"><div class="code-head"><span>GET /v1/models</span><button class="copy" data-copy="curl <?= htmlspecialchars($baseUrl . '/v1/models', ENT_QUOTES, 'UTF-8') ?> -H &quot;Authorization: Bearer YOUR_API_KEY&quot;">Sao chép</button></div><pre>curl "<?= $apiBaseHtml ?>/models" \
-  -H "Authorization: Bearer YOUR_API_KEY"</pre></div><div class="code"><div class="code-head"><span>POST /v1/chat/completions</span><button class="copy" data-copy="curl -X POST <?= htmlspecialchars($baseUrl . '/v1/chat/completions', ENT_QUOTES, 'UTF-8') ?> -H &quot;Content-Type: application/json&quot; -H &quot;Authorization: Bearer YOUR_API_KEY&quot;">Sao chép</button></div><pre>curl -X POST "<?= $apiBaseHtml ?>/chat/completions" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d '{"model":"gpt-5.5","messages":[{"role":"user","content":"Hello!"}]}'</pre></div></div></section>
-        <section id="base-urls" class="section"><div class="section-head"><span class="num">03</span><h2>Bảng quy tắc Base URL theo từng Client</h2></div><p>Lỗi 404 thường do thừa hoặc thiếu hậu tố <code>/v1</code>. Kiểm tra bảng trước khi cấu hình.</p><div class="table-wrap"><table class="table"><thead><tr><th>Công cụ / Client</th><th>Biến / trường cấu hình</th><th>Base URL chuẩn</th><th>Quy tắc</th></tr></thead><tbody><tr><td>Claude Code</td><td><code>ANTHROPIC_BASE_URL</code></td><td><code><?= $baseUrlHtml ?></code></td><td><span class="tag warn">Không /v1</span></td></tr><tr><td>Gemini CLI</td><td><code>GOOGLE_GEMINI_BASE_URL</code></td><td><code><?= $baseUrlHtml ?></code></td><td><span class="tag warn">Không /v1</span></td></tr><tr><td>Codex CLI</td><td><code>base_url</code></td><td><code><?= $apiBaseHtml ?></code></td><td><span class="tag good">Có /v1</span></td></tr><tr><td>OpenCode / Cline / Roo Code</td><td><code>baseURL</code></td><td><code><?= $apiBaseHtml ?></code></td><td><span class="tag good">Có /v1</span></td></tr><tr><td>Cursor / Continue / OpenAI SDK</td><td><code>apiBase / base_url</code></td><td><code><?= $apiBaseHtml ?></code></td><td><span class="tag good">Có /v1</span></td></tr></tbody></table></div></section>
-        <section id="tools" class="section"><div class="section-head"><span class="num">04</span><h2>Hướng dẫn cài đặt theo công cụ</h2></div><p>Các mẫu dưới đây không chứa token thật. Hãy đặt key trong biến môi trường hoặc file cấu hình riêng của máy bạn.</p><div id="claude" class="tool"><h3>⚡ Claude Code <span class="tag warn">Không /v1</span></h3><p>Claude Code tự nối đường dẫn Messages API.</p><div class="code"><div class="code-head"><span>macOS / Linux</span><button class="copy" data-copy="export ANTHROPIC_BASE_URL=<?= htmlspecialchars($baseUrl, ENT_QUOTES, 'UTF-8') ?>\nexport ANTHROPIC_AUTH_TOKEN=YOUR_API_KEY\nclaude">Sao chép</button></div><pre>export ANTHROPIC_BASE_URL="<?= $baseUrlHtml ?>"
-export ANTHROPIC_AUTH_TOKEN="YOUR_API_KEY"
-claude</pre></div></div><div id="codex" class="tool"><h3>⚡ Codex CLI <span class="tag good">Có /v1</span></h3><div class="code"><div class="code-head"><span>config.toml</span><button class="copy" data-copy="model_provider = &quot;TiemAI&quot;\n[model_providers.TiemAI]\nbase_url = &quot;<?= htmlspecialchars($baseUrl . '/v1', ENT_QUOTES, 'UTF-8') ?>&quot;\nwire_api = &quot;responses&quot;">Sao chép</button></div><pre>model_provider = "TiemAI"
-[model_providers.TiemAI]
-base_url = "<?= $apiBaseHtml ?>"
-wire_api = "responses"</pre></div></div><div id="opencode" class="tool"><h3>⚡ OpenCode <span class="tag good">Có /v1</span></h3><div class="code"><div class="code-head"><span>opencode.json</span><button class="copy" data-copy="{ &quot;provider&quot;: { &quot;tiemai&quot;: { &quot;options&quot;: { &quot;baseURL&quot;: &quot;<?= htmlspecialchars($baseUrl . '/v1', ENT_QUOTES, 'UTF-8') ?>&quot;, &quot;apiKey&quot;: &quot;YOUR_API_KEY&quot; } } }">Sao chép</button></div><pre>{
-  "provider": {
-    "tiemai": {
-      "options": {
-        "baseURL": "<?= $apiBaseHtml ?>",
-        "apiKey": "YOUR_API_KEY"
-      }
+<body x-data="ungDungApiGuide()" class="min-h-screen flex flex-col antialiased">
+
+    <?php require_once __DIR__ . '/includes/header.php'; ?>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full flex-1 space-y-10">
+
+        <!-- HERO -->
+        <div class="border-b border-gray-800 pb-8">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold uppercase tracking-wider mb-4">
+                <i class="fas fa-plug"></i> Docs Tích Hợp AI Agent
+            </div>
+            <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">
+                Kết Nối AI Agent Chỉ Một Base URL
+            </h1>
+            <p class="text-base text-gray-400 mt-2 max-w-3xl leading-relaxed">
+                Dùng <code class="bg-gray-800 px-2 py-0.5 rounded text-blue-400 text-sm font-bold">https://tiemai.io.vn/v1</code> làm điểm truy cập duy nhất cho <strong>mọi IDE</strong> và <strong>AI Agent</strong> — Claude, Cursor, Kilo, Codex, Cline, Windsurf, Continue, Aider và nhiều hơn nữa.
+            </p>
+
+            <!-- Badge thống kê nhanh -->
+            <div class="mt-5 flex flex-wrap gap-2 text-xs font-semibold">
+                <span class="px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse inline-block"></span> Hệ thống đang hoạt động 24/7
+                </span>
+                <span class="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-300 flex items-center gap-1.5">
+                    <i class="fas fa-shield-halved"></i> HTTPS & Bearer Token
+                </span>
+                <span class="px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/30 text-purple-300 flex items-center gap-1.5">
+                    <i class="fas fa-code-branch"></i> OpenAI-Compatible API
+                </span>
+                <span class="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 flex items-center gap-1.5">
+                    <i class="fas fa-bolt"></i> Streaming SSE
+                </span>
+            </div>
+        </div>
+
+        <!-- BASE URL & XÁC THỰC -->
+        <div class="gradient-border rounded-2xl p-6 space-y-5">
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fas fa-globe text-blue-400"></i> Base URL & Xác Thực
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 space-y-2">
+                    <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Base URL (OpenAI Compatible)</div>
+                    <div class="flex items-center gap-2">
+                        <code class="text-green-400 font-bold text-sm flex-1 truncate">https://tiemai.io.vn/v1</code>
+                        <button @click="copy('https://tiemai.io.vn/v1', 'baseurl')" class="copy-btn px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white text-xs">
+                            <i class="fas" :class="copiedId === 'baseurl' ? 'fa-check text-green-400' : 'fa-copy'"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 space-y-2">
+                    <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Endpoints hỗ trợ</div>
+                    <div class="space-y-1 text-xs font-mono">
+                        <div class="flex gap-2"><span class="text-blue-400">POST</span><span class="text-gray-200">/v1/chat/completions</span></div>
+                        <div class="flex gap-2"><span class="text-blue-400">POST</span><span class="text-gray-200">/v1/messages</span> <span class="text-gray-500 text-[10px]">(Anthropic native)</span></div>
+                        <div class="flex gap-2"><span class="text-green-400">GET</span><span class="text-gray-200">/v1/models</span></div>
+                        <div class="flex gap-2"><span class="text-green-400">GET</span><span class="text-gray-200">/v1/usage</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Header xác thực -->
+            <div class="bg-[#0B0F19] border border-blue-900/40 rounded-xl p-4 space-y-3">
+                <div class="text-xs font-bold text-white">Cách truyền API Key (3 cách đều được hỗ trợ):</div>
+                <div class="space-y-2">
+                    <div class="flex items-start gap-3">
+                        <span class="shrink-0 w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] flex items-center justify-center font-bold mt-0.5">1</span>
+                        <div>
+                            <div class="text-xs text-gray-300 font-semibold">Authorization Bearer (phổ biến nhất — Cursor, Kilo, Codex)</div>
+                            <code class="text-xs text-blue-300 font-mono">Authorization: Bearer sk-your-api-key-here</code>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="shrink-0 w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] flex items-center justify-center font-bold mt-0.5">2</span>
+                        <div>
+                            <div class="text-xs text-gray-300 font-semibold">x-api-key header (Claude CLI, Anthropic SDK, Cline)</div>
+                            <code class="text-xs text-purple-300 font-mono">x-api-key: sk-your-api-key-here</code>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="shrink-0 w-5 h-5 rounded-full bg-gray-600 text-white text-[10px] flex items-center justify-center font-bold mt-0.5">3</span>
+                        <div>
+                            <div class="text-xs text-gray-300 font-semibold">Query param (thử nghiệm nhanh trên trình duyệt)</div>
+                            <code class="text-xs text-gray-300 font-mono">?key=sk-your-api-key-here</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABS HƯỚNG DẪN TỪNG IDE -->
+        <div class="space-y-5">
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                <i class="fas fa-laptop-code text-purple-400"></i> Hướng Dẫn Cài Đặt Từng IDE & Tool
+            </h2>
+
+            <!-- Tabs chọn IDE -->
+            <div class="flex flex-wrap gap-2">
+                <?php
+                $danhSachTabs = [
+                    ['id' => 'claude',    'icon' => 'fa-brands fa-square-js',       'ten' => 'Claude Code',   'mau' => 'orange'],
+                    ['id' => 'cursor',    'icon' => 'fas fa-mouse-pointer',           'ten' => 'Cursor IDE',    'mau' => 'blue'],
+                    ['id' => 'kilo',      'icon' => 'fas fa-code',                    'ten' => 'Kilo Code',     'mau' => 'indigo'],
+                    ['id' => 'codex',     'icon' => 'fas fa-terminal',                'ten' => 'OpenAI Codex',  'mau' => 'green'],
+                    ['id' => 'cline',     'icon' => 'fas fa-puzzle-piece',            'ten' => 'Cline / Roo',   'mau' => 'cyan'],
+                    ['id' => 'windsurf',  'icon' => 'fas fa-wind',                    'ten' => 'Windsurf',      'mau' => 'teal'],
+                    ['id' => 'continue',  'icon' => 'fas fa-play-circle',             'ten' => 'Continue.dev',  'mau' => 'violet'],
+                    ['id' => 'aider',     'icon' => 'fas fa-robot',                   'ten' => 'Aider',         'mau' => 'pink'],
+                    ['id' => 'python',    'icon' => 'fab fa-python',                  'ten' => 'Python / SDK',  'mau' => 'yellow'],
+                ];
+                foreach ($danhSachTabs as $tab):
+                ?>
+                    <button
+                        @click="tabHienTai = '<?= $tab['id'] ?>'"
+                        :class="tabHienTai === '<?= $tab['id'] ?>' ? 'tab-active' : 'tab-inactive'"
+                        class="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition">
+                        <i class="<?= $tab['icon'] ?>"></i>
+                        <span><?= $tab['ten'] ?></span>
+                    </button>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- === CLAUDE CODE === -->
+            <div x-show="tabHienTai === 'claude'" class="space-y-4">
+                <div class="bg-[#111827] border border-orange-900/40 rounded-2xl p-5 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center text-lg"><i class="fas fa-terminal"></i></div>
+                        <div>
+                            <div class="font-bold text-white text-base">Claude Code (Anthropic CLI)</div>
+                            <div class="text-xs text-gray-400">Dùng flag <code class="bg-gray-800 px-1 rounded">--api-url</code> khi khởi động</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">Cách 1: Dùng flag trực tiếp</div>
+                        <div class="relative">
+                            <pre class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-xs text-green-300 overflow-x-auto"><code>claude --api-url https://tiemai.io.vn/v1 \
+  --api-key sk-your-api-key-here</code></pre>
+                            <button @click="copy('claude --api-url https://tiemai.io.vn/v1 --api-key sk-your-api-key-here', 'claude1')" class="absolute top-2 right-2 px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white text-xs">
+                                <i class="fas" :class="copiedId === 'claude1' ? 'fa-check text-green-400' : 'fa-copy'"></i>
+                            </button>
+                        </div>
+
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">Cách 2: Biến môi trường (Khuyên dùng)</div>
+                        <div class="relative">
+                            <pre class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-xs text-green-300 overflow-x-auto"><code># Thêm vào ~/.bashrc hoặc ~/.zshrc
+export ANTHROPIC_BASE_URL=https://tiemai.io.vn/v1
+export ANTHROPIC_API_KEY=sk-your-api-key-here
+
+# Rồi chạy bình thường
+claude</code></pre>
+                            <button @click="copy('export ANTHROPIC_BASE_URL=https://tiemai.io.vn/v1\nexport ANTHROPIC_API_KEY=sk-your-api-key-here', 'claude2')" class="absolute top-2 right-2 px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white text-xs">
+                                <i class="fas" :class="copiedId === 'claude2' ? 'fa-check text-green-400' : 'fa-copy'"></i>
+                            </button>
+                        </div>
+
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">Cách 3: File cấu hình ~/.claude/settings.json</div>
+                        <div class="relative">
+                            <pre class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-xs text-blue-300 overflow-x-auto"><code>{
+  "apiUrl": "https://tiemai.io.vn/v1",
+  "apiKey": "sk-your-api-key-here"
+}</code></pre>
+                            <button @click="copy('{\"apiUrl\":\"https://tiemai.io.vn/v1\",\"apiKey\":\"sk-your-api-key-here\"}', 'claude3')" class="absolute top-2 right-2 px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white text-xs">
+                                <i class="fas" :class="copiedId === 'claude3' ? 'fa-check text-green-400' : 'fa-copy'"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="bg-orange-950/20 border border-orange-800/30 rounded-xl p-3 text-xs text-orange-300">
+                        <i class="fas fa-info-circle mr-1"></i> Hệ thống tự động nhận diện model Claude và chuyển tiếp đúng gateway. Các model như <code>claude-3-5-sonnet</code>, <code>claude-opus-4</code> đều được ánh xạ tự động.
+                    </div>
+                </div>
+            </div>
+
+            <!-- === CURSOR IDE === -->
+            <div x-show="tabHienTai === 'cursor'" class="space-y-4">
+                <div class="bg-[#111827] border border-blue-900/40 rounded-2xl p-5 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-lg"><i class="fas fa-mouse-pointer"></i></div>
+                        <div>
+                            <div class="font-bold text-white text-base">Cursor IDE</div>
+                            <div class="text-xs text-gray-400">Cài đặt tại Settings → Models → OpenAI API Key</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="text-sm font-bold text-white">Các bước cài đặt:</div>
+                        <ol class="space-y-3">
+                            <li class="flex gap-3">
+                                <span class="shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-[11px] flex items-center justify-center font-bold">1</span>
+                                <div class="text-xs text-gray-300">Mở Cursor → <strong class="text-white">Settings</strong> (Ctrl+Shift+J) → Tab <strong class="text-white">Models</strong></div>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-[11px] flex items-center justify-center font-bold">2</span>
+                                <div class="text-xs text-gray-300">Kéo xuống phần <strong class="text-white">OpenAI API Key</strong> → Nhập API Key của bạn vào ô</div>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-[11px] flex items-center justify-center font-bold">3</span>
+                                <div class="text-xs text-gray-300">Kéo xuống tìm ô <strong class="text-white">Override OpenAI Base URL</strong> → Điền:</div>
+                            </li>
+                        </ol>
+                        <div class="relative ml-9">
+                            <pre class="bg-[#0B0F19] border border-blue-900/40 rounded-xl p-3 text-sm text-green-400 font-mono"><code>https://tiemai.io.vn/v1</code></pre>
+                            <button @click="copy('https://tiemai.io.vn/v1', 'cursor1')" class="absolute top-2 right-2 px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white text-xs">
+                                <i class="fas" :class="copiedId === 'cursor1' ? 'fa-check text-green-400' : 'fa-copy'"></i>
+                            </button>
+                        </div>
+                        <ol class="space-y-3" start="4">
+                            <li class="flex gap-3">
+                                <span class="shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-[11px] flex items-center justify-center font-bold">4</span>
+                                <div class="text-xs text-gray-300">Bấm <strong class="text-white">Verify</strong> → Nếu hiện danh sách model là thành công!</div>
+                            </li>
+                        </ol>
+                    </div>
+
+                    <div class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 space-y-2">
+                        <div class="text-xs font-bold text-white">Cấu hình qua file cursor/.cursor-settings (nếu dùng team config):</div>
+                        <div class="relative">
+                            <pre class="text-xs text-blue-300 overflow-x-auto"><code>{
+  "openai.apiBaseUrl": "https://tiemai.io.vn/v1",
+  "openai.apiKey": "sk-your-api-key-here"
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- === KILO CODE === -->
+            <div x-show="tabHienTai === 'kilo'" class="space-y-4">
+                <div class="bg-[#111827] border border-indigo-900/40 rounded-2xl p-5 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-lg"><i class="fas fa-code"></i></div>
+                        <div>
+                            <div class="font-bold text-white text-base">Kilo Code (VS Code Extension)</div>
+                            <div class="text-xs text-gray-400">Cài đặt qua VS Code Settings hoặc kilo.json</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">Cách 1: VS Code Settings UI</div>
+                        <ol class="space-y-2 text-xs text-gray-300">
+                            <li class="flex gap-2"><span class="text-indigo-400 font-bold">→</span> Mở VS Code → Extensions → Kilo Code → Settings</li>
+                            <li class="flex gap-2"><span class="text-indigo-400 font-bold">→</span> Chọn Provider: <strong class="text-white">OpenAI Compatible</strong></li>
+                            <li class="flex gap-2"><span class="text-indigo-400 font-bold">→</span> Base URL: <code class="text-green-400">https://tiemai.io.vn/v1</code></li>
+                            <li class="flex gap-2"><span class="text-indigo-400 font-bold">→</span> API Key: Nhập key của bạn</li>
+                        </ol>
+
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">Cách 2: File kilo.json (Workspace config)</div>
+                        <div class="relative">
+                            <pre class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-xs text-blue-300 overflow-x-auto"><code>{
+  "providers": {
+    "openai-compatible": {
+      "baseUrl": "https://tiemai.io.vn/v1",
+      "apiKey": "sk-your-api-key-here"
     }
-  }
-}</pre></div></div><div id="gemini" class="tool"><h3>✨ Gemini CLI <span class="tag warn">Không /v1</span></h3><div class="code"><div class="code-head"><span>macOS / Linux</span><button class="copy" data-copy="export GOOGLE_GEMINI_BASE_URL=<?= htmlspecialchars($baseUrl, ENT_QUOTES, 'UTF-8') ?>\nexport GEMINI_API_KEY=YOUR_API_KEY">Sao chép</button></div><pre>export GOOGLE_GEMINI_BASE_URL="<?= $baseUrlHtml ?>"
-export GEMINI_API_KEY="YOUR_API_KEY"
-gemini</pre></div></div><div id="cline" class="tool"><h3>🧩 Cline / Roo Code <span class="tag good">Có /v1</span></h3><p>Chọn provider <strong>OpenAI Compatible</strong>, nhập Base URL <code><?= $apiBaseHtml ?></code>, API Key và Model ID.</p></div><div id="cursor" class="tool"><h3>💻 Cursor / Continue <span class="tag good">Có /v1</span></h3><p>Chọn OpenAI-compatible provider, Base URL <code><?= $apiBaseHtml ?></code>, sau đó nhập API key trong phần cài đặt riêng của ứng dụng.</p></div></section>
-        <section id="detailed-tools" class="section">
-            <div class="section-head"><span class="num">04</span><h2>Hướng dẫn cài đặt chi tiết theo từng công cụ</h2></div>
-            <p>Chọn đúng công cụ và hệ điều hành. Các mẫu bên dưới dùng Base URL của website này và API key bạn nhập ở trình duyệt.</p>
+  },
+  "defaultModel": "claude-sonnet-5"
+}</code></pre>
+                            <button @click="copy('{\"providers\":{\"openai-compatible\":{\"baseUrl\":\"https://tiemai.io.vn/v1\",\"apiKey\":\"sk-your-api-key-here\"}},\"defaultModel\":\"claude-sonnet-5\"}', 'kilo1')" class="absolute top-2 right-2 px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white text-xs">
+                                <i class="fas" :class="copiedId === 'kilo1' ? 'fa-check text-green-400' : 'fa-copy'"></i>
+                            </button>
+                        </div>
 
-            <div id="claude-code" class="tool">
-                <div class="tool-title"><h3><span class="tool-icon">&gt;_</span>4.1. Claude Code (Anthropic CLI)</h3><span class="tag tag-no">Không có /v1</span></div>
-                <p>Claude Code tự nối <code>/v1/messages</code>, nên <code>ANTHROPIC_BASE_URL</code> chỉ dùng domain gốc.</p>
-                <div class="tabs"><button class="tab active" data-tab="claude-unix">🍎 macOS / Linux</button><button class="tab" data-tab="claude-ps">🪟 PowerShell</button><button class="tab" data-tab="claude-cmd">🪟 Windows CMD</button><button class="tab" data-tab="claude-json">📄 settings.json</button></div>
-                <div class="panel active" id="claude-unix"><div class="code"><div class="code-head"><span>macOS / Linux Terminal</span><button data-copy-panel="claude-unix">Sao chép</button></div><pre>export ANTHROPIC_BASE_URL="<?= $baseUrlHtml ?>"
-export ANTHROPIC_AUTH_TOKEN="YOUR_API_KEY"
-export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
-claude</pre></div></div>
-                <div class="panel" id="claude-ps"><div class="code"><div class="code-head"><span>PowerShell</span><button data-copy-panel="claude-ps">Sao chép</button></div><pre>$env:ANTHROPIC_BASE_URL="<?= $baseUrlHtml ?>"
-$env:ANTHROPIC_AUTH_TOKEN="YOUR_API_KEY"
-$env:CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC="1"
-claude</pre></div></div>
-                <div class="panel" id="claude-cmd"><div class="code"><div class="code-head"><span>Windows CMD</span><button data-copy-panel="claude-cmd">Sao chép</button></div><pre>set ANTHROPIC_BASE_URL=<?= $baseUrlHtml ?>
-set ANTHROPIC_AUTH_TOKEN=YOUR_API_KEY
-claude</pre></div></div>
-                <div class="panel" id="claude-json"><div class="code"><div class="code-head"><span>~/.claude/settings.json</span><button data-copy-panel="claude-json">Sao chép</button></div><pre>{
-  "env": {
-    "ANTHROPIC_BASE_URL": "<?= $baseUrlHtml ?>",
-    "ANTHROPIC_AUTH_TOKEN": "YOUR_API_KEY"
-  }
-}</pre></div></div>
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">Cách 3: .kilo/agent/*.md — Override trong Agent config</div>
+                        <div class="relative">
+                            <pre class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-xs text-green-300 overflow-x-auto"><code># Trong file .kilo/agent/my-agent.md
+# Khai báo provider sử dụng custom gateway
+provider: openai-compatible
+baseUrl: https://tiemai.io.vn/v1
+apiKey: sk-your-api-key-here
+model: claude-sonnet-5</code></pre>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div id="codex-cli" class="tool">
-                <div class="tool-title"><h3><span class="tool-icon">&lt;/&gt;</span>4.2. OpenAI Codex CLI</h3><span class="tag tag-yes">Có /v1</span></div>
-                <p>Codex CLI dùng Responses API với <code>wire_api = "responses"</code>. Tạo <code>config.toml</code> và <code>auth.json</code> trong <code>~/.codex</code>.</p>
-                <div class="tabs"><button class="tab active" data-tab="codex-config">⚡ config.toml</button><button class="tab" data-tab="codex-auth">🔑 auth.json</button></div>
-                <div class="panel active" id="codex-config"><div class="code"><div class="code-head"><span>~/.codex/config.toml</span><button data-copy-panel="codex-config">Sao chép</button></div><pre>model_provider = "TiemAI"
-model = "YOUR_MODEL_ID"
-disable_response_storage = true
+            <!-- === CODEX CLI === -->
+            <div x-show="tabHienTai === 'codex'" class="space-y-4">
+                <div class="bg-[#111827] border border-green-900/40 rounded-2xl p-5 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-green-500/20 text-green-400 flex items-center justify-center text-lg"><i class="fas fa-terminal"></i></div>
+                        <div>
+                            <div class="font-bold text-white text-base">OpenAI Codex CLI</div>
+                            <div class="text-xs text-gray-400">Dùng biến môi trường hoặc flag --base-url</div>
+                        </div>
+                    </div>
 
-[model_providers.TiemAI]
-name = "TiemAI"
-base_url = "<?= $apiBaseHtml ?>"
-wire_api = "responses"
-requires_openai_auth = true</pre></div></div>
-                <div class="panel" id="codex-auth"><div class="code"><div class="code-head"><span>~/.codex/auth.json</span><button data-copy-panel="codex-auth">Sao chép</button></div><pre>{
-  "OPENAI_API_KEY": "YOUR_API_KEY"
-}</pre></div></div>
+                    <div class="space-y-3">
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">Biến môi trường (Khuyên dùng)</div>
+                        <div class="relative">
+                            <pre class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-xs text-green-300 overflow-x-auto"><code># Thêm vào ~/.bashrc hoặc ~/.zshrc hoặc ~/.profile
+export OPENAI_BASE_URL=https://tiemai.io.vn/v1
+export OPENAI_API_KEY=sk-your-api-key-here
+
+# Dùng Codex bình thường
+codex "viết hàm đọc file JSON"</code></pre>
+                            <button @click="copy('export OPENAI_BASE_URL=https://tiemai.io.vn/v1\nexport OPENAI_API_KEY=sk-your-api-key-here', 'codex1')" class="absolute top-2 right-2 px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white text-xs">
+                                <i class="fas" :class="copiedId === 'codex1' ? 'fa-check text-green-400' : 'fa-copy'"></i>
+                            </button>
+                        </div>
+
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">Flag trực tiếp</div>
+                        <div class="relative">
+                            <pre class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-xs text-green-300 overflow-x-auto"><code>codex --base-url https://tiemai.io.vn/v1 \
+  --api-key sk-your-api-key-here \
+  "viết test cho function tính tổng"</code></pre>
+                        </div>
+
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">File cấu hình ~/.codex/config.json</div>
+                        <div class="relative">
+                            <pre class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-xs text-blue-300 overflow-x-auto"><code>{
+  "apiBase": "https://tiemai.io.vn/v1",
+  "apiKey": "sk-your-api-key-here",
+  "model": "gpt-5.6-sol"
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div id="opencode" class="tool">
-                <div class="tool-title"><h3><span class="tool-icon">▦</span>4.3. OpenCode</h3><span class="tag tag-yes">Có /v1</span></div>
-                <p>Đặt <code>opencode.json</code> trong thư mục dự án hoặc <code>~/.config/opencode/opencode.json</code>.</p>
-                <div class="tabs"><button class="tab active" data-tab="oc-openai">OpenAI (GPT/Codex)</button><button class="tab" data-tab="oc-anthropic">Anthropic (Claude)</button><button class="tab" data-tab="oc-gemini">Google Gemini</button></div>
-                <div class="panel active" id="oc-openai"><div class="code"><div class="code-head"><span>opencode.json · OpenAI</span><button data-copy-panel="oc-openai">Sao chép</button></div><pre>{
-  "provider": {
-    "tiemai": {
-      "options": {
-        "baseURL": "<?= $apiBaseHtml ?>",
-        "apiKey": "YOUR_API_KEY"
-      },
-      "models": {"YOUR_MODEL_ID": {"name": "YOUR_MODEL_ID"}}
+            <!-- === CLINE / ROO === -->
+            <div x-show="tabHienTai === 'cline'" class="space-y-4">
+                <div class="bg-[#111827] border border-cyan-900/40 rounded-2xl p-5 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-lg"><i class="fas fa-puzzle-piece"></i></div>
+                        <div>
+                            <div class="font-bold text-white text-base">Cline / Roo Code (VS Code Extension)</div>
+                            <div class="text-xs text-gray-400">Cài đặt trong Extension Settings — chọn OpenAI Compatible</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <ol class="space-y-3 text-xs text-gray-300">
+                            <li class="flex gap-3">
+                                <span class="shrink-0 w-6 h-6 rounded-full bg-cyan-600 text-white text-[11px] flex items-center justify-center font-bold">1</span>
+                                Mở VS Code → Cline/Roo sidebar → Biểu tượng <strong class="text-white">Settings ⚙️</strong>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="shrink-0 w-6 h-6 rounded-full bg-cyan-600 text-white text-[11px] flex items-center justify-center font-bold">2</span>
+                                Chọn <strong class="text-white">API Provider</strong>: <code class="bg-gray-800 px-1 rounded">OpenAI Compatible</code>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="shrink-0 w-6 h-6 rounded-full bg-cyan-600 text-white text-[11px] flex items-center justify-center font-bold">3</span>
+                                <div>
+                                    <div>Điền các trường sau:</div>
+                                    <div class="mt-2 bg-[#0B0F19] border border-gray-800 rounded-xl p-3 space-y-1.5">
+                                        <div class="flex gap-2"><span class="text-gray-500 w-32">Base URL:</span><code class="text-green-400">https://tiemai.io.vn/v1</code></div>
+                                        <div class="flex gap-2"><span class="text-gray-500 w-32">API Key:</span><code class="text-blue-400">sk-your-api-key-here</code></div>
+                                        <div class="flex gap-2"><span class="text-gray-500 w-32">Model ID:</span><code class="text-purple-400">claude-sonnet-5</code></div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="shrink-0 w-6 h-6 rounded-full bg-cyan-600 text-white text-[11px] flex items-center justify-center font-bold">4</span>
+                                Bấm <strong class="text-white">Save</strong> → Thử gửi tin nhắn đầu tiên
+                            </li>
+                        </ol>
+
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">Cài qua VS Code settings.json (tự động):</div>
+                        <div class="relative">
+                            <pre class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-xs text-blue-300 overflow-x-auto"><code>{
+  "cline.apiProvider": "openai",
+  "cline.openAiBaseUrl": "https://tiemai.io.vn/v1",
+  "cline.openAiApiKey": "sk-your-api-key-here",
+  "cline.openAiModelId": "claude-sonnet-5"
+}</code></pre>
+                            <button @click="copy('{\"cline.apiProvider\":\"openai\",\"cline.openAiBaseUrl\":\"https://tiemai.io.vn/v1\",\"cline.openAiApiKey\":\"sk-your-api-key-here\",\"cline.openAiModelId\":\"claude-sonnet-5\"}', 'cline1')" class="absolute top-2 right-2 px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white text-xs">
+                                <i class="fas" :class="copiedId === 'cline1' ? 'fa-check text-green-400' : 'fa-copy'"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- === WINDSURF === -->
+            <div x-show="tabHienTai === 'windsurf'" class="space-y-4">
+                <div class="bg-[#111827] border border-teal-900/40 rounded-2xl p-5 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-teal-500/20 text-teal-400 flex items-center justify-center text-lg"><i class="fas fa-wind"></i></div>
+                        <div>
+                            <div class="font-bold text-white text-base">Windsurf (by Codeium)</div>
+                            <div class="text-xs text-gray-400">Cài đặt qua Windsurf Settings → AI Provider</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <ol class="space-y-3 text-xs text-gray-300">
+                            <li class="flex gap-3">
+                                <span class="shrink-0 w-6 h-6 rounded-full bg-teal-600 text-white text-[11px] flex items-center justify-center font-bold">1</span>
+                                Mở Windsurf → <strong class="text-white">Settings</strong> → <strong class="text-white">Windsurf Settings</strong>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="shrink-0 w-6 h-6 rounded-full bg-teal-600 text-white text-[11px] flex items-center justify-center font-bold">2</span>
+                                Phần <strong class="text-white">AI Provider</strong> → Chọn <code class="bg-gray-800 px-1 rounded">Custom OpenAI</code> hoặc <code class="bg-gray-800 px-1 rounded">OpenAI Compatible</code>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="shrink-0 w-6 h-6 rounded-full bg-teal-600 text-white text-[11px] flex items-center justify-center font-bold">3</span>
+                                <div>
+                                    Nhập:<br>
+                                    <div class="mt-2 bg-[#0B0F19] border border-gray-800 rounded-xl p-3 space-y-1.5 text-xs font-mono">
+                                        <div><span class="text-gray-500">Base URL: </span><span class="text-green-400">https://tiemai.io.vn/v1</span></div>
+                                        <div><span class="text-gray-500">API Key:  </span><span class="text-blue-400">sk-your-api-key-here</span></div>
+                                    </div>
+                                </div>
+                            </li>
+                        </ol>
+
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">Biến môi trường:</div>
+                        <div class="relative">
+                            <pre class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-xs text-green-300 overflow-x-auto"><code>export OPENAI_API_BASE=https://tiemai.io.vn/v1
+export OPENAI_API_KEY=sk-your-api-key-here</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- === CONTINUE.DEV === -->
+            <div x-show="tabHienTai === 'continue'" class="space-y-4">
+                <div class="bg-[#111827] border border-violet-900/40 rounded-2xl p-5 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center text-lg"><i class="fas fa-play-circle"></i></div>
+                        <div>
+                            <div class="font-bold text-white text-base">Continue.dev (VS Code / JetBrains)</div>
+                            <div class="text-xs text-gray-400">Cài đặt qua ~/.continue/config.json</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">File ~/.continue/config.json</div>
+                        <div class="relative">
+                            <pre class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-xs text-blue-300 overflow-x-auto"><code>{
+  "models": [
+    {
+      "title": "TiemAI Claude Sonnet",
+      "provider": "openai",
+      "model": "claude-sonnet-5",
+      "apiBase": "https://tiemai.io.vn/v1",
+      "apiKey": "sk-your-api-key-here"
+    },
+    {
+      "title": "TiemAI GPT-5.6",
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "apiBase": "https://tiemai.io.vn/v1",
+      "apiKey": "sk-your-api-key-here"
     }
+  ],
+  "tabAutocompleteModel": {
+    "title": "TiemAI Autocomplete",
+    "provider": "openai",
+    "model": "gpt-5.4-mini",
+    "apiBase": "https://tiemai.io.vn/v1",
+    "apiKey": "sk-your-api-key-here"
   }
-}</pre></div></div>
-                <div class="panel" id="oc-anthropic"><div class="code"><div class="code-head"><span>opencode.json · Anthropic</span><button data-copy-panel="oc-anthropic">Sao chép</button></div><pre>{
-  "provider": {"tiemai": {"options": {
-    "baseURL": "<?= $baseUrlHtml ?>",
-    "apiKey": "YOUR_API_KEY"
-  }}}
-}</pre></div></div>
-                <div class="panel" id="oc-gemini"><div class="code"><div class="code-head"><span>opencode.json · Gemini</span><button data-copy-panel="oc-gemini">Sao chép</button></div><pre>{
-  "provider": {"tiemai": {"options": {
-    "baseURL": "<?= htmlspecialchars($baseUrl . '/v1beta', ENT_QUOTES, 'UTF-8') ?>",
-    "apiKey": "YOUR_API_KEY"
-  }}}
-}</pre></div></div>
+}</code></pre>
+                            <button @click="copy('~/.continue/config.json', 'cont1')" class="absolute top-2 right-2 px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white text-xs">
+                                <i class="fas" :class="copiedId === 'cont1' ? 'fa-check text-green-400' : 'fa-copy'"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div id="codewhale" class="tool">
-                <div class="tool-title"><h3><span class="tool-icon">🐋</span>4.4. DeepSeek TUI (CodeWhale)</h3><span class="tag tag-yes">Có /v1</span></div>
-                <p>CodeWhale là tên mới của DeepSeek TUI. Cài bằng <code>npm install -g codewhale</code>, sau đó đặt Base URL có <code>/v1</code>.</p>
-                <div class="tabs"><button class="tab active" data-tab="cw-unix">🍎 macOS / Linux</button><button class="tab" data-tab="cw-ps">🪟 PowerShell</button><button class="tab" data-tab="cw-config">📄 config.toml</button></div>
-                <div class="panel active" id="cw-unix"><div class="code"><div class="code-head"><span>Terminal</span><button data-copy-panel="cw-unix">Sao chép</button></div><pre>npm install -g codewhale
-export DEEPSEEK_API_KEY="YOUR_API_KEY"
-export CODEWHALE_BASE_URL="<?= $apiBaseHtml ?>"
-export CODEWHALE_MODEL="YOUR_MODEL_ID"
-codewhale</pre></div></div>
-                <div class="panel" id="cw-ps"><div class="code"><div class="code-head"><span>PowerShell</span><button data-copy-panel="cw-ps">Sao chép</button></div><pre>npm install -g codewhale
-$env:DEEPSEEK_API_KEY="YOUR_API_KEY"
-$env:CODEWHALE_BASE_URL="<?= $apiBaseHtml ?>"
-codewhale</pre></div></div>
-                <div class="panel" id="cw-config"><div class="code"><div class="code-head"><span>config.toml</span><button data-copy-panel="cw-config">Sao chép</button></div><pre>base_url = "<?= $apiBaseHtml ?>"
-api_key = "YOUR_API_KEY"
-model = "YOUR_MODEL_ID"</pre></div></div>
+            <!-- === AIDER === -->
+            <div x-show="tabHienTai === 'aider'" class="space-y-4">
+                <div class="bg-[#111827] border border-pink-900/40 rounded-2xl p-5 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center text-lg"><i class="fas fa-robot"></i></div>
+                        <div>
+                            <div class="font-bold text-white text-base">Aider (AI Pair Programming)</div>
+                            <div class="text-xs text-gray-400">Dùng flag --openai-api-base hoặc biến môi trường</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">Chạy trực tiếp</div>
+                        <div class="relative">
+                            <pre class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-xs text-green-300 overflow-x-auto"><code>aider --openai-api-base https://tiemai.io.vn/v1 \
+  --openai-api-key sk-your-api-key-here \
+  --model claude-sonnet-5</code></pre>
+                            <button @click="copy('aider --openai-api-base https://tiemai.io.vn/v1 --openai-api-key sk-your-api-key-here --model claude-sonnet-5', 'aider1')" class="absolute top-2 right-2 px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white text-xs">
+                                <i class="fas" :class="copiedId === 'aider1' ? 'fa-check text-green-400' : 'fa-copy'"></i>
+                            </button>
+                        </div>
+
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">File .aider.conf.yml (trong thư mục project)</div>
+                        <div class="relative">
+                            <pre class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-xs text-yellow-300 overflow-x-auto"><code>openai-api-base: https://tiemai.io.vn/v1
+openai-api-key: sk-your-api-key-here
+model: claude-sonnet-5</code></pre>
+                        </div>
+
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">Biến môi trường</div>
+                        <div class="relative">
+                            <pre class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-xs text-green-300 overflow-x-auto"><code>export OPENAI_API_BASE=https://tiemai.io.vn/v1
+export OPENAI_API_KEY=sk-your-api-key-here
+aider --model claude-sonnet-5</code></pre>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div id="gemini-cli" class="tool">
-                <div class="tool-title"><h3><span class="tool-icon">✦</span>4.5. Google Gemini CLI</h3><span class="tag tag-no">Không có /v1</span></div>
-                <p>Gemini CLI tự nối <code>/v1beta</code>, vì vậy chỉ dùng domain gốc.</p>
-                <div class="tabs"><button class="tab active" data-tab="gemini-unix">🍎 macOS / Linux</button><button class="tab" data-tab="gemini-ps">🪟 PowerShell</button><button class="tab" data-tab="gemini-cmd">🪟 Windows CMD</button></div>
-                <div class="panel active" id="gemini-unix"><div class="code"><div class="code-head"><span>Terminal</span><button data-copy-panel="gemini-unix">Sao chép</button></div><pre>export GOOGLE_GEMINI_BASE_URL="<?= $baseUrlHtml ?>"
-export GEMINI_API_KEY="YOUR_API_KEY"
-export GEMINI_MODEL="YOUR_MODEL_ID"
-gemini</pre></div></div>
-                <div class="panel" id="gemini-ps"><div class="code"><div class="code-head"><span>PowerShell</span><button data-copy-panel="gemini-ps">Sao chép</button></div><pre>$env:GOOGLE_GEMINI_BASE_URL="<?= $baseUrlHtml ?>"
-$env:GEMINI_API_KEY="YOUR_API_KEY"
-$env:GEMINI_MODEL="YOUR_MODEL_ID"
-gemini</pre></div></div>
-                <div class="panel" id="gemini-cmd"><div class="code"><div class="code-head"><span>Windows CMD</span><button data-copy-panel="gemini-cmd">Sao chép</button></div><pre>set GOOGLE_GEMINI_BASE_URL=<?= $baseUrlHtml ?>
-set GEMINI_API_KEY=YOUR_API_KEY
-set GEMINI_MODEL=YOUR_MODEL_ID
-gemini</pre></div></div>
-            </div>
+            <!-- === PYTHON / SDK === -->
+            <div x-show="tabHienTai === 'python'" class="space-y-4">
+                <div class="bg-[#111827] border border-yellow-900/40 rounded-2xl p-5 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-yellow-500/20 text-yellow-400 flex items-center justify-center text-lg"><i class="fab fa-python"></i></div>
+                        <div>
+                            <div class="font-bold text-white text-base">Python / SDK / HTTP</div>
+                            <div class="text-xs text-gray-400">openai SDK, anthropic SDK, requests, curl</div>
+                        </div>
+                    </div>
 
-            <div id="omp-cli" class="tool"><div class="tool-title"><h3><span class="tool-icon">🥧</span>4.6. Oh My Pi (omp)</h3><span class="tag tag-yes">Có /v1</span></div><p>Cài <code>omp</code>, sau đó tạo <code>~/.omp/agent/models.yml</code>. API key có thể thay bằng tên biến môi trường.</p><div class="tabs"><button class="tab active" data-tab="omp-ps">🪟 Windows PowerShell</button><button class="tab" data-tab="omp-yaml">📄 models.yml</button></div><div class="panel active" id="omp-ps"><div class="code"><div class="code-head"><span>PowerShell</span><button data-copy-panel="omp-ps">Sao chép</button></div><pre>irm https://omp.sh/install.ps1 | iex
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.omp\agent"
-notepad "$env:USERPROFILE\.omp\agent\models.yml"
-omp --model tiemai/YOUR_MODEL_ID</pre></div></div><div class="panel" id="omp-yaml"><div class="code"><div class="code-head"><span>models.yml</span><button data-copy-panel="omp-yaml">Sao chép</button></div><pre>providers:
-  tiemai:
-    baseUrl: <?= $apiBaseHtml ?>
-    api: openai-completions
-    apiKey: "YOUR_API_KEY"
-    models:
-      - id: YOUR_MODEL_ID
-        name: YOUR_MODEL_ID
-        contextWindow: 100000
-        maxTokens: 8192</pre></div></div></div>
-
-            <div id="cline" class="tool"><div class="tool-title"><h3><span class="tool-icon">🧩</span>4.7. Cline</h3><span class="tag tag-yes">Có /v1</span></div><p>Trong Cline → Settings, chọn <strong>OpenAI Compatible</strong>.</p><div class="code"><div class="code-head"><span>Cline Settings</span><button data-copy-panel="cline-code">Sao chép</button></div><pre>API Provider : OpenAI Compatible
-Base URL     : <?= $apiBaseHtml ?>
-API Key      : YOUR_API_KEY
-Model ID     : YOUR_MODEL_ID</pre></div><div id="cline-code" hidden></div></div>
-            <div id="roo-code" class="tool"><div class="tool-title"><h3><span class="tool-icon">🧩</span>4.8. Roo Code</h3><span class="tag tag-yes">Có /v1</span></div><p>Trong Roo Code → Settings → Providers, chọn OpenAI Compatible.</p><div class="code"><div class="code-head"><span>Roo Code Settings</span><button data-copy-panel="roo-code-text">Sao chép</button></div><pre>API Provider : OpenAI Compatible
-Base URL     : <?= $apiBaseHtml ?>
-API Key      : YOUR_API_KEY
-Model ID     : YOUR_MODEL_ID</pre></div><div id="roo-code-text" hidden></div></div>
-            <div id="kilo-code" class="tool"><div class="tool-title"><h3><span class="tool-icon">⚙️</span>4.9. Kilo Code</h3><span class="tag tag-yes">Có /v1</span></div><p>Trong Kilo Code, chọn provider <strong>OpenAI Compatible</strong>. Nhập Base URL có <code>/v1</code>, API key và model thuộc gói bạn đã mua.</p><div class="code"><div class="code-head"><span>Kilo Code · OpenAI Compatible</span><button data-copy-panel="kilo-code-text">Sao chép</button></div><pre>Provider: OpenAI Compatible
-Base URL: <?= $apiBaseHtml ?>
-API Key: YOUR_API_KEY
-Model: YOUR_MODEL_ID</pre></div><div id="kilo-code-text" hidden></div></div>
-            <div id="cursor-continue" class="tool"><div class="tool-title"><h3><span class="tool-icon">▣</span>4.10. Cursor / Continue</h3><span class="tag tag-yes">Có /v1</span></div><p>Cursor dùng OpenAI-compatible provider. Continue dùng <code>provider: openai</code> và <code>apiBase</code> có <code>/v1</code>.</p><div class="code"><div class="code-head"><span>Continue config.yaml</span><button data-copy-panel="cursor-code">Sao chép</button></div><pre>name: TiemAI Config
-version: 0.0.1
-schema: v1
-models:
-  - name: YOUR_MODEL_ID
-    provider: openai
-    model: YOUR_MODEL_ID
-    apiBase: <?= $apiBaseHtml ?>
-    apiKey: YOUR_API_KEY</pre></div><div id="cursor-code" hidden></div></div>
-            <div id="sdk-curl" class="tool"><div class="tool-title"><h3><span class="tool-icon">&lt;/&gt;</span>4.10. Tích hợp SDK (Python / Node.js) & HTTP cURL</h3></div><p>Dùng SDK chính thức của OpenAI hoặc Anthropic với Base URL nội bộ của website.</p><div class="code"><div class="code-head"><span>Python · OpenAI SDK</span><button data-copy-panel="sdk-python">Sao chép</button></div><pre>from openai import OpenAI
-client = OpenAI(base_url="<?= $apiBaseHtml ?>", api_key="YOUR_API_KEY")
-response = client.chat.completions.create(
-    model="YOUR_MODEL_ID",
-    messages=[{"role":"user", "content":"Hello!"}]
-)
-print(response.choices[0].message.content)</pre></div><div id="sdk-python" hidden></div></div>
-        </section>
-
-        <section id="sdk" class="section"><div class="section-head"><span class="num">05</span><h2>SDK & HTTP: cấu hình chi tiết</h2></div><p>Với SDK chuẩn OpenAI, luôn dùng endpoint có <code>/v1</code>. API key được đọc từ biến môi trường trên máy của bạn.</p><div class="grid"><div id="kilo" class="tool"><h3>⚙️ Kilo Code</h3><p>Trong Kilo Code, chọn provider <strong>OpenAI Compatible</strong> hoặc provider tương thích OpenAI. Nhập Base URL và Model ID như sau:</p><div class="code"><div class="code-head"><span>Kilo Code / OpenAI Compatible</span><button class="copy" data-copy="Provider: OpenAI Compatible\nBase URL: <?= htmlspecialchars($baseUrl . '/v1', ENT_QUOTES, 'UTF-8') ?>\nAPI Key: YOUR_API_KEY\nModel: YOUR_MODEL_ID">Sao chép</button></div><pre>Provider: OpenAI Compatible
-Base URL: <?= $apiBaseHtml ?>
-API Key: YOUR_API_KEY
-Model: YOUR_MODEL_ID</pre></div><p class="hint">Tên model phải đúng model thuộc gói/key bạn đã mua. Không dùng URL nhà cung cấp trong Kilo Code.</p></div><div id="anthropic-sdk" class="tool"><h3>🟠 Anthropic SDK</h3><p>Anthropic SDK tự nối <code>/v1/messages</code>, vì vậy dùng domain gốc, không thêm <code>/v1</code>.</p><div class="code"><div class="code-head"><span>Python</span><button class="copy" data-copy="from anthropic import Anthropic\nclient = Anthropic(api_key=\"YOUR_API_KEY\", base_url=\"<?= htmlspecialchars($baseUrl, ENT_QUOTES, 'UTF-8') ?>\")">Sao chép</button></div><pre>from anthropic import Anthropic
-
-client = Anthropic(
-    api_key="YOUR_API_KEY",
-    base_url="<?= $baseUrlHtml ?>"
-)
-message = client.messages.create(
-    model="claude-sonnet-4-6",
-    max_tokens=256,
-    messages=[{"role": "user", "content": "Hello!"}]
-)</pre></div></div></div><div class="grid"><div class="tool"><h3>🐍 OpenAI SDK Python</h3><div class="code"><div class="code-head"><span>Python</span><button class="copy" data-copy="from openai import OpenAI\nclient = OpenAI(api_key=\"YOUR_API_KEY\", base_url=\"<?= htmlspecialchars($baseUrl . '/v1', ENT_QUOTES, 'UTF-8') ?>\")">Sao chép</button></div><pre>import os
-from openai import OpenAI
+                    <div class="space-y-4">
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">openai Python SDK</div>
+                        <div class="relative">
+                            <pre class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-xs text-yellow-300 overflow-x-auto"><code>from openai import OpenAI
 
 client = OpenAI(
-    api_key=os.environ["OPENAI_API_KEY"],
-    base_url="<?= $apiBaseHtml ?>"
+    base_url="https://tiemai.io.vn/v1",
+    api_key="sk-your-api-key-here"
 )
+
 response = client.chat.completions.create(
-    model="YOUR_MODEL_ID",
-    messages=[{"role": "user", "content": "Hello!"}]
+    model="claude-sonnet-5",
+    messages=[{"role": "user", "content": "Xin chào!"}],
+    stream=True
 )
-print(response.choices[0].message.content)</pre></div></div><div class="tool"><h3>🟩 OpenAI SDK Node.js</h3><div class="code"><div class="code-head"><span>Node.js</span><button class="copy" data-copy="import OpenAI from 'openai';\nconst client = new OpenAI({ apiKey: 'YOUR_API_KEY', baseURL: '<?= htmlspecialchars($baseUrl . '/v1', ENT_QUOTES, 'UTF-8') ?>' });">Sao chép</button></div><pre>import OpenAI from "openai";
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  baseURL: "<?= $apiBaseHtml ?>"
-});
-const response = await client.chat.completions.create({
-  model: "YOUR_MODEL_ID",
-  messages: [{ role: "user", content: "Hello!" }]
-});
-console.log(response.choices[0].message.content);</pre></div></div></div></section>
-        <section id="troubleshooting" class="section"><div class="section-head"><span class="num">06</span><h2>Xử lý sự cố</h2></div><div class="grid"><div class="callout"><strong>401 Unauthorized</strong><br>Key thiếu, sai, bị khóa hoặc đã hết hạn. Kiểm tra header Authorization.</div><div class="callout warn"><strong>404 Not Found</strong><br>Claude Code/Gemini CLI dùng domain gốc; Codex/OpenCode/Cline/Cursor dùng <code>/v1</code>.</div><div class="callout"><strong>429 Too Many Requests</strong><br>Giảm số request đồng thời hoặc đợi hệ thống ổn định rồi thử lại.</div><div class="callout warn"><strong>403 Forbidden</strong><br>Key chưa được cấp quyền cho model hoặc gói đã hết hạn mức.</div></div></section>
-        <section id="security" class="section"><div class="section-head"><span class="num">07</span><h2>Bảo mật API Key</h2></div><ul><li>Key được lưu ở backend/database của hệ thống; không hardcode vào file JavaScript công khai.</li><li>Ở trang tài liệu này, key chỉ xuất hiện dưới dạng <code>YOUR_API_KEY</code>.</li><li>Không gửi key qua URL, email công khai, GitHub hoặc ảnh chụp màn hình.</li><li>Nếu nghi ngờ lộ key, vào khu vực tài khoản để tạo key mới và vô hiệu hóa key cũ.</li></ul><div class="support"><a class="button" href="/user/api-docs">Khu vực quản lý API Key</a><a class="button secondary" href="/tra-cuu-key">Tra cứu Usage</a></div></section>
-        <div class="footer-note">Base URL trên trang này lấy từ cấu hình website hiện tại. Tài liệu API đại lý để lấy sản phẩm về bán vẫn có tại <a href="/buyer-api">/buyer-api</a>.</div>
+for chunk in response:
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="")</code></pre>
+                            <button @click="copy('from openai import OpenAI\n\nclient = OpenAI(base_url=\"https://tiemai.io.vn/v1\", api_key=\"sk-your-api-key-here\")\n\nresponse = client.chat.completions.create(model=\"claude-sonnet-5\", messages=[{\"role\": \"user\", \"content\": \"Xin chao!\"}])', 'py1')" class="absolute top-2 right-2 px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white text-xs">
+                                <i class="fas" :class="copiedId === 'py1' ? 'fa-check text-green-400' : 'fa-copy'"></i>
+                            </button>
+                        </div>
+
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">anthropic Python SDK (native /v1/messages)</div>
+                        <div class="relative">
+                            <pre class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-xs text-orange-300 overflow-x-auto"><code>import anthropic
+
+client = anthropic.Anthropic(
+    base_url="https://tiemai.io.vn/v1",
+    api_key="sk-your-api-key-here"
+)
+
+message = client.messages.create(
+    model="claude-sonnet-5",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Hello, World!"}]
+)
+print(message.content)</code></pre>
+                        </div>
+
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">curl (thử nghiệm nhanh)</div>
+                        <div class="relative">
+                            <pre class="bg-[#0B0F19] border border-gray-800 rounded-xl p-4 text-xs text-green-300 overflow-x-auto"><code>curl https://tiemai.io.vn/v1/chat/completions \
+  -H "Authorization: Bearer sk-your-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "claude-sonnet-5",
+    "messages": [{"role": "user", "content": "Xin chao!"}],
+    "stream": false
+  }'</code></pre>
+                            <button @click="copy('curl https://tiemai.io.vn/v1/chat/completions -H \"Authorization: Bearer sk-your-api-key-here\" -H \"Content-Type: application/json\" -d \'{\"model\":\"claude-sonnet-5\",\"messages\":[{\"role\":\"user\",\"content\":\"Xin chao!\"}]}\'', 'curl1')" class="absolute top-2 right-2 px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white text-xs">
+                                <i class="fas" :class="copiedId === 'curl1' ? 'fa-check text-green-400' : 'fa-copy'"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BẢNG MODEL HỖ TRỢ -->
+        <div class="bg-[#111827] border border-gray-800 rounded-2xl p-6 space-y-4">
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fas fa-microchip text-purple-400"></i> Danh Sách Model Hỗ Trợ
+            </h2>
+            <p class="text-xs text-gray-400">Tất cả model dưới đây đều có thể dùng với Base URL <code class="text-blue-400">https://tiemai.io.vn/v1</code>. Hệ thống sẽ tự động ánh xạ model cũ sang model tương đương mới nhất.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <!-- Claude Models -->
+                <div class="bg-[#0B0F19] border border-orange-900/30 rounded-xl p-4 space-y-2">
+                    <div class="flex items-center gap-2 text-sm font-bold text-orange-300 mb-2">
+                        <i class="fas fa-square text-orange-400 text-xs"></i> Anthropic Claude
+                    </div>
+                    <div class="space-y-1 text-xs font-mono">
+                        <div class="flex items-center justify-between"><span class="text-gray-200">claude-sonnet-5</span><span class="text-green-400 text-[10px]">● Active</span></div>
+                        <div class="flex items-center justify-between"><span class="text-gray-200">claude-opus-5.5</span><span class="text-green-400 text-[10px]">● Active</span></div>
+                        <div class="flex items-center justify-between"><span class="text-gray-200">claude-fable-5</span><span class="text-green-400 text-[10px]">● Active</span></div>
+                        <div class="flex items-center justify-between"><span class="text-gray-400 line-through">claude-3-5-sonnet</span><span class="text-blue-400 text-[10px]">↳ sonnet-5</span></div>
+                        <div class="flex items-center justify-between"><span class="text-gray-400 line-through">claude-3-opus</span><span class="text-blue-400 text-[10px]">↳ opus-5.5</span></div>
+                    </div>
+                </div>
+
+                <!-- OpenAI / GPT Models -->
+                <div class="bg-[#0B0F19] border border-green-900/30 rounded-xl p-4 space-y-2">
+                    <div class="flex items-center gap-2 text-sm font-bold text-green-300 mb-2">
+                        <i class="fas fa-circle text-green-400 text-xs"></i> OpenAI / GPT
+                    </div>
+                    <div class="space-y-1 text-xs font-mono">
+                        <div class="flex items-center justify-between"><span class="text-gray-200">gpt-5.6-sol</span><span class="text-green-400 text-[10px]">● Active</span></div>
+                        <div class="flex items-center justify-between"><span class="text-gray-200">gpt-6.1-sol</span><span class="text-green-400 text-[10px]">● Active</span></div>
+                        <div class="flex items-center justify-between"><span class="text-gray-200">gpt-5.6-luna</span><span class="text-green-400 text-[10px]">● Active</span></div>
+                        <div class="flex items-center justify-between"><span class="text-gray-200">gpt-5.6-terra</span><span class="text-green-400 text-[10px]">● Active</span></div>
+                        <div class="flex items-center justify-between"><span class="text-gray-200">gpt-5.4-mini</span><span class="text-green-400 text-[10px]">● Active</span></div>
+                        <div class="flex items-center justify-between"><span class="text-gray-400 line-through">gpt-4o</span><span class="text-blue-400 text-[10px]">↳ gpt-5.6-sol</span></div>
+                    </div>
+                </div>
+
+                <!-- Khác -->
+                <div class="bg-[#0B0F19] border border-blue-900/30 rounded-xl p-4 space-y-2">
+                    <div class="flex items-center gap-2 text-sm font-bold text-blue-300 mb-2">
+                        <i class="fas fa-sparkles text-blue-400 text-xs"></i> DeepSeek & Khác
+                    </div>
+                    <div class="space-y-1 text-xs font-mono">
+                        <div class="flex items-center justify-between"><span class="text-gray-200">deepseek-reasoner</span><span class="text-green-400 text-[10px]">● Active</span></div>
+                        <div class="flex items-center justify-between"><span class="text-gray-200">deepseek-chat</span><span class="text-green-400 text-[10px]">● Active</span></div>
+                        <div class="flex items-center justify-between"><span class="text-gray-200">cursor-small</span><span class="text-green-400 text-[10px]">● Active</span></div>
+                        <div class="flex items-center justify-between text-gray-500 text-[10px]"><span class="italic">Và nhiều model khác...</span><span></span></div>
+                    </div>
+                    <a href="/bang-gia-model" class="inline-flex items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300 font-semibold mt-2">
+                        <i class="fas fa-arrow-right text-[9px]"></i> Xem đầy đủ bảng giá model
+                    </a>
+                </div>
+            </div>
+
+            <div class="bg-blue-950/20 border border-blue-800/30 rounded-xl p-3 text-xs text-blue-300">
+                <i class="fas fa-wand-magic-sparkles mr-1 text-blue-400"></i>
+                <strong>Auto Model Mapping:</strong> Hệ thống tự động chuyển model cũ (vd: <code>claude-3-5-sonnet-20241022</code>, <code>gpt-4-turbo</code>) sang model mới tương đương. Không cần lo về tên model chính xác.
+            </div>
+        </div>
+
+        <!-- CÁC IDE & TOOL KHÁC (QUICK REFERENCE) -->
+        <div class="space-y-4">
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fas fa-grid-2 text-gray-400"></i> Các Tool & IDE Khác (Quick Reference)
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- GitHub Copilot Alternative -->
+                <div class="bg-[#111827] border border-gray-800 rounded-xl p-4 ide-card">
+                    <div class="flex items-center gap-2 font-bold text-sm text-white mb-2">
+                        <i class="fab fa-github text-gray-400"></i> VS Code + OpenAI Extension
+                    </div>
+                    <code class="text-xs text-gray-400 block">settings.json:</code>
+                    <pre class="text-xs text-blue-300 mt-1"><code>"openai.baseURL": "https://tiemai.io.vn/v1",
+"openai.apiKey": "sk-your-key"</code></pre>
+                </div>
+
+                <!-- LM Studio / Jan.ai -->
+                <div class="bg-[#111827] border border-gray-800 rounded-xl p-4 ide-card">
+                    <div class="flex items-center gap-2 font-bold text-sm text-white mb-2">
+                        <i class="fas fa-server text-purple-400"></i> LM Studio / Jan.ai / Ollama Bridge
+                    </div>
+                    <div class="text-xs text-gray-400 mb-1">Remote Server URL:</div>
+                    <code class="text-xs text-green-400">https://tiemai.io.vn/v1</code>
+                </div>
+
+                <!-- OpenHands / Devin -->
+                <div class="bg-[#111827] border border-gray-800 rounded-xl p-4 ide-card">
+                    <div class="flex items-center gap-2 font-bold text-sm text-white mb-2">
+                        <i class="fas fa-hands text-blue-400"></i> OpenHands (trước là OpenDevin)
+                    </div>
+                    <pre class="text-xs text-green-300"><code>LLM_BASE_URL=https://tiemai.io.vn/v1
+LLM_API_KEY=sk-your-key
+LLM_MODEL=claude-sonnet-5</code></pre>
+                </div>
+
+                <!-- Tabby / FauxPilot -->
+                <div class="bg-[#111827] border border-gray-800 rounded-xl p-4 ide-card">
+                    <div class="flex items-center gap-2 font-bold text-sm text-white mb-2">
+                        <i class="fas fa-cat text-amber-400"></i> Tabby / FauxPilot / SuperMaven
+                    </div>
+                    <div class="text-xs text-gray-400">Trỏ backend URL về:</div>
+                    <code class="text-xs text-green-400">https://tiemai.io.vn/v1</code>
+                    <div class="text-xs text-gray-500 mt-1">Bearer token trong Authorization header</div>
+                </div>
+
+                <!-- IntelliJ / JetBrains -->
+                <div class="bg-[#111827] border border-gray-800 rounded-xl p-4 ide-card">
+                    <div class="flex items-center gap-2 font-bold text-sm text-white mb-2">
+                        <i class="fas fa-coffee text-red-400"></i> JetBrains AI Assistant
+                    </div>
+                    <div class="text-xs text-gray-400">Settings → AI Assistant → Custom Server:</div>
+                    <code class="text-xs text-green-400 block mt-1">https://tiemai.io.vn/v1</code>
+                </div>
+
+                <!-- n8n / LangChain -->
+                <div class="bg-[#111827] border border-gray-800 rounded-xl p-4 ide-card">
+                    <div class="flex items-center gap-2 font-bold text-sm text-white mb-2">
+                        <i class="fas fa-diagram-project text-green-400"></i> n8n / LangChain / LlamaIndex
+                    </div>
+                    <pre class="text-xs text-yellow-300"><code>OPENAI_API_BASE=https://tiemai.io.vn/v1
+OPENAI_API_KEY=sk-your-key</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- KIỂM TRA KẾT NỐI TRỰC TIẾP -->
+        <div class="bg-[#111827] border border-gray-800 rounded-2xl p-6 space-y-4">
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fas fa-plug text-green-400"></i> Kiểm Tra Kết Nối Ngay
+            </h2>
+            <p class="text-xs text-gray-400">Dán API Key vào ô dưới đây để kiểm tra kết nối và xem thông tin usage của key.</p>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                <input
+                    type="text"
+                    x-model="apiKeyTest"
+                    placeholder="Dán API Key tại đây: sk-..."
+                    class="flex-1 bg-[#0B0F19] border border-gray-700 rounded-xl px-4 py-2.5 text-xs text-white font-mono placeholder-gray-600 focus:outline-none focus:border-blue-500 transition">
+                <button
+                    @click="kiemTraKetNoi()"
+                    :disabled="dangKiemTra"
+                    class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition flex items-center gap-2 shrink-0 disabled:opacity-60">
+                    <i class="fas fa-circle-notch fa-spin" x-show="dangKiemTra" style="display:none;"></i>
+                    <i class="fas fa-plug" x-show="!dangKiemTra"></i>
+                    Kiểm Tra
+                </button>
+            </div>
+
+            <div x-show="ketQuaTest" class="bg-[#0B0F19] border rounded-xl p-4 space-y-2 text-xs font-mono transition-all"
+                 :class="ketQuaTest?.ok ? 'border-green-800/50' : 'border-red-800/50'">
+                <div class="flex items-center gap-2 font-bold text-sm mb-2" :class="ketQuaTest?.ok ? 'text-green-400' : 'text-red-400'">
+                    <i class="fas" :class="ketQuaTest?.ok ? 'fa-check-circle' : 'fa-times-circle'"></i>
+                    <span x-text="ketQuaTest?.ok ? 'Kết nối thành công!' : 'Kết nối thất bại'"></span>
+                </div>
+                <template x-if="ketQuaTest?.ok">
+                    <div class="space-y-1.5">
+                        <div class="flex gap-2"><span class="text-gray-500 w-32">Trạng thái:</span><span class="text-green-400 font-bold" x-text="ketQuaTest?.status"></span></div>
+                        <div class="flex gap-2"><span class="text-gray-500 w-32">Gói dịch vụ:</span><span class="text-white" x-text="ketQuaTest?.package"></span></div>
+                        <div class="flex gap-2"><span class="text-gray-500 w-32">Đã dùng:</span><span class="text-amber-400" x-text="ketQuaTest?.used_requests + ' requests'"></span></div>
+                        <div class="flex gap-2"><span class="text-gray-500 w-32">Còn lại:</span><span class="text-blue-400 font-bold" x-text="ketQuaTest?.remaining_requests + ' requests'"></span></div>
+                        <div class="flex gap-2"><span class="text-gray-500 w-32">Base URL:</span><span class="text-green-300" x-text="ketQuaTest?.gateway_base_url"></span></div>
+                    </div>
+                </template>
+                <template x-if="!ketQuaTest?.ok">
+                    <div class="text-red-400" x-text="ketQuaTest?.message"></div>
+                </template>
+            </div>
+        </div>
+
+        <!-- CÂU HỎI THƯỜNG GẶP -->
+        <div class="bg-[#111827] border border-gray-800 rounded-2xl p-6 space-y-4">
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                <i class="fas fa-circle-question text-blue-400"></i> Câu Hỏi Thường Gặp (FAQ)
+            </h2>
+            <div class="space-y-3" x-data="{ mo: null }">
+                <?php
+                $faq = [
+                    ['q' => 'Base URL phải nhập chính xác như thế nào?',
+                     'a' => 'Nhập chính xác: <code class="text-green-400">https://tiemai.io.vn/v1</code> (không có dấu "/" ở cuối). Một số tool cần bỏ /v1 — thì dùng <code class="text-green-400">https://tiemai.io.vn</code>.'],
+                    ['q' => 'Key của tôi dạng sk-... có dùng được không?',
+                     'a' => 'Có. Mọi key mua tại tiemai.io.vn đều dạng <code class="text-blue-400">sk-...</code> và được hỗ trợ đầy đủ với tất cả các tool trên.'],
+                    ['q' => 'Tôi đang dùng Claude 3.5 Sonnet, gateway có hỗ trợ không?',
+                     'a' => 'Có. Hệ thống tự động ánh xạ <code class="text-gray-300">claude-3-5-sonnet-*</code> sang <code class="text-orange-400">claude-sonnet-5</code> — model mới nhất. Bạn không cần đổi cấu hình.'],
+                    ['q' => 'Có hỗ trợ Streaming (SSE) không?',
+                     'a' => 'Có. Thêm <code class="text-blue-300">"stream": true</code> vào request body. Hỗ trợ cả Streaming SSE và Non-streaming JSON.'],
+                    ['q' => 'Lỗi 401 Unauthorized khi kết nối?',
+                     'a' => 'Kiểm tra lại: (1) Key đã đúng chưa — dùng mục "Kiểm Tra Kết Nối" ở trên, (2) Header đúng là <code class="text-blue-300">Authorization: Bearer sk-...</code>, (3) Key chưa hết hạn.'],
+                    ['q' => 'Dùng được bao nhiêu request mỗi ngày?',
+                     'a' => 'Tùy gói bạn mua. Xem chi tiết tại <a href="/tra-cuu-key" class="text-blue-400 hover:underline">trang tra cứu key</a> hoặc gọi <code class="text-green-400">GET /v1/usage</code>.'],
+                ];
+                foreach ($faq as $i => $item):
+                ?>
+                <div class="border border-gray-800 rounded-xl overflow-hidden">
+                    <button @click="mo = mo === <?= $i ?> ? null : <?= $i ?>"
+                        class="w-full text-left px-4 py-3 flex items-center justify-between gap-3 hover:bg-gray-800/50 transition">
+                        <span class="text-xs font-semibold text-white"><?= htmlspecialchars($item['q']) ?></span>
+                        <i class="fas fa-chevron-down text-gray-500 text-xs transition-transform shrink-0" :class="mo === <?= $i ?> ? 'rotate-180' : ''"></i>
+                    </button>
+                    <div x-show="mo === <?= $i ?>" x-transition class="px-4 pb-3 text-xs text-gray-400 leading-relaxed" style="display: none;">
+                        <?= $item['a'] ?>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- LIÊN HỆ HỖ TRỢ -->
+        <div class="gradient-border rounded-2xl p-6 text-center space-y-3">
+            <i class="fas fa-headset text-3xl text-blue-400"></i>
+            <h3 class="text-lg font-bold text-white">Cần Hỗ Trợ Kỹ Thuật?</h3>
+            <p class="text-xs text-gray-400 max-w-md mx-auto">Đội ngũ hỗ trợ 24/7 qua Zalo và Telegram. Phản hồi trong vòng 15 phút.</p>
+            <div class="flex flex-wrap justify-center gap-3 mt-2">
+                <a href="https://zalo.me/<?= htmlspecialchars(SHOP_ZALO) ?>" target="_blank" rel="noopener noreferrer"
+                   class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition flex items-center gap-2 shadow-md shadow-blue-600/30">
+                    <i class="fas fa-comment-dots"></i> Zalo: <?= htmlspecialchars(SHOP_ZALO) ?>
+                </a>
+                <a href="<?= htmlspecialchars(SHOP_TELEGRAM) ?>" target="_blank" rel="noopener noreferrer"
+                   class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition flex items-center gap-2 shadow-md shadow-sky-600/30">
+                    <i class="fab fa-telegram"></i> Telegram
+                </a>
+                <a href="/san-pham"
+                   class="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white text-xs font-bold transition flex items-center gap-2">
+                    <i class="fas fa-shopping-cart"></i> Mua API Key
+                </a>
+            </div>
+        </div>
+
     </main>
-</div>
-<script>
-(function () {
-    const baseInput = document.getElementById('input-base');
-    const keyInput = document.getElementById('input-key');
-    const result = document.getElementById('test-result');
 
-    function copyText(text, button) {
-        if (!text) return;
-        navigator.clipboard.writeText(text).then(function () {
-            const old = button.textContent;
-            button.textContent = 'Đã sao chép';
-            setTimeout(function () { button.textContent = old; }, 1400);
-        }).catch(function () { alert('Không thể sao chép tự động. Vui lòng copy thủ công.'); });
+    <?php require_once __DIR__ . '/includes/footer.php'; ?>
+
+    <script>
+    function ungDungApiGuide() {
+        return {
+            tabHienTai: 'claude',
+            copiedId: null,
+            apiKeyTest: '',
+            dangKiemTra: false,
+            ketQuaTest: null,
+
+            copy(text, id) {
+                navigator.clipboard.writeText(text).then(() => {
+                    this.copiedId = id;
+                    setTimeout(() => { this.copiedId = null; }, 1800);
+                }).catch(() => {
+                    // Fallback cũ cho trình duyệt không hỗ trợ
+                    const el = document.createElement('textarea');
+                    el.value = text;
+                    document.body.appendChild(el);
+                    el.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(el);
+                    this.copiedId = id;
+                    setTimeout(() => { this.copiedId = null; }, 1800);
+                });
+            },
+
+            async kiemTraKetNoi() {
+                if (!this.apiKeyTest.trim()) {
+                    alert('Vui lòng nhập API Key cần kiểm tra');
+                    return;
+                }
+                this.dangKiemTra = true;
+                this.ketQuaTest = null;
+                try {
+                    const res = await fetch('/v1/usage', {
+                        headers: {
+                            'Authorization': 'Bearer ' + this.apiKeyTest.trim(),
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.object === 'usage') {
+                        this.ketQuaTest = { ok: true, ...data };
+                    } else {
+                        this.ketQuaTest = {
+                            ok: false,
+                            message: data?.error?.message || 'API Key không hợp lệ hoặc đã hết hạn'
+                        };
+                    }
+                } catch (e) {
+                    this.ketQuaTest = {
+                        ok: false,
+                        message: 'Không thể kết nối đến máy chủ. Kiểm tra lại mạng internet.'
+                    };
+                } finally {
+                    this.dangKiemTra = false;
+                }
+            }
+        };
     }
-
-    function codeFor(id) {
-        const panel = document.getElementById(id);
-        if (!panel) return '';
-        const pre = panel.querySelector('pre');
-        return pre ? pre.innerText : '';
-    }
-
-    const codeTemplates = Array.from(document.querySelectorAll('.code pre')).map(function (pre) {
-        pre.dataset.template = pre.textContent;
-        return pre;
-    });
-
-    function renderCodeKey() {
-        const key = keyInput.value || 'YOUR_API_KEY';
-        codeTemplates.forEach(function (pre) {
-            pre.textContent = pre.dataset.template.replaceAll('YOUR_API_KEY', key);
-        });
-    }
-
-    function renderCurl() {
-        const base = (baseInput.value || '').replace(/\/$/, '');
-        const key = keyInput.value || 'YOUR_API_KEY';
-
-        const model = 'YOUR_MODEL_ID';
-        const models = `curl "${base}/v1/models" \\\n  -H "Authorization: Bearer ${key}"`;
-        const chat = `curl -X POST "${base}/v1/chat/completions" \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer ${key}" \\\n  -d '{"model":"${model}","messages":[{"role":"user","content":"Hello!"}]}'`;
-        const messages = `curl -X POST "${base}/v1/messages" \\\n  -H "Content-Type: application/json" \\\n  -H "x-api-key: ${key}" \\\n  -H "anthropic-version: 2023-06-01" \\\n  -d '{"model":"claude-sonnet-4-6","max_tokens":256,"messages":[{"role":"user","content":"Hello!"}]}'`;
-        document.getElementById('code-models').textContent = models;
-        document.getElementById('code-chat').textContent = chat;
-        document.getElementById('code-messages').textContent = messages;
-    }
-
-    document.querySelectorAll('[data-copy-target]').forEach(function (button) {
-        button.addEventListener('click', function () { copyText(document.getElementById(button.dataset.copyTarget).value, button); });
-    });
-    document.querySelectorAll('[data-copy-code]').forEach(function (button) {
-        button.addEventListener('click', function () { copyText(document.getElementById('code-' + button.dataset.copyCode).textContent, button); });
-    });
-    document.querySelectorAll('[data-copy-panel]').forEach(function (button) {
-        button.addEventListener('click', function () {
-            const panel = document.getElementById(button.dataset.copyPanel);
-            const pre = (panel && panel.querySelector('pre')) || button.closest('.tool')?.querySelector('pre');
-            copyText(pre ? pre.innerText : '', button);
-        });
-    });
-    document.querySelectorAll('.tab').forEach(function (button) {
-        button.addEventListener('click', function () {
-            const group = button.closest('.tool');
-            group.querySelectorAll('.tab').forEach(function (tab) { tab.classList.remove('active'); });
-            group.querySelectorAll('.panel').forEach(function (panel) { panel.classList.remove('active'); });
-            button.classList.add('active');
-            const panel = document.getElementById(button.dataset.tab);
-            if (panel) panel.classList.add('active');
-        });
-    });
-    document.getElementById('toggle-key').addEventListener('click', function () {
-        const showing = keyInput.type === 'text';
-        keyInput.type = showing ? 'password' : 'text';
-        this.textContent = showing ? 'Hiện' : 'Ẩn';
-    });
-    [baseInput, keyInput].forEach(function (input) { input.addEventListener('input', function () { renderCurl(); renderCodeKey(); }); });
-    document.getElementById('test-key').addEventListener('click', async function () {
-        const base = (baseInput.value || '').replace(/\\/$/, '');
-        const key = keyInput.value.trim();
-        if (!key || key === 'YOUR_API_KEY') { result.textContent = 'Vui lòng nhập API key để kiểm tra.'; result.classList.add('visible'); return; }
-        this.disabled = true; this.textContent = 'Đang kiểm tra...'; result.classList.add('visible'); result.textContent = 'Đang gọi danh sách model...';
-        try {
-            const response = await fetch(base + '/v1/models', { headers: { Authorization: 'Bearer ' + key }, cache: 'no-store' });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data?.error?.message || 'HTTP ' + response.status);
-            const models = Array.isArray(data.data) ? data.data : [];
-            result.innerHTML = '<strong>Kết nối thành công.</strong> Tìm thấy ' + models.length + ' model.' + (models.length ? '<div class="chips">' + models.slice(0, 30).map(function (item) { return '<span class="chip">' + String(item.id).replace(/[&<>\"']/g, '') + '</span>'; }).join('') + '</div>' : '');
-        } catch (error) { result.textContent = 'Không kết nối được: ' + error.message; }
-        finally { this.disabled = false; this.textContent = '✓ Test kết nối & Lấy Model'; }
-    });
-    document.getElementById('toc-toggle').addEventListener('click', function () { document.getElementById('toc').classList.toggle('open'); });
-    document.getElementById('theme-light').addEventListener('click', function () { document.documentElement.classList.remove('dark'); });
-    document.getElementById('theme-dark').addEventListener('click', function () { document.documentElement.classList.add('dark'); });
-    renderCurl();
-    renderCodeKey();
-}());
-</script>
+    </script>
 </body>
 </html>
