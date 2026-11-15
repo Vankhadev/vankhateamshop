@@ -335,6 +335,13 @@ try {
             $cost = (float)($it['walletPricing'] ?? 0);
             $stock = (int)($it['available'] ?? 0);
             $name = trim($it['name'] ?? '');
+            $type = strtolower($it['type'] ?? '');
+
+            // Phần mềm AI (TungDV / SWF): Bản quyền cấp tự động 24/7, luôn sẵn hàng
+            $isSoftware = ($type === 'software' || str_contains($sku, 'SWF') || str_contains($name, 'TungDV') || str_contains($name, 'Studio Pro'));
+            if ($isSoftware) {
+                $stock = 999;
+            }
 
             if ($stock <= 0) {
                 $supInfo['tam_het_hang']++;
@@ -376,6 +383,9 @@ try {
                  // Tự động kiểm tra giá bán: nếu giá vốn tăng cao hơn giá bán thì tự động điều chỉnh giá bán để không bị lỗ
                  $curProd = $pdo->query("SELECT `name`, `price`, `category_id`, `is_active` FROM `products` WHERE `id` = " . (int)$existingPid)->fetch();
                  if ($curProd) {
+                     if ($isSoftware && empty($curProd['is_active'])) {
+                         $pdo->prepare("UPDATE `products` SET `is_active` = 1 WHERE `id` = ?")->execute([$existingPid]);
+                     }
                      $giaBanCu = (float)$curProd['price'];
                      $giaBanMoi = tinhGiaBanTuGiaVonCron($cost);
                      // Chỉ cập nhật khi công thức mới thực sự thay đổi giá; có thể tăng hoặc giảm.
@@ -385,7 +395,7 @@ try {
                          $telegramCatalogEvents['price'][] = ['name' => $curProd['name'], 'old' => $giaBanCu, 'new' => $giaBanMoi];
                      }
                  }
-                 if ((int)$oldMap['stock'] > 0 && $stock <= 0) {
+                 if ((int)$oldMap['stock'] > 0 && $stock <= 0 && !$isSoftware) {
                      $telegramCatalogEvents['out'][] = ['name' => $curProd['name'] ?? ('Sản phẩm #' . $existingPid), 'stock' => $stock];
                  }
 
@@ -502,8 +512,8 @@ try {
                     "Bảo hành 100% trong thời gian sử dụng"
                 ], JSON_UNESCAPED_UNICODE);
 
-                // Thêm vào bảng products (tự ẩn nếu tồn kho = 0)
-                $isActiveNew = ($stock > 0) ? 1 : 0;
+                // Thêm vào bảng products (tự ẩn nếu tồn kho = 0, phần mềm luôn bật)
+                $isActiveNew = ($stock > 0 || $isSoftware) ? 1 : 0;
                 $prodImg = trim($it['image'] ?? ($it['thumbnail'] ?? ($it['avatar'] ?? '')));
                 if (empty($prodImg) && !empty($partnerImagesMap)) {
                     $cleanName = mb_strtolower(trim($name));
