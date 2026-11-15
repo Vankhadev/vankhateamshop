@@ -1,7 +1,7 @@
 <?php
 // ========================================================
-// CỔNG PROXY CHUYỂN TIẾP API (OPENAI-COMPATIBLE PROXY GATEWAY)
-// vankhateamshop - Tiếp nhận yêu cầu từ Cursor IDE / Cline / Python
+// CỔNG PROXY CHUYỂN TIẾP API (OPENAI & ANTHROPIC COMPATIBLE PROXY GATEWAY)
+// vankhateamshop - Tiếp nhận yêu cầu từ Cursor IDE / Cline / Claude Code / Python
 // và chuyển tiếp bảo mật sang hệ thống Nhà Cung Cấp đối tác
 // Ghi chú code 100% bằng Tiếng Việt dễ hiểu
 // ========================================================
@@ -21,30 +21,45 @@ $isHttps = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || (!empty($
 $uri = $_SERVER['REQUEST_URI'] ?? '';
 $phuongThuc = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-// 1. ENDPOINT LẤY DANH SÁCH MODEL (/v1/models)
+// Trích xuất Authorization Bearer Token hoặc x-api-key từ Headers / Request
+$tokenKhach = '';
+$authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
+if (empty($authHeader) && function_exists('apache_request_headers')) {
+    $headers = apache_request_headers();
+    $authHeader = $headers['Authorization'] ?? ($headers['authorization'] ?? '');
+}
+if (preg_match('/Bearer\s+(\S+)/i', $authHeader, $matches)) {
+    $tokenKhach = trim($matches[1]);
+}
+if (empty($tokenKhach)) {
+    // Hỗ trợ chuẩn Anthropic Claude CLI / Header custom
+    $tokenKhach = trim($_SERVER['HTTP_X_API_KEY'] ?? '');
+}
+if (empty($tokenKhach)) {
+    // Hỗ trợ Azure / Custom header
+    $tokenKhach = trim($_SERVER['HTTP_API_KEY'] ?? '');
+}
+if (empty($tokenKhach)) {
+    $tokenKhach = trim($_GET['key'] ?? ($_POST['key'] ?? ''));
+}
+
+// 1. ENDPOINT LẤY DANH SÁCH MODEL (/v1/models hoặc /v1/chat/completions/models)
 if (strpos($uri, '/models') !== false && $phuongThuc === 'GET') {
     header('Content-Type: application/json; charset=utf-8');
 
-    // Trích xuất Authorization Bearer Token nếu có
-    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
-    if (empty($authHeader) && function_exists('apache_request_headers')) {
-        $headers = apache_request_headers();
-        $authHeader = $headers['Authorization'] ?? ($headers['authorization'] ?? '');
-    }
-    $tokenKhach = '';
-    if (preg_match('/Bearer\s+(\S+)/i', $authHeader, $matches)) {
-        $tokenKhach = trim($matches[1]);
-    }
-
-    // Nếu là key của Zplay / Taphoaai (64 ký tự hex) thì forward sang Zplay
     if (empty($tokenKhach)) {
         http_response_code(401);
-        echo json_encode(['error' => ['message' => 'Thiếu API Key trong Authorization Bearer', 'code' => 'missing_api_key']], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['error' => ['message' => 'Thiếu API Key trong Authorization: Bearer <YOUR_KEY>', 'code' => 'missing_api_key']], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
     // /models cũng phải xác thực key thật, không cho truy cập công khai.
-    $stmtModelAuth = $pdo->prepare("\n        SELECT id FROM `users` WHERE (`api_token` = ? OR `reseller_key` = ?) AND `is_active` = 1\n        UNION\n        SELECT o.user_id AS id FROM `orders` o WHERE (o.delivered_data LIKE ? OR o.order_code = ?) AND o.status = 'COMPLETED'\n        LIMIT 1\n    ");
+    $stmtModelAuth = $pdo->prepare("
+        SELECT id FROM `users` WHERE (`api_token` = ? OR `reseller_key` = ?) AND `is_active` = 1
+        UNION
+        SELECT o.user_id AS id FROM `orders` o WHERE (o.delivered_data LIKE ? OR o.order_code = ?) AND o.status = 'COMPLETED'
+        LIMIT 1
+    ");
     $stmtModelAuth->execute([$tokenKhach, $tokenKhach, "%$tokenKhach%", $tokenKhach]);
     if (!$stmtModelAuth->fetch()) {
         http_response_code(401);
@@ -53,10 +68,24 @@ if (strpos($uri, '/models') !== false && $phuongThuc === 'GET') {
     }
 
     if (preg_match('/^sk-[0-9a-f]{64}$/i', $tokenKhach)) {
+        // Thử lấy danh sách model trực tiếp từ Taphoaai Claude gateway trước
+        $ch = curl_init('https://api.taphoaai.info.vn/v1/models');
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $tokenKhach]);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+        $res = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($res && $code === 200) {
+            echo $res;
+            exit;
+        }
+
+        // Nếu không được, thử Zplay
         $ch = curl_init('https://zplay.io.vn/v1/models');
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $tokenKhach]);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 6);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 4);
         $res = curl_exec($ch);
         $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
@@ -120,18 +149,6 @@ if (strpos($uri, '/models') !== false && $phuongThuc === 'GET') {
 // 2. ENDPOINT TRA CỨU QUOTA & HẠN DÙNG QUA API (/v1/usage hoặc /v1/key/check)
 if ((strpos($uri, '/usage') !== false || strpos($uri, '/key/check') !== false) && in_array($phuongThuc, ['GET', 'POST'])) {
     header('Content-Type: application/json; charset=utf-8');
-    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
-    if (empty($authHeader) && function_exists('apache_request_headers')) {
-        $headers = apache_request_headers();
-        $authHeader = $headers['Authorization'] ?? ($headers['authorization'] ?? '');
-    }
-    $tokenKhach = '';
-    if (preg_match('/Bearer\s+(\S+)/i', $authHeader, $matches)) {
-        $tokenKhach = trim($matches[1]);
-    }
-    if (empty($tokenKhach)) {
-        $tokenKhach = trim($_GET['key'] ?? ($_POST['key'] ?? ''));
-    }
 
     if (empty($tokenKhach)) {
         http_response_code(400);
@@ -140,7 +157,12 @@ if ((strpos($uri, '/usage') !== false || strpos($uri, '/key/check') !== false) &
     }
 
     // Không trả quota giả cho token chưa tồn tại trong hệ thống.
-    $stmtUsageAuth = $pdo->prepare("\n        SELECT id FROM `users` WHERE (`api_token` = ? OR `reseller_key` = ?) AND `is_active` = 1\n        UNION\n        SELECT o.user_id AS id FROM `orders` o WHERE (o.delivered_data LIKE ? OR o.order_code = ?) AND o.status = 'COMPLETED'\n        LIMIT 1\n    ");
+    $stmtUsageAuth = $pdo->prepare("
+        SELECT id FROM `users` WHERE (`api_token` = ? OR `reseller_key` = ?) AND `is_active` = 1
+        UNION
+        SELECT o.user_id AS id FROM `orders` o WHERE (o.delivered_data LIKE ? OR o.order_code = ?) AND o.status = 'COMPLETED'
+        LIMIT 1
+    ");
     $stmtUsageAuth->execute([$tokenKhach, $tokenKhach, "%$tokenKhach%", $tokenKhach]);
     if (!$stmtUsageAuth->fetch()) {
         http_response_code(401);
@@ -175,25 +197,13 @@ if ((strpos($uri, '/usage') !== false || strpos($uri, '/key/check') !== false) &
     exit;
 }
 
-// 3. ENDPOINT CHAT COMPLETIONS (/v1/chat/completions)
-// A. Trích xuất Authorization Bearer Token từ Header của khách
-$authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
-if (empty($authHeader) && function_exists('apache_request_headers')) {
-    $headers = apache_request_headers();
-    $authHeader = $headers['Authorization'] ?? ($headers['authorization'] ?? '');
-}
-
-$tokenKhach = '';
-if (preg_match('/Bearer\s+(\S+)/i', $authHeader, $matches)) {
-    $tokenKhach = trim($matches[1]);
-}
-
+// 3. ENDPOINT CHAT COMPLETIONS (/v1/chat/completions) & NATIVE ANTHROPIC MESSAGES (/v1/messages)
 if (empty($tokenKhach)) {
     http_response_code(401);
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
         'error' => [
-            'message' => 'Thiếu mã API Key trong tiêu đề Authorization: Bearer <YOUR_KEY>',
+            'message' => 'Thiếu mã API Key trong tiêu đề Authorization: Bearer <YOUR_KEY> hoặc x-api-key',
             'type' => 'invalid_request_error',
             'code' => 'missing_api_key'
         ]
@@ -201,8 +211,7 @@ if (empty($tokenKhach)) {
     exit;
 }
 
-// B. Kiểm tra tính hợp lệ của API Key trong CSDL
-// Key có thể là api_token của thành viên, reseller_key hoặc key trong đơn hàng đã hoàn tất
+// Kiểm tra tính hợp lệ của API Key trong CSDL
 $stmtCheck = $pdo->prepare("
     SELECT id, name, email FROM `users` WHERE (`api_token` = ? OR `reseller_key` = ?) AND `is_active` = 1
     UNION
@@ -214,7 +223,6 @@ $stmtCheck = $pdo->prepare("
 $stmtCheck->execute([$tokenKhach, $tokenKhach, "%$tokenKhach%", $tokenKhach]);
 $userInfo = $stmtCheck->fetch();
 
-// Không dùng prefix làm bằng chứng xác thực: token phải tồn tại trong CSDL.
 if (!$userInfo) {
     http_response_code(401);
     header('Content-Type: application/json; charset=utf-8');
@@ -228,31 +236,50 @@ if (!$userInfo) {
     exit;
 }
 
-// C. Lấy dữ liệu gửi lên từ Cursor / Python
+// Lấy dữ liệu gửi lên từ Cline / Cursor / Kilo Code / Python
 $bodyRaw = file_get_contents('php://input');
-$bodyJson = json_decode($bodyRaw, true);
+$bodyJson = json_decode($bodyRaw, true) ?: [];
 
-// D. Chuẩn bị chuyển tiếp (Forward) sang nhà cung cấp đối tác tương ứng với Key
+// Chuẩn bị chuyển tiếp (Forward) sang nhà cung cấp đối tác tương ứng với Key
 $targetUrl = '';
 $forwardKey = $tokenKhach;
+$isClaudeGateway = false;
+$isAnthropicMessages = (strpos($uri, '/messages') !== false);
 
-// 1. Kiểm tra xem key này được mua từ đơn hàng nào để biết chính xác đối tác cấp key
+// Kiểm tra xem key này được mua từ đơn hàng nào để biết chính xác đối tác và gói dịch vụ
 $stmtFindSupplier = $pdo->prepare("
-    SELECT s.* 
+    SELECT s.*, o.product_id, p.name as product_name, p.supported_models 
     FROM `orders` o 
-    JOIN `suppliers` s ON o.supplier_id = s.id 
+    LEFT JOIN `suppliers` s ON o.supplier_id = s.id 
+    LEFT JOIN `products` p ON o.product_id = p.id
     WHERE o.delivered_data LIKE ? 
     ORDER BY o.id DESC LIMIT 1
 ");
 $stmtFindSupplier->execute(["%$tokenKhach%"]);
 $matchedSup = $stmtFindSupplier->fetch();
 
-if ($matchedSup && stripos($matchedSup['api_url'], 'taphoaai') !== false) {
-    // Key từ Taphoaai / Zplay: Cổng Chat Completions chuẩn là https://zplay.io.vn/v1/chat/completions
+$prodNameLower = mb_strtolower($matchedSup['product_name'] ?? '', 'UTF-8');
+
+if ($isAnthropicMessages) {
+    // Anthropic Native Protocol (/v1/messages)
+    $targetUrl = 'https://api.taphoaai.info.vn/v1/messages';
+    $isClaudeGateway = true;
+} elseif ($matchedSup && str_contains($prodNameLower, 'claude')) {
+    // Gói Claude Code / Claude API của Taphoaai
+    $targetUrl = 'https://api.taphoaai.info.vn/v1/chat/completions';
+    $isClaudeGateway = true;
+} elseif ($matchedSup && (str_contains($prodNameLower, 'codex') || str_contains($prodNameLower, 'gpt'))) {
+    // Gói Codex / GPT API của Zplay
     $targetUrl = 'https://zplay.io.vn/v1/chat/completions';
 } elseif (preg_match('/^sk-[0-9a-f]{64}$/i', $tokenKhach)) {
-    // Key 64 ký tự hex của hệ thống Zplay / Taphoaai
-    $targetUrl = 'https://zplay.io.vn/v1/chat/completions';
+    // Key 64 ký tự hex nhưng không khớp đơn, phân biệt thông minh theo model khách gọi
+    $rawModelCheck = mb_strtolower(trim($bodyJson['model'] ?? ''), 'UTF-8');
+    if (str_contains($rawModelCheck, 'claude')) {
+        $targetUrl = 'https://api.taphoaai.info.vn/v1/chat/completions';
+        $isClaudeGateway = true;
+    } else {
+        $targetUrl = 'https://zplay.io.vn/v1/chat/completions';
+    }
 } elseif ($matchedSup) {
     $targetUrl = rtrim($matchedSup['api_url'], '/') . '/chat/completions';
 } else {
@@ -264,15 +291,42 @@ if ($matchedSup && stripos($matchedSup['api_url'], 'taphoaai') !== false) {
     }
 }
 
-// 2. Tự động tương thích và chuyển đổi Model nếu cổng Zplay không hỗ trợ trực tiếp model yêu cầu
-if ($targetUrl === 'https://zplay.io.vn/v1/chat/completions') {
+// Tự động tương thích và chuyển đổi Model (Model Aliases & Auto Fallback)
+if ($isClaudeGateway) {
+    $taphoaaiSupported = [
+        'claude-sonnet-5', 'claude-opus-5.5', 'claude-opus-5', 'claude-fable-5',
+        'claude-sonnet-4-6', 'claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001',
+        'claude-opus-4-8', 'claude-opus-4-7', 'claude-opus-4-6', 'claude-opus-4-5-20251101',
+        'claude-fable-5-1', 'claude-fable-5.1', 'claude-opus-5-5', 'claude-haiku-5-5', 'claude-sonnet-5-5'
+    ];
+    $rawReqModel = trim($bodyJson['model'] ?? '');
+    $reqModelLower = mb_strtolower($rawReqModel, 'UTF-8');
+
+    if (!empty($rawReqModel) && !in_array($reqModelLower, $taphoaaiSupported, true)) {
+        // Tự động ánh xạ alias Claude phổ biến trên Cursor / Cline
+        if (str_starts_with($reqModelLower, 'claude-3-5-sonnet') || str_starts_with($reqModelLower, 'claude-3-7-sonnet') || str_contains($reqModelLower, 'sonnet')) {
+            $bodyJson['model'] = 'claude-sonnet-5';
+            $bodyRaw = json_encode($bodyJson, JSON_UNESCAPED_UNICODE);
+        } elseif (str_starts_with($reqModelLower, 'claude-3-opus') || str_contains($reqModelLower, 'opus')) {
+            $bodyJson['model'] = 'claude-opus-5.5';
+            $bodyRaw = json_encode($bodyJson, JSON_UNESCAPED_UNICODE);
+        } elseif (str_contains($reqModelLower, 'haiku') || str_contains($reqModelLower, 'fable')) {
+            $bodyJson['model'] = 'claude-fable-5';
+            $bodyRaw = json_encode($bodyJson, JSON_UNESCAPED_UNICODE);
+        } else {
+            // Khách chọn nhầm model OpenAI (như gpt-5.6-terra, gpt-4o) trên key Claude -> Tự động chuyển mượt sang claude-sonnet-5 để không bị crash
+            $bodyJson['model'] = 'claude-sonnet-5';
+            $bodyRaw = json_encode($bodyJson, JSON_UNESCAPED_UNICODE);
+        }
+    }
+} elseif ($targetUrl === 'https://zplay.io.vn/v1/chat/completions') {
     $zplaySupported = [
         'gpt-5.6-sol', 'gpt-6.1-sol', 'gpt-6-sol', 'gpt-5.6-luna', 'gpt-6-luna',
         'gpt-5.6-terra', 'gpt-5.4-mini', 'claude-opus-5.5', 'claude-opus-5-5',
         'claude-sonnet-5', 'claude-opus-5', 'claude-opus-4.8', 'claude-opus-4.7', 'claude-opus-4.6'
     ];
     $rawReqModel = trim($bodyJson['model'] ?? '');
-    $reqModelLower = strtolower($rawReqModel);
+    $reqModelLower = mb_strtolower($rawReqModel, 'UTF-8');
 
     if (!empty($rawReqModel) && !in_array($reqModelLower, $zplaySupported, true)) {
         if (in_array($reqModelLower, ['gpt-4o', 'gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo', 'chatgpt-4o-latest', 'o1', 'o3-mini'], true)) {
@@ -285,45 +339,59 @@ if ($targetUrl === 'https://zplay.io.vn/v1/chat/completions') {
             $bodyJson['model'] = 'gpt-5.4-mini';
             $bodyRaw = json_encode($bodyJson, JSON_UNESCAPED_UNICODE);
         } else {
-            // Model không thuộc gói Codex (ví dụ: deepseek-reasoner, deepseek-chat...)
-            http_response_code(400);
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode([
-                'error' => [
-                    'message' => "Model '{$rawReqModel}' không có trong gói Codex này. Gói này chỉ hỗ trợ các model: gpt-5.6-sol, gpt-6.1-sol, claude-opus-5.5, claude-sonnet-5. Vui lòng chọn đúng model trong Kilo Code / Cursor!",
-                    'type' => 'invalid_request_error',
-                    'param' => 'model',
-                    'code' => 'model_not_supported'
-                ]
-            ], JSON_UNESCAPED_UNICODE);
-            exit;
+            $bodyJson['model'] = 'gpt-5.6-sol';
+            $bodyRaw = json_encode($bodyJson, JSON_UNESCAPED_UNICODE);
         }
     }
 }
 
-// Kiểm tra xem yêu cầu có yêu cầu Streaming (truyền dòng ký tự từng chữ) không
+// Xử lý Chuyển tiếp Request (Streaming SSE & Non-streaming)
 $isStream = !empty($bodyJson['stream']);
+
+$requestHeaders = [
+    'Content-Type: application/json',
+    'Authorization: Bearer ' . $forwardKey,
+    'Accept: ' . ($isStream ? 'text/event-stream' : 'application/json')
+];
+if ($isAnthropicMessages) {
+    $requestHeaders[] = 'x-api-key: ' . $forwardKey;
+    $requestHeaders[] = 'anthropic-version: 2023-06-01';
+}
 
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $targetUrl);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, $bodyRaw);
-curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Content-Type: application/json',
-    'Authorization: Bearer ' . $forwardKey,
-    'Accept: ' . ($isStream ? 'text/event-stream' : 'application/json')
-]);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $requestHeaders);
 curl_setopt($ch, CURLOPT_TIMEOUT, 120);
 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 
 if ($isStream) {
-    // Chế độ Stream: Chuyển dữ liệu trực tiếp về cho Cursor ngay khi nhận được từng ký tự
-    header('Content-Type: text/event-stream');
-    header('Cache-Control: no-cache');
-    header('Connection: keep-alive');
-    header('X-Accel-Buffering: no'); // Tắt đệm trên Nginx/Proxy
+    $upstreamStatus = 200;
+    $headersSent = false;
+    $errorBuffer = '';
 
-    curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) {
+    curl_setopt($ch, CURLOPT_HEADERFUNCTION, function($ch, $headerLine) use (&$upstreamStatus) {
+        if (preg_match('/^HTTP\/[12](?:\.[01])?\s+(\d{3})/i', $headerLine, $m)) {
+            $upstreamStatus = (int)$m[1];
+        }
+        return strlen($headerLine);
+    });
+
+    curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) use (&$headersSent, &$upstreamStatus, &$errorBuffer) {
+        if ($upstreamStatus >= 400) {
+            $errorBuffer .= $data;
+            return strlen($data);
+        }
+
+        if (!$headersSent) {
+            header('Content-Type: text/event-stream; charset=utf-8');
+            header('Cache-Control: no-cache');
+            header('Connection: keep-alive');
+            header('X-Accel-Buffering: no');
+            $headersSent = true;
+        }
+
         echo $data;
         if (ob_get_level() > 0) {
             ob_flush();
@@ -336,20 +404,38 @@ if ($isStream) {
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
+    $finalCode = ($upstreamStatus >= 400) ? $upstreamStatus : ($httpCode ?: 200);
+
+    if ($finalCode >= 400) {
+        http_response_code($finalCode);
+        header('Content-Type: application/json; charset=utf-8');
+        if (!empty($errorBuffer)) {
+            echo $errorBuffer;
+        } else {
+            echo json_encode([
+                'error' => [
+                    'message' => 'Lỗi kết nối từ máy chủ AI đối tác (HTTP ' . $finalCode . ')',
+                    'type' => 'upstream_error',
+                    'code' => $finalCode
+                ]
+            ], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
     $doTreMs = round((microtime(true) - $thoiDiemBatDau) * 1000);
     $modelName = $bodyJson['model'] ?? 'unknown';
     try {
         $logStmt = $pdo->prepare("
             INSERT INTO `api_logs` (`user_id`, `customer_email`, `customer_name`, `api_key_used`, `ip_address`, `is_https`, `endpoint`, `model`, `http_status`, `latency_ms`, `request_body`, `response_summary`, `created_at`)
-            VALUES (?, ?, ?, ?, ?, ?, '/v1/chat/completions', ?, ?, ?, ?, 'Streaming SSE response', NOW())
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Streaming SSE response', NOW())
         ");
         $logStmt->execute([
             $userInfo['id'] ?? null, $userInfo['email'] ?? null, $userInfo['name'] ?? null,
-            substr($tokenKhach, 0, 10) . '***', $ipKhach, $isHttps, $modelName, $httpCode ?: 200, $doTreMs, mb_substr($bodyRaw, 0, 300)
+            substr($tokenKhach, 0, 10) . '***', $ipKhach, $isHttps, ($isAnthropicMessages ? '/v1/messages' : '/v1/chat/completions'), $modelName, $finalCode, $doTreMs, mb_substr($bodyRaw, 0, 300)
         ]);
     } catch (Exception $e) {}
 } else {
-    // Chế độ thông thường (Non-stream)
+    // Chế độ Non-stream
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -360,11 +446,11 @@ if ($isStream) {
     try {
         $logStmt = $pdo->prepare("
             INSERT INTO `api_logs` (`user_id`, `customer_email`, `customer_name`, `api_key_used`, `ip_address`, `is_https`, `endpoint`, `model`, `http_status`, `latency_ms`, `request_body`, `response_summary`, `created_at`)
-            VALUES (?, ?, ?, ?, ?, ?, '/v1/chat/completions', ?, ?, ?, ?, 'JSON response', NOW())
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'JSON response', NOW())
         ");
         $logStmt->execute([
             $userInfo['id'] ?? null, $userInfo['email'] ?? null, $userInfo['name'] ?? null,
-            substr($tokenKhach, 0, 10) . '***', $ipKhach, $isHttps, $modelName, $httpCode ?: 200, $doTreMs, mb_substr($bodyRaw, 0, 300)
+            substr($tokenKhach, 0, 10) . '***', $ipKhach, $isHttps, ($isAnthropicMessages ? '/v1/messages' : '/v1/chat/completions'), $modelName, $httpCode ?: 200, $doTreMs, mb_substr($bodyRaw, 0, 300)
         ]);
     } catch (Exception $e) {}
 
