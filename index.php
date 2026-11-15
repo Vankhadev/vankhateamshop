@@ -76,6 +76,8 @@ $routes = [
     '/software'              => __DIR__ . '/frontend/phan-mem.php',
     '/tra-cuu-key'           => __DIR__ . '/frontend/tra-cuu-key.php',
     '/kiem-tra-key'          => __DIR__ . '/frontend/tra-cuu-key.php',
+    '/nap-credit'            => __DIR__ . '/frontend/nap-credit.php',
+    '/nap-credit-api'        => __DIR__ . '/frontend/nap-credit.php',
     '/bang-xep-hang'         => __DIR__ . '/frontend/bang-xep-hang.php',
     '/xep-hang'              => __DIR__ . '/frontend/bang-xep-hang.php',
     // /docs là tài liệu tích hợp extension; /buyer-api là tài liệu API đại lý lấy sản phẩm.

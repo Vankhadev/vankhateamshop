@@ -129,6 +129,114 @@ switch ($hanhDong) {
         ]);
         break;
 
+    // 1.8. TẠO ĐƠN NẠP CREDIT API (1gw.gwai.cloud) TỰ ĐỘNG VIETQR
+    case 'tao_don_nap_credit':
+        header('Content-Type: application/json; charset=utf-8');
+
+        if (!kiemTraRateLimit('tao_don_nap_credit', 15, 60)) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Bạn thao tác quá nhanh, vui lòng đợi 1 phút!'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $apiKey = trim($_POST['api_key'] ?? '');
+        $usdAmount = (int)($_POST['usd_amount'] ?? 10);
+        $emailKhach = trim($_POST['email'] ?? '');
+
+        // Trích xuất API Key sạch nếu có khoảng trắng, tiền tố hoặc chuỗi json
+        if (preg_match('/(sk-ant-api03-[a-zA-Z0-9_\-]+|sk-[a-zA-Z0-9_\-]+)/', $apiKey, $mClean)) {
+            $apiKey = $mClean[1];
+        }
+
+        if (empty($apiKey)) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Vui lòng nhập API Key cần nạp credit!'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        // Kiểm tra đúng key của 1gw.gwai.cloud (bắt đầu bằng sk-ant-)
+        if (!str_starts_with($apiKey, 'sk-ant-')) {
+            echo json_encode([
+                'thanh_cong' => false, 
+                'thong_bao' => 'Hệ thống chỉ nạp credit cho API Key nhà cung cấp 1gw.gwai.cloud (Key bắt đầu bằng sk-ant-api03-...). Vui lòng kiểm tra lại key!'
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        // Tối thiểu 10 USD
+        if ($usdAmount < 10) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Số USD muốn nạp tối thiểu là 10 USD!'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        // Quy đổi: 1 USD credit = 1.500 VNĐ
+        $tyGia = 1500;
+        $soTienVnd = $usdAmount * $tyGia;
+
+        if (empty($emailKhach) || !filter_var($emailKhach, FILTER_VALIDATE_EMAIL)) {
+            $emailKhach = $_SESSION['user_email'] ?? 'guest@tiemai.io.vn';
+        }
+
+        $userId = $_SESSION['user_id'] ?? null;
+        $ipKhach = layIpNguoiDung();
+
+        // Sinh mã đơn hàng chuẩn tiemai + 16 số ngẫu nhiên để SePay tự động nhận diện
+        $maDonHang = 'tiemai' . sprintf('%08d%08d', mt_rand(10000000, 99999999), mt_rand(10000000, 99999999));
+
+        $deliveredDataInit = json_encode([
+            'type'        => 'TOPUP_CREDIT',
+            'target_key'  => $apiKey,
+            'usd'         => $usdAmount,
+            'gateway'     => '1gw.gwai.cloud',
+            'created_at'  => date('Y-m-d H:i:s')
+        ], JSON_UNESCAPED_UNICODE);
+
+        // Lưu đơn hàng vào bảng orders (product_id = 9999)
+        $stmtTaoDon = $pdo->prepare("
+            INSERT INTO `orders` (`order_code`, `user_id`, `product_id`, `customer_email`, `quantity`, `total_amount`, `status`, `delivered_data`, `ip_address`)
+            VALUES (?, ?, 9999, ?, ?, ?, 'PENDING', ?, ?)
+        ");
+        $stmtTaoDon->execute([$maDonHang, $userId, $emailKhach, $usdAmount, $soTienVnd, $deliveredDataInit, $ipKhach]);
+
+        ghiNhatKyHeThong('INFO', 'TAO_DON_NAP_CREDIT', "Khách tạo đơn nạp {$usdAmount}$ credit ({$soTienVnd}đ) cho key {$apiKey} - Mã: {$maDonHang}");
+
+        // Gửi email thông báo đơn nạp credit đang chờ thanh toán
+        try {
+            require_once __DIR__ . '/mailer.php';
+            guiEmailDonHang('PENDING', [
+                'order_code'     => $maDonHang,
+                'customer_email' => $emailKhach,
+                'product_name'   => "Nạp {$usdAmount}$ Credit API 1gw.gwai.cloud",
+                'quantity'       => $usdAmount,
+                'total_amount'   => $soTienVnd
+            ]);
+        } catch (Throwable $eMail) {}
+
+        // Thông tin chuyển khoản VietQR
+        $bankBin = defined('BANK_BIN') ? BANK_BIN : '970416';
+        $bankAccNo = defined('BANK_ACCOUNT_NO') ? BANK_ACCOUNT_NO : '29323787';
+        $bankAccName = defined('BANK_ACCOUNT_NAME') ? BANK_ACCOUNT_NAME : 'VO VAN KHA';
+        $bankFullName = defined('BANK_FULL_NAME') ? BANK_FULL_NAME : 'Ngân hàng TMCP Á Châu (ACB)';
+
+        $linkVietQr = "https://api.vietqr.io/image/{$bankBin}-{$bankAccNo}-compact2.jpg?amount={$soTienVnd}&addInfo={$maDonHang}&accountName=" . urlencode($bankAccName);
+
+        echo json_encode([
+            'thanh_cong'       => true,
+            'ma_don_hang'      => $maDonHang,
+            'so_usd'           => $usdAmount,
+            'so_tien'          => $soTienVnd,
+            'so_tien_dinh_dang'=> number_format($soTienVnd, 0, ',', '.') . ' VNĐ',
+            'target_key'       => $apiKey,
+            'link_vietqr'      => $linkVietQr,
+            'bank_info'        => [
+                'bank_name'    => $bankFullName,
+                'account_no'   => $bankAccNo,
+                'account_name' => $bankAccName,
+                'amount'       => $soTienVnd,
+                'content'      => $maDonHang
+            ],
+            'expire_seconds'   => 300 // 5 phút
+        ], JSON_UNESCAPED_UNICODE);
+        break;
+
     // 2. MUA GÓI BẰNG SỐ DƯ VÍ (THANH TOÁN NHANH TRONG 1 GIÂY KHÔNG CẦN QUÉT MÃ)
     case 'mua_bang_so_du':
         if (empty($_SESSION['user_id'])) {

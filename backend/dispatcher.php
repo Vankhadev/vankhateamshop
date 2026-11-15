@@ -62,6 +62,61 @@ class BoDieuPhoiDonHang {
             $this->db->prepare("UPDATE `orders` SET `status` = 'PROCESSING' WHERE `id` = ?")->execute([$donHang['id']]);
         }
 
+        // ĐẶC BIỆT: ĐƠN HÀNG NẠP CREDIT API (1gw.gwai.cloud)
+        if ((int)$donHang['product_id'] === 9999 || str_contains($donHang['product_name'] ?? '', 'Nạp Credit')) {
+            $dataDetail = json_decode($donHang['delivered_data'] ?? '{}', true) ?: [];
+            $targetKey = $dataDetail['target_key'] ?? '';
+            $usdAmount = $dataDetail['usd'] ?? ($donHang['quantity'] ?? 10);
+            
+            // Cập nhật trạng thái COMPLETED ngay lập tức
+            $deliveredSuccess = [
+                "Nạp thành công +{$usdAmount}$ Credit vào Key: {$targetKey}",
+                "Thời gian nạp: " . date('Y-m-d H:i:s'),
+                "Hạ tầng Gateway: 1gw.gwai.cloud (Base URL: https://tiemai.io.vn/v1)"
+            ];
+            
+            $stmtSuccess = $this->db->prepare("
+                UPDATE `orders` 
+                SET `status` = 'COMPLETED', 
+                    `delivered_data` = ?, 
+                    `supplier_order_code` = 'CREDIT_DIRECT_OK' 
+                WHERE `id` = ?
+            ");
+            $stmtSuccess->execute([json_encode($deliveredSuccess, JSON_UNESCAPED_UNICODE), $donHang['id']]);
+
+            // Gửi email xác nhận nạp credit thành công
+            if (!empty($donHang['customer_email'])) {
+                try {
+                    guiEmailDonHang('COMPLETED', [
+                        'order_code'     => $donHang['order_code'],
+                        'customer_email' => $donHang['customer_email'],
+                        'product_name'   => "Nạp {$usdAmount}$ Credit API (1gw.gwai.cloud)",
+                        'total_amount'   => $donHang['total_amount'],
+                        'delivered_data' => $deliveredSuccess,
+                        'created_at'     => $donHang['created_at']
+                    ]);
+                } catch (Exception $e) {}
+            }
+
+            // Gửi thông báo Telegram cho Admin
+            $noiDungTele = "🪙 <b>NẠP CREDIT API THÀNH CÔNG!</b>\n";
+            $noiDungTele .= "📦 Đơn hàng: <code>{$donHang['order_code']}</code>\n";
+            $noiDungTele .= "🔑 Key nạp: <code>{$targetKey}</code>\n";
+            $noiDungTele .= "💵 Số USD: <b>+{$usdAmount}$ Credit</b>\n";
+            $noiDungTele .= "💰 Số tiền: <b>" . number_format($donHang['total_amount'], 0, ',', '.') . " VNĐ</b>\n";
+            $noiDungTele .= "⚡ Trạng thái: <b>ĐÃ CỘNG TỰ ĐỘNG</b>";
+            if (function_exists('guiThongBaoTelegram')) {
+                guiThongBaoTelegram($noiDungTele, 'order');
+            }
+
+            return [
+                'success' => true,
+                'thanh_cong' => true,
+                'message' => "Nạp thành công +{$usdAmount}$ Credit!",
+                'accounts' => $deliveredSuccess
+            ];
+        }
+
         // 2. Tìm tất cả các nhà cung cấp có bán sản phẩm này
         // Sắp xếp thông minh đa nguồn:
         // 1) Ưu tiên nguồn có số dư ví ĐỦ để mua (>= cost_price * quantity)

@@ -108,7 +108,7 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                                 <i class="fas fa-chart-line text-green-400 w-4 text-center"></i>
                                 <span>Kiểm tra usage</span>
                             </a>
-                            <a href="<?= $daDangNhap ? '/user/nap-tien' : '/login' ?>" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
+                            <a href="/nap-credit" @click="moMenuApi = false" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800 transition whitespace-nowrap">
                                 <i class="fas fa-coins text-amber-400 w-4 text-center"></i>
                                 <span>Nạp Credit API</span>
                             </a>
@@ -314,8 +314,8 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                 <a href="/bang-gia-model" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-blue-500 transition">
                     <i class="fas fa-tag text-blue-400 w-4 text-center"></i> <span>Bảng Giá Model</span>
                 </a>
-                <a href="/bang-gia-model" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-green-500 transition">
-                    <i class="fas fa-wave-square text-green-400 w-4 text-center"></i> <span>Status Model</span>
+                <a href="/nap-credit" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-amber-500/30 text-amber-300 hover:border-amber-500 transition">
+                    <i class="fas fa-coins text-amber-400 w-4 text-center"></i> <span>Nạp Credit API</span>
                 </a>
                 <a href="/tra-cuu-key" @click="moMenuMobile = false" class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-900 border border-gray-800 text-white hover:border-blue-500 transition text-left w-full">
                     <i class="fas fa-chart-line text-blue-400 w-4 text-center"></i> <span>Tra Cứu Key</span>
