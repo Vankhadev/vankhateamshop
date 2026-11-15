@@ -53,11 +53,18 @@ $redirectsLegacy = [
     '/admin/san-pham.php'                  => '/admin/san-pham',
     '/frontend/admin/dai-ly.php'           => '/admin/dai-ly',
     '/admin/dai-ly.php'                    => '/admin/dai-ly',
+    '/status'                              => 'https://status.gwai.cloud/',
+    '/trang-thai-model'                    => 'https://status.gwai.cloud/',
 ];
 
 if (isset($redirectsLegacy[$uri])) {
     $queryString = !empty($_SERVER['QUERY_STRING']) ? ('?' . $_SERVER['QUERY_STRING']) : '';
-    header('Location: ' . $redirectsLegacy[$uri] . $queryString, true, 301);
+    $dest = $redirectsLegacy[$uri];
+    if (str_starts_with($dest, 'http')) {
+        header('Location: ' . $dest, true, 302);
+    } else {
+        header('Location: ' . $dest . $queryString, true, 301);
+    }
     exit;
 }
 
