@@ -468,22 +468,35 @@ $matchedSup = $stmtFindSupplier->fetch();
 
 $prodNameLower = mb_strtolower($matchedSup['product_name'] ?? '', 'UTF-8');
 
-// Key sk-ant-... chỉ dùng Gwai Cloud khi KHÔNG tìm thấy trong database đơn hàng (không phải key TiemAI)
-$isGwaiGateway = str_starts_with($tokenKhach, 'sk-ant-') && empty($matchedSup);
-
-if ($isGwaiGateway) {
-    // Key đối tác GenZShop / Gwai Cloud (Native Anthropic)
+// ROUTING THÔNG MINH: Dùng ai_api_url từ supplier nếu có, fallback theo key format
+if ($matchedSup && !empty($matchedSup['ai_api_url'])) {
+    // ƯU TIÊN 1: Dùng AI endpoint của supplier (GenzShop, Taphoaai, v.v.)
+    $supplierAiBase = rtrim($matchedSup['ai_api_url'], '/');
+    $supName = mb_strtolower($matchedSup['name'] ?? '', 'UTF-8');
+    
+    // GenzShop/Gwai Cloud keys: sk-ant-* format, cần convert sang /messages nếu gọi /chat/completions
+    if (str_contains($supName, 'genz') || str_contains($supName, 'gwai') || str_contains($supplierAiBase, 'gwai')) {
+        $isGwaiGateway = true;
+        $targetUrl = $isAnthropicMessages ? "$supplierAiBase/messages" : "$supplierAiBase/chat/completions";
+    } else {
+        // Taphoaai và các supplier khác
+        $targetUrl = $isAnthropicMessages ? "$supplierAiBase/messages" : "$supplierAiBase/chat/completions";
+        $isClaudeGateway = str_contains($prodNameLower, 'claude');
+    }
+} elseif (str_starts_with($tokenKhach, 'sk-ant-') && empty($matchedSup)) {
+    // ƯU TIÊN 2: Key sk-ant-* không có trong database → Gwai Cloud trực tiếp (key ngoài)
+    $isGwaiGateway = true;
     $targetUrl = 'https://1gw.gwai.cloud/v1/messages';
 } elseif ($isAnthropicMessages) {
-    // Anthropic Native Protocol (/v1/messages)
+    // ƯU TIÊN 3: Anthropic Native Protocol /v1/messages
     $targetUrl = 'https://api.taphoaai.info.vn/v1/messages';
     $isClaudeGateway = true;
 } elseif ($matchedSup && str_contains($prodNameLower, 'claude')) {
-    // Gói Claude Code / Claude API của Taphoaai
+    // ƯU TIÊN 4: Có đơn hàng, product chứa 'claude' → Taphoaai
     $targetUrl = 'https://api.taphoaai.info.vn/v1/chat/completions';
     $isClaudeGateway = true;
 } elseif ($matchedSup && (str_contains($prodNameLower, 'codex') || str_contains($prodNameLower, 'gpt'))) {
-    // Gói Codex / GPT API của Zplay
+    // ƯU TIÊN 5: Có đơn hàng, product chứa 'codex' hoặc 'gpt' → Zplay
     $targetUrl = 'https://zplay.io.vn/v1/chat/completions';
 } elseif (preg_match('/^sk-[0-9a-f]{64}$/i', $tokenKhach)) {
     // Key 64 ký tự hex nhưng không khớp đơn, phân biệt thông minh theo model khách gọi
