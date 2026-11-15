@@ -48,10 +48,15 @@ function taoSlugVnCron($str) {
 
 // Hàm xác định các model AI hỗ trợ theo từng gói sản phẩm từ đối tác
 function tinhGiaBanTuGiaVonCron(float $cost): float {
-    if ($cost <= 20000) return $cost + 7000;
-    if ($cost <= 60000) return ceil(($cost * 1.25) / 1000) * 1000;
-    if ($cost <= 150000) return ceil(($cost * 1.20) / 1000) * 1000;
-    return ceil(($cost * 1.15) / 1000) * 1000;
+    // Tối ưu lợi nhuận chuẩn: Mỗi đơn lời từ 5.000đ đến 10.000đ
+    if ($cost <= 30000) {
+        $profit = 5000; // Gói vốn nhỏ dưới 30k (10k, 11k, 15k, 25k): Lời đúng 5.000đ
+    } elseif ($cost <= 60000) {
+        $profit = 7000; // Gói vốn vừa 30k - 60k (45k, 50k, 55k): Lời đúng 7.000đ
+    } else {
+        $profit = 10000; // Gói vốn từ 60k trở lên (75k, 100k, 150k, 290k...): Lời đúng 10.000đ
+    }
+    return ceil(($cost + $profit) / 1000) * 1000;
 }
 
 /**
@@ -375,7 +380,8 @@ try {
                      $giaBanMoi = tinhGiaBanTuGiaVonCron($cost);
                      // Chỉ cập nhật khi công thức mới thực sự thay đổi giá; có thể tăng hoặc giảm.
                      if ($giaBanCu !== $giaBanMoi) {
-                         $pdo->prepare("UPDATE `products` SET `price` = ? WHERE `id` = ?")->execute([$giaBanMoi, $existingPid]);
+                         $origPrice = ceil(($giaBanMoi * 1.3) / 1000) * 1000;
+                         $pdo->prepare("UPDATE `products` SET `price` = ?, `original_price` = ? WHERE `id` = ?")->execute([$giaBanMoi, $origPrice, $existingPid]);
                          $telegramCatalogEvents['price'][] = ['name' => $curProd['name'], 'old' => $giaBanCu, 'new' => $giaBanMoi];
                      }
                  }
