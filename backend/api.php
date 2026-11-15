@@ -700,10 +700,10 @@ switch ($hanhDong) {
                 'chat_endpoint'    => $chatEndpointWebsite,
 
                 // Tương thích ngược
-                'da_dung'          => $daDungPeriod . ' / ' . ($isDailyReset ? '200-400' : number_format($requestsCapacityNumber)) . ' Request',
-                'so_luot_da_dung'  => $daDungPeriod,
-                'so_luot_tong'     => $requestsCapacityNumber,
-                'so_luot_con_lai'  => $conLaiRequest
+                'da_dung'          => ($upQuotaLimit > 0 ? ('$' . number_format($upQuotaUsed, 2) . ' / $' . number_format($upQuotaLimit, 2) . ' USD') : ($daDungPeriod . ' / ' . ($isDailyReset ? '200-400' : number_format($requestsCapacityNumber)) . ' Request')),
+                'so_luot_da_dung'  => ($upQuotaLimit > 0 ? round($upQuotaUsed, 2) : $daDungPeriod),
+                'so_luot_tong'     => ($upQuotaLimit > 0 ? $upQuotaLimit : $requestsCapacityNumber),
+                'so_luot_con_lai'  => ($upQuotaLimit > 0 ? max(0, round($upQuotaLimit - $upQuotaUsed, 2)) : $conLaiRequest)
             ], JSON_UNESCAPED_UNICODE);
             exit;
         }
