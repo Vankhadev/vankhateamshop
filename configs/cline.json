@@ -1,0 +1,12 @@
+{
+  "name": "TiemAI Gateway",
+  "version": "1.0.0",
+  "mcpServers": {},
+  "customCommands": [],
+  "modelSettings": {
+    "provider": "openai-compatible",
+    "baseURL": "https://tiemai.io.vn/v1",
+    "apiKey": "YOUR_API_KEY",
+    "model": "claude-sonnet-5"
+  }
+}

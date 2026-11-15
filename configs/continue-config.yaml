@@ -1,0 +1,38 @@
+name: TiemAI Configuration
+version: 0.0.1
+schema: v1
+
+models:
+  - name: Claude Sonnet 5
+    provider: openai
+    model: claude-sonnet-5
+    apiBase: https://tiemai.io.vn/v1
+    apiKey: YOUR_API_KEY
+    contextLength: 200000
+    
+  - name: GPT-5.6 Sol
+    provider: openai
+    model: gpt-5.6-sol
+    apiBase: https://tiemai.io.vn/v1
+    apiKey: YOUR_API_KEY
+    contextLength: 128000
+    
+  - name: GPT-6.1 Sol
+    provider: openai
+    model: gpt-6.1-sol
+    apiBase: https://tiemai.io.vn/v1
+    apiKey: YOUR_API_KEY
+    contextLength: 200000
+
+  - name: Claude Opus 5.5
+    provider: openai
+    model: claude-opus-5.5
+    apiBase: https://tiemai.io.vn/v1
+    apiKey: YOUR_API_KEY
+    contextLength: 200000
+
+customCommands: []
+
+contextProviders: []
+
+slashCommands: []

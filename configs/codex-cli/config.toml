@@ -1,0 +1,15 @@
+# ============================================================
+# Codex CLI - Config File
+# Đặt file này tại: ~/.codex/config.toml
+# Hướng dẫn: https://tiemai.io.vn/docs
+# ============================================================
+
+model_provider = "TiemAI"
+model = "gpt-5.6-sol"
+disable_response_storage = true
+
+[model_providers.TiemAI]
+name = "TiemAI Gateway"
+base_url = "https://tiemai.io.vn/v1"
+wire_api = "responses"
+requires_openai_auth = true

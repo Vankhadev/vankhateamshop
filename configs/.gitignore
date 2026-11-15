@@ -1,0 +1,16 @@
+# Git ignore cho configs/
+# Thêm vào .gitignore của project
+
+# Không commit API keys thật
+*.env
+.env.local
+.env.production
+
+# Không commit file config có API key thật
+**/auth.json
+**/*-private.*
+**/*-secret.*
+
+# Cho phép commit file example
+!.env.example
+!*-example.*
