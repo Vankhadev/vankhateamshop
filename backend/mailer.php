@@ -196,9 +196,12 @@ function guiEmailHeThong(string $toEmail, string $subject, string $htmlBody): ar
     $host = layCaiDatHeThong('smtp_host', 'smtp.gmail.com');
     $port = (int)layCaiDatHeThong('smtp_port', '587');
     $encryption = layCaiDatHeThong('smtp_encryption', 'tls');
-    $user = layCaiDatHeThong('smtp_username', '');
-    $pass = layCaiDatHeThong('smtp_password', '');
-    $fromEmail = layCaiDatHeThong('smtp_from_email', $user ?: 'no-reply@tiemai.io.vn');
+    $user = trim(layCaiDatHeThong('smtp_username', ''));
+    $pass = trim(layCaiDatHeThong('smtp_password', ''));
+    $fromEmail = trim(layCaiDatHeThong('smtp_from_email', ''));
+    if (empty($fromEmail)) {
+        $fromEmail = $user ?: 'no-reply@tiemai.io.vn';
+    }
     $fromName = layCaiDatHeThong('smtp_from_name', SHOP_NAME ?: 'Tiệm AI - VanKha Team');
 
     if (empty($host) || empty($user) || empty($pass)) {
