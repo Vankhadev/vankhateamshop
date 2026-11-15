@@ -489,6 +489,104 @@ switch ($hanhDong) {
                 $hanDungText = $ngayConLai . ' ngày nữa';
             }
 
+            // Lấy thông tin Usage thực tế từ đối tác (Taphoaai / Zplay) theo thời gian thực
+            $upstreamUsage = null;
+            if (preg_match('/^sk-[0-9a-f]{64}$/i', $actualKey)) {
+                $tryUrls = ['https://api.taphoaai.info.vn/v1/usage', 'https://zplay.io.vn/v1/usage'];
+                if (stripos($combinedInfo, 'codex') !== false || stripos($combinedInfo, 'gpt') !== false) {
+                    $tryUrls = ['https://zplay.io.vn/v1/usage', 'https://api.taphoaai.info.vn/v1/usage'];
+                }
+                foreach ($tryUrls as $u) {
+                    $ch = curl_init($u);
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $actualKey, 'User-Agent: Mozilla/5.0']);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+                    $res = curl_exec($ch);
+                    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    curl_close($ch);
+                    if ($res && $code === 200) {
+                        $parsed = json_decode($res, true);
+                        if (!empty($parsed) && (isset($parsed['usage']) || isset($parsed['quota']))) {
+                            $upstreamUsage = $parsed;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Biến hiển thị
+            $costVal = '$0.00';
+            $costSub = 'Đã bao gồm trọn gói';
+            $tokensVal = number_format($daDungTotal * 1250) . ' Tokens';
+            $tokensSub = 'Không giới hạn tokens';
+            $requestsVal = $daDungPeriod . ' / ' . number_format($requestsCapacityNumber);
+            $requestsSub = $requestsLimitDisplay;
+            $progressText = $daDungPeriod . ' / ' . number_format($requestsCapacityNumber);
+            $trangThaiText = $hetHan ? 'Đã hết hạn' : 'Đang hoạt động';
+
+            if ($upstreamUsage) {
+                $upQuotaLimit = (float)($upstreamUsage['quota']['limit'] ?? 0);
+                $upQuotaUsed = (float)($upstreamUsage['quota']['used'] ?? ($upstreamUsage['usage']['total']['actual_cost'] ?? ($upstreamUsage['usage']['total']['cost'] ?? 0)));
+                $upTokens = (int)($upstreamUsage['usage']['total']['total_tokens'] ?? 0);
+                $upReqs = (int)($upstreamUsage['usage']['total']['requests'] ?? 0);
+                $isExhausted = (($upstreamUsage['status'] ?? '') === 'quota_exhausted') || ($upQuotaLimit > 0 && $upQuotaUsed >= $upQuotaLimit);
+
+                if ($upQuotaLimit > 0) {
+                    // Gói tính theo hạn mức $ Credit (Ví dụ: Gói 10$ Credit)
+                    $phanTramDung = min(100, round(($upQuotaUsed / $upQuotaLimit) * 100));
+                    $costVal = '$' . number_format($upQuotaUsed, 2) . ' / $' . number_format($upQuotaLimit, 2);
+                    $costSub = 'Hạn mức ' . number_format($upQuotaLimit, 0) . '$ Credit';
+                    $tokensVal = number_format($upTokens) . ' Tokens';
+                    $tokensSub = 'Đã tiêu thụ: ' . number_format($upTokens) . ' tokens';
+                    $requestsVal = number_format($upReqs) . ' requests';
+                    $requestsSub = number_format($upQuotaLimit, 0) . '$ Credit';
+                    $progressText = '$' . number_format($upQuotaUsed, 2) . ' / $' . number_format($upQuotaLimit, 2) . ' (' . $phanTramDung . '%)';
+                    
+                    if ($isExhausted) {
+                        $hetHan = true;
+                        $trangThaiText = 'Đã dùng hết hạn mức ($' . number_format($upQuotaLimit, 0) . ')';
+                        $conLaiText = '$0.00 Credit (Đã dùng hết 100%)';
+                    } else {
+                        $conLaiText = '$' . number_format(max(0, $upQuotaLimit - $upQuotaUsed), 2) . ' Credit còn lại';
+                    }
+                } else {
+                    $daDungPeriod = $upReqs ?: $daDungPeriod;
+                    $tokensVal = number_format($upTokens) . ' Tokens';
+                    $tokensSub = 'Đã tiêu thụ: ' . number_format($upTokens) . ' tokens';
+                }
+
+                // Cập nhật daily_usage nếu đối tác có dữ liệu chuẩn
+                if (!empty($upstreamUsage['daily_usage']) && is_array($upstreamUsage['daily_usage'])) {
+                    $dailyUsage = [];
+                    foreach ($upstreamUsage['daily_usage'] as $du) {
+                        $dateFormatted = date('d/m/Y', strtotime($du['date'] ?? 'now'));
+                        $dailyUsage[] = [
+                            'date'     => $dateFormatted,
+                            'requests' => ($du['requests'] ?? 0) . ' req',
+                            'tokens'   => number_format($du['total_tokens'] ?? 0) . ' tokens',
+                            'cost'     => '$' . number_format($du['actual_cost'] ?? ($du['cost'] ?? 0), 2),
+                            'status'   => 'Bình thường'
+                        ];
+                    }
+                }
+            } else {
+                // Fallback nếu không kết nối được upstream
+                if ($isTokenRPM) {
+                    $requestsVal = $daDungPeriod . ' requests';
+                    $requestsSub = 'Băng thông: ' . $shortDisplay;
+                    $tokensVal = $tokenDisplay;
+                    $tokensSub = 'Đã tiêu thụ: ' . number_format($daDungTotal * 1250) . ' tokens';
+                    $progressText = $daDungPeriod . ' req / Không giới hạn';
+                    $phanTramDung = min(100, round(($daDungPeriod / 100) * 100));
+                } elseif ($isDailyReset) {
+                    $requestsVal = $daDungPeriod . ' / 200 - 400';
+                    $requestsSub = '200 - 400 tin nhắn/ngày';
+                    $progressText = $daDungPeriod . ' / 300';
+                } elseif (strpos($requestsLimitDisplay, 'Credit') !== false) {
+                    $costVal = '$0.00 / ' . ($creditVal ?? 10) . '$';
+                }
+            }
+
             // Danh sách model
             $models = [];
             if (!empty($order['supported_models'])) {
@@ -555,7 +653,7 @@ switch ($hanhDong) {
 
             echo json_encode([
                 'thanh_cong'       => true,
-                'trang_thai'       => $hetHan ? 'Đã hết hạn' : 'Đang hoạt động',
+                'trang_thai'       => $trangThaiText,
                 'is_active'        => !$hetHan,
                 'ten_goi'          => $prodName,
                 'ma_don_hang'      => $order['order_code'],
@@ -564,26 +662,16 @@ switch ($hanhDong) {
                 'gateway'          => 'Gateway',
                 
                 // 3 Cột thống kê chính
-                'requests_val'     => $isTokenRPM 
-                                        ? ($daDungPeriod . ' requests') 
-                                        : ($daDungPeriod . ' / ' . ($isDailyReset ? '200 - 400' : number_format($requestsCapacityNumber))),
-                'requests_sub'     => $isTokenRPM 
-                                        ? ('Băng thông: ' . $shortDisplay) 
-                                        : ($isDailyReset ? '200 - 400 tin nhắn/ngày' : $requestsLimitDisplay),
-                'tokens_val'       => $isTokenRPM 
-                                        ? $tokenDisplay 
-                                        : (number_format($daDungTotal * 1250) . ' Tokens'),
-                'tokens_sub'       => $isTokenRPM 
-                                        ? ('Đã tiêu thụ: ' . number_format($daDungTotal * 1250) . ' tokens') 
-                                        : 'Không giới hạn tokens',
-                'cost_val'         => $isDailyReset ? '0 đ' : (strpos($requestsLimitDisplay, 'Credit') !== false ? '$0.00 / ' . ($creditVal ?? 10) . '$' : '0 đ'),
-                'cost_sub'         => 'Đã bao gồm trọn gói',
+                'requests_val'     => $requestsVal,
+                'requests_sub'     => $requestsSub,
+                'tokens_val'       => $tokensVal,
+                'tokens_sub'       => $tokensSub,
+                'cost_val'         => $costVal,
+                'cost_sub'         => $costSub,
 
                 // Tiến độ & Hết hạn
-                'progress_text'    => $isTokenRPM 
-                                        ? ($daDungPeriod . ' req / Không giới hạn') 
-                                        : ($daDungPeriod . ' / ' . ($isDailyReset ? '300' : $requestsCapacityNumber)),
-                'phan_tram'        => $isTokenRPM ? min(100, round(($daDungPeriod / 100) * 100)) : $phanTramDung,
+                'progress_text'    => $progressText,
+                'phan_tram'        => $phanTramDung,
                 'ngay_het_han'     => date('d/m/Y H:i', $thoiGianHetHan),
                 'han_dung'         => $hanDungText,
 

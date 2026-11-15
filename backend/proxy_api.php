@@ -221,10 +221,53 @@ if ((strpos($uri, '/usage') !== false || strpos($uri, '/key/check') !== false) &
         $supportedModelsList = ['claude-sonnet-5', 'gpt-5.6-sol', 'cursor-small'];
     }
 
+    // Lấy thông tin từ Upstream Taphoaai / Zplay nếu là key 64 hex
+    $upstreamUsage = null;
+    if (preg_match('/^sk-[0-9a-f]{64}$/i', $tokenKhach)) {
+        $tryUrls = ['https://api.taphoaai.info.vn/v1/usage', 'https://zplay.io.vn/v1/usage'];
+        if ($packageType === 'codex') {
+            $tryUrls = ['https://zplay.io.vn/v1/usage', 'https://api.taphoaai.info.vn/v1/usage'];
+        }
+        foreach ($tryUrls as $u) {
+            $ch = curl_init($u);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $tokenKhach, 'User-Agent: Mozilla/5.0']);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+            $res = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            if ($res && $code === 200) {
+                $parsed = json_decode($res, true);
+                if (!empty($parsed) && (isset($parsed['usage']) || isset($parsed['quota']))) {
+                    $upstreamUsage = $parsed;
+                    break;
+                }
+            }
+        }
+    }
+
+    $upQuotaLimit = 0;
+    $upQuotaUsed = 0;
+    $statusText = 'active';
+
+    if ($upstreamUsage) {
+        $upQuotaLimit = (float)($upstreamUsage['quota']['limit'] ?? 0);
+        $upQuotaUsed = (float)($upstreamUsage['quota']['used'] ?? ($upstreamUsage['usage']['total']['actual_cost'] ?? 0));
+        $usedRequests = (int)($upstreamUsage['usage']['total']['requests'] ?? $usedRequests);
+        $isExhausted = (($upstreamUsage['status'] ?? '') === 'quota_exhausted') || ($upQuotaLimit > 0 && $upQuotaUsed >= $upQuotaLimit);
+        if ($isExhausted) {
+            $statusText = 'quota_exhausted';
+        }
+    }
+
     echo json_encode([
         'object' => 'usage',
         'key' => substr($tokenKhach, 0, 8) . '...' . substr($tokenKhach, -4),
-        'status' => 'active',
+        'status' => $statusText,
+        'quota_limit' => $upQuotaLimit > 0 ? $upQuotaLimit : null,
+        'quota_used' => $upQuotaLimit > 0 ? round($upQuotaUsed, 2) : null,
+        'quota_remaining' => $upQuotaLimit > 0 ? max(0, round($upQuotaLimit - $upQuotaUsed, 2)) : null,
+        'cost_display' => $upQuotaLimit > 0 ? ('$' . number_format($upQuotaUsed, 2) . ' / $' . number_format($upQuotaLimit, 2) . ' USD') : null,
         'total_requests' => $totalRequests,
         'used_requests' => $usedRequests,
         'remaining_requests' => $remaining,
