@@ -297,7 +297,12 @@ class NhaCungCapApi {
                         $formattedAccounts[] = json_encode($item, JSON_UNESCAPED_UNICODE);
                     }
                 } else {
-                    $formattedAccounts[] = (string)$item;
+                    $strItem = trim((string)$item);
+                    if (preg_match('/(sk-ant-api03-[a-zA-Z0-9_\-]+|sk-[0-9a-fA-F]{64}|sk-[a-zA-Z0-9_\-]{20,}|gzsk_[a-zA-Z0-9_\-]+)/', $strItem, $mKClean)) {
+                        $formattedAccounts[] = $mKClean[1];
+                    } else {
+                        $formattedAccounts[] = $strItem;
+                    }
                 }
             }
         }

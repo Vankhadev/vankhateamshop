@@ -61,8 +61,8 @@ if (isset($redirectsLegacy[$uri])) {
     exit;
 }
 
-// 1.5. CỔNG KẾT NỐI API GATEWAY CHUẨN OPENAI (/v1/chat/completions, /v1/models, /v1/usage, /v1/key/check)
-if (str_starts_with($uri, '/v1')) {
+// 1.5. CỔNG KẾT NỐI API GATEWAY CHUẨN OPENAI (/v1/chat/completions, /v1/models, /v1/usage, /v1/key/check, /chat/completions...)
+if (str_starts_with($uri, '/v1') || str_starts_with($uri, '/chat') || str_starts_with($uri, '/messages') || str_starts_with($uri, '/models') || str_starts_with($uri, '/completions')) {
     require __DIR__ . '/backend/proxy_api.php';
     exit;
 }
