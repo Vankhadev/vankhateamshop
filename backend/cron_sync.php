@@ -7,6 +7,8 @@
 // Ghi chú code 100% bằng Tiếng Việt dễ hiểu
 // ========================================================
 
+require_once __DIR__ . '/config.php';
+
 // Thiết lập chạy qua CLI hoặc Web có kèm secret token
 $secretKey = layGiaTriEnv('CRON_SECRET', 'VK_CRON_SECRET_2026');
 if (!defined('IN_CRON_MASTER') && php_sapi_name() !== 'cli') {
@@ -21,8 +23,6 @@ if (!defined('IN_CRON_MASTER') && php_sapi_name() !== 'cli') {
         exit;
     }
 }
-
-require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/supplier_api.php';
@@ -52,6 +52,107 @@ function tinhGiaBanTuGiaVonCron(float $cost): float {
     if ($cost <= 60000) return ceil(($cost * 1.25) / 1000) * 1000;
     if ($cost <= 150000) return ceil(($cost * 1.20) / 1000) * 1000;
     return ceil(($cost * 1.15) / 1000) * 1000;
+}
+
+/**
+ * Tự động tải ảnh từ đối tác về lưu tại thư mục assets/images/products/
+ * Giúp tải trang siêu nhanh, không bị lỗi CORS, không phụ thuộc máy chủ đối tác
+ */
+function luuAnhSanPhamTuDoiTac(string $url, string $sku): ?string {
+    if (empty($url) || strpos($url, 'http') !== 0) {
+        return null;
+    }
+
+    $dir = __DIR__ . '/../assets/images/products';
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+
+    $skuClean = preg_replace('/[^a-zA-Z0-9_-]/', '', strtolower($sku));
+    $ext = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION);
+    if (!in_array(strtolower($ext), ['png', 'jpg', 'jpeg', 'webp', 'gif'])) {
+        $ext = 'png';
+    }
+
+    $localFile = $dir . '/product_' . $skuClean . '.' . $ext;
+    $webPath = '/assets/images/products/product_' . $skuClean . '.' . $ext;
+
+    // Tải về nếu file chưa có hoặc đã quá 3 ngày để tự động cập nhật nếu đối tác đổi ảnh
+    if (!file_exists($localFile) || (time() - filemtime($localFile) > 86400 * 3)) {
+        $ctx = stream_context_create([
+            'http' => [
+                'timeout' => 5,
+                'header'  => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n"
+            ]
+        ]);
+        $data = @file_get_contents($url, false, $ctx);
+        if ($data && strlen($data) > 1000) {
+            @file_put_contents($localFile, $data);
+            return $webPath;
+        }
+    }
+
+    return file_exists($localFile) ? $webPath : $url;
+}
+
+/**
+ * Tự động quét và lấy bản đồ ảnh sản phẩm từ website đối tác (hỗ trợ khi API đối tác chưa trả trường image)
+ */
+function layBanDoAnhDoiTac(string $partnerApiUrl): array {
+    static $cacheAnhDoiTac = [];
+
+    $parsed = parse_url($partnerApiUrl);
+    $baseUrl = ($parsed['scheme'] ?? 'https') . '://' . ($parsed['host'] ?? 'genzshop.vn');
+
+    if (isset($cacheAnhDoiTac[$baseUrl])) {
+        return $cacheAnhDoiTac[$baseUrl];
+    }
+
+    $map = [];
+
+    try {
+        $ctx = stream_context_create([
+            'http' => [
+                'timeout' => 4,
+                'header'  => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n"
+            ]
+        ]);
+
+        // 1. Quét trang chủ đối tác để lấy các ảnh featured chính thức
+        $htmlHome = @file_get_contents($baseUrl . '/', false, $ctx);
+        if ($htmlHome) {
+            if (preg_match_all('#<img[^>]+src="([^"]*assets/images/(?:products|featured)/[^"]+)"[^>]*>[\s\S]*?<h[1-6][^>]*>([^<]+)</h[1-6]>#i', $htmlHome, $matches, PREG_SET_ORDER)) {
+                foreach ($matches as $m) {
+                    $imgUrl = $m[1];
+                    if (strpos($imgUrl, 'http') !== 0) $imgUrl = $baseUrl . '/' . ltrim($imgUrl, '/');
+                    $map[mb_strtolower(trim($m[2]))] = $imgUrl;
+                }
+            }
+        }
+
+        // 2. Quét các danh mục AI chính của đối tác để lấy ảnh từng gói
+        $cats = ['grok', 'cursor', 'claude', 'codex', 'deepseek', 'gemini', 'kimi', 'zhipu', 'muse'];
+        foreach ($cats as $cat) {
+            $catUrl = $baseUrl . '/vi/san-pham/' . $cat;
+            $catHtml = @file_get_contents($catUrl, false, $ctx);
+            if ($catHtml) {
+                if (preg_match_all('#<img[^>]+src="([^"]*assets/images/products/[^"]+)"[^>]*>[\s\S]*?(?:<h[1-6][^>]*>([^<]+)</h[1-6]>|<p[^>]*>([^<]+)</p>)#i', $catHtml, $cMatches, PREG_SET_ORDER)) {
+                    foreach ($cMatches as $cm) {
+                        $imgUrl = $cm[1];
+                        if (strpos($imgUrl, 'http') !== 0) $imgUrl = $baseUrl . '/' . ltrim($imgUrl, '/');
+                        $name = mb_strtolower(trim($cm[2] ?? ($cm[3] ?? '')));
+                        if (!empty($name)) $map[$name] = $imgUrl;
+                        $map[$cat] = $imgUrl;
+                    }
+                }
+            }
+        }
+    } catch (Exception $e) {
+        // Dự phòng an toàn nếu quét gặp lỗi
+    }
+
+    $cacheAnhDoiTac[$baseUrl] = $map;
+    return $map;
 }
 
 function xacDinhSupportedModelsCron($name, $sku, $catName = '', $desc = '') {
@@ -218,6 +319,10 @@ try {
             continue;
         }
 
+        $partnerImagesMap = layBanDoAnhDoiTac($sup['api_url']);
+        $parsedUrl = parse_url($sup['api_url']);
+        $partnerBaseUrl = ($parsedUrl['scheme'] ?? 'https') . '://' . ($parsedUrl['host'] ?? 'genzshop.vn');
+
         foreach ($nccItems as $it) {
             $sku = trim($it['product_id'] ?? '');
             if (empty($sku)) continue;
@@ -288,10 +393,29 @@ try {
                     $pdo->prepare("UPDATE `products` SET `category_id` = ? WHERE `id` = ?")->execute([$targetCatId, $existingPid]);
                 }
 
-                // Cập nhật ảnh đại diện nếu sản phẩm chưa có ảnh
-                $prodImg = $it['image'] ?? null;
+                // Cập nhật ảnh đại diện: Tự động lấy từ đối tác (API hoặc Web đối tác) và lưu trữ cục bộ
+                $prodImg = trim($it['image'] ?? ($it['thumbnail'] ?? ($it['avatar'] ?? '')));
+                if (empty($prodImg) && !empty($partnerImagesMap)) {
+                    $cleanName = mb_strtolower(trim($name));
+                    $type = strtolower($it['type'] ?? '');
+                    if (!empty($partnerImagesMap[$cleanName])) {
+                        $prodImg = $partnerImagesMap[$cleanName];
+                    } elseif (!empty($partnerImagesMap[$type])) {
+                        $prodImg = $partnerImagesMap[$type];
+                    }
+                }
+
                 if (!empty($prodImg)) {
-                    $pdo->prepare("UPDATE `products` SET `image` = ? WHERE `id` = ? AND (`image` IS NULL OR `image` = '')")->execute([$prodImg, $existingPid]);
+                    if (strpos($prodImg, 'http') !== 0 && strpos($prodImg, '/') === 0) {
+                        $prodImg = $partnerBaseUrl . $prodImg;
+                    }
+                    $savedImg = luuAnhSanPhamTuDoiTac($prodImg, $sku);
+                    $finalImg = $savedImg ?: $prodImg;
+
+                    $curImg = $curProd['image'] ?? '';
+                    if (empty($curImg) || strpos($curImg, 'placehold') !== false || ($curImg !== $finalImg && strpos($curImg, 'featured') === false)) {
+                        $pdo->prepare("UPDATE `products` SET `image` = ? WHERE `id` = ?")->execute([$finalImg, $existingPid]);
+                    }
                 }
 
                 // Tự động đồng bộ supported_models nếu sản phẩm chưa có model
@@ -366,7 +490,28 @@ try {
 
                 // Thêm vào bảng products (tự ẩn nếu tồn kho = 0)
                 $isActiveNew = ($stock > 0) ? 1 : 0;
-                $prodImg = $it['image'] ?? null;
+                $prodImg = trim($it['image'] ?? ($it['thumbnail'] ?? ($it['avatar'] ?? '')));
+                if (empty($prodImg) && !empty($partnerImagesMap)) {
+                    $cleanName = mb_strtolower(trim($name));
+                    $type = strtolower($it['type'] ?? '');
+                    if (!empty($partnerImagesMap[$cleanName])) {
+                        $prodImg = $partnerImagesMap[$cleanName];
+                    } elseif (!empty($partnerImagesMap[$type])) {
+                        $prodImg = $partnerImagesMap[$type];
+                    }
+                }
+                if (!empty($prodImg)) {
+                    if (strpos($prodImg, 'http') !== 0 && strpos($prodImg, '/') === 0) {
+                        $prodImg = $partnerBaseUrl . $prodImg;
+                    }
+                    $savedImg = luuAnhSanPhamTuDoiTac($prodImg, $sku);
+                    if (!empty($savedImg)) {
+                        $prodImg = $savedImg;
+                    }
+                }
+                if (empty($prodImg)) {
+                    $prodImg = '/assets/images/featured/featured_' . $catSlug . '.png';
+                }
                 $syncModels = xacDinhSupportedModelsCron($name, $ourSku, $catInfo['ten'] ?? '', $it['description'] ?? '');
                 try {
                     $stmtInsP = $pdo->prepare("
