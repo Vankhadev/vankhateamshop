@@ -393,28 +393,36 @@ try {
                     $pdo->prepare("UPDATE `products` SET `category_id` = ? WHERE `id` = ?")->execute([$targetCatId, $existingPid]);
                 }
 
-                // Cập nhật ảnh đại diện: Tự động lấy từ đối tác (API hoặc Web đối tác) và lưu trữ cục bộ
-                $prodImg = trim($it['image'] ?? ($it['thumbnail'] ?? ($it['avatar'] ?? '')));
-                if (empty($prodImg) && !empty($partnerImagesMap)) {
-                    $cleanName = mb_strtolower(trim($name));
-                    $type = strtolower($it['type'] ?? '');
-                    if (!empty($partnerImagesMap[$cleanName])) {
-                        $prodImg = $partnerImagesMap[$cleanName];
-                    } elseif (!empty($partnerImagesMap[$type])) {
-                        $prodImg = $partnerImagesMap[$type];
-                    }
-                }
+                // Cập nhật ảnh đại diện: Chỉ ưu tiên nhà cung cấp chính (GenzShop) hoặc khi sản phẩm hoàn toàn chưa có ảnh
+                $isPrimarySupplier = ($sup['code'] === 'supplier_primary' || (int)$sup['id'] === 1);
+                $curImg = $curProd['image'] ?? '';
 
-                if (!empty($prodImg)) {
-                    if (strpos($prodImg, 'http') !== 0 && strpos($prodImg, '/') === 0) {
-                        $prodImg = $partnerBaseUrl . $prodImg;
+                if ($isPrimarySupplier || empty($curImg) || strpos($curImg, 'placehold') !== false) {
+                    $prodImg = trim($it['image'] ?? ($it['thumbnail'] ?? ($it['avatar'] ?? '')));
+                    if (empty($prodImg) && !empty($partnerImagesMap)) {
+                        $cleanName = mb_strtolower(trim($name));
+                        $type = strtolower($it['type'] ?? '');
+                        if (!empty($partnerImagesMap[$cleanName])) {
+                            $prodImg = $partnerImagesMap[$cleanName];
+                        } elseif (!empty($partnerImagesMap[$type])) {
+                            $prodImg = $partnerImagesMap[$type];
+                        }
                     }
-                    $savedImg = luuAnhSanPhamTuDoiTac($prodImg, $sku);
-                    $finalImg = $savedImg ?: $prodImg;
 
-                    $curImg = $curProd['image'] ?? '';
-                    if (empty($curImg) || strpos($curImg, 'placehold') !== false || ($curImg !== $finalImg && strpos($curImg, 'featured') === false)) {
-                        $pdo->prepare("UPDATE `products` SET `image` = ? WHERE `id` = ?")->execute([$finalImg, $existingPid]);
+                    if (!empty($prodImg)) {
+                        // Không để đối tác phụ ghi đè ảnh webp chất lượng thấp lên sản phẩm chính
+                        $isLowResWebp = (str_ends_with(strtolower($prodImg), '.webp') && !$isPrimarySupplier);
+                        if (!$isLowResWebp) {
+                            if (strpos($prodImg, 'http') !== 0 && strpos($prodImg, '/') === 0) {
+                                $prodImg = $partnerBaseUrl . $prodImg;
+                            }
+                            $savedImg = luuAnhSanPhamTuDoiTac($prodImg, $sku);
+                            $finalImg = $savedImg ?: $prodImg;
+
+                            if (empty($curImg) || strpos($curImg, 'placehold') !== false || ($isPrimarySupplier && $curImg !== $finalImg && !str_contains($curImg, 'featured_cursor'))) {
+                                $pdo->prepare("UPDATE `products` SET `image` = ? WHERE `id` = ?")->execute([$finalImg, $existingPid]);
+                            }
+                        }
                     }
                 }
 
