@@ -49,7 +49,7 @@ if (empty($authHeader) && function_exists('apache_request_headers')) {
     $headers = apache_request_headers();
     $authHeader = $headers['Authorization'] ?? ($headers['authorization'] ?? '');
 }
-if (preg_match('/Bearer\s+(\S+)/i', $authHeader, $matches)) {
+if (preg_match('/Bearer\s+(.+)$/i', $authHeader, $matches)) {
     $tokenKhach = trim($matches[1]);
 }
 if (empty($tokenKhach)) {
@@ -64,11 +64,9 @@ if (empty($tokenKhach)) {
     $tokenKhach = trim($_GET['key'] ?? ($_POST['key'] ?? ''));
 }
 
-// Tự động làm sạch nếu khách dán nhầm toàn bộ chuỗi JSON trả về từ đối tác (GenZShop)
-if (strpos($tokenKhach, 'productItemId') !== false || strpos($tokenKhach, 'password') !== false) {
-    if (preg_match('/(sk-ant-api03-[a-zA-Z0-9_\-]+|sk-[0-9a-f]{64}|sk-[a-zA-Z0-9_\-]+)/', $tokenKhach, $mClean)) {
-        $tokenKhach = $mClean[1];
-    }
+// Tự động làm sạch và trích xuất API Key nếu khách dán nhầm chuỗi JSON hoặc định dạng khác
+if (preg_match('/(sk-ant-api03-[a-zA-Z0-9_\-]+|sk-[0-9a-f]{64}|sk-[a-zA-Z0-9_\-]+)/', $tokenKhach, $mClean)) {
+    $tokenKhach = $mClean[1];
 }
 
 // 1. ENDPOINT LẤY DANH SÁCH MODEL (/v1/models hoặc /v1/chat/completions/models)
