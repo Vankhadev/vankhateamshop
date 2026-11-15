@@ -411,18 +411,8 @@ $seoKeywords = htmlspecialchars($product['name']) . ", mua " . htmlspecialchars(
                         </div>
 
                         <?php if ($coGiamDaiLy): ?>
-                            <div class="text-sm text-gray-400 line-through font-mono">
-                                <?= number_format($giaGoc, 0, ',', '.') ?> VNĐ
-                            </div>
                             <span class="ml-auto inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-purple-900/40 text-purple-300 border border-purple-700/50">
                                 <i class="fas fa-handshake"></i> Chiết Khấu Đại Lý -<?= $chietKhauPt ?>%
-                            </span>
-                        <?php elseif (!empty($product['original_price']) && $product['original_price'] > $giaHienThi): ?>
-                            <div class="text-sm text-gray-400 line-through font-mono">
-                                <?= number_format($product['original_price'], 0, ',', '.') ?> VNĐ
-                            </div>
-                            <span class="ml-auto inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-900/40 text-blue-300 border border-blue-700/50">
-                                <i class="fas fa-tag"></i> -<?= $ptGiam ?>%
                             </span>
                         <?php endif; ?>
                     </div>

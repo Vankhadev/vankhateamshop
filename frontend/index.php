@@ -833,12 +833,9 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                             <div class="flex items-baseline gap-2 flex-wrap">
                                 <span class="text-2xl font-black text-white"><?= number_format($giaHienThi, 0, ',', '.') ?>đ</span>
                                 <?php if ($coGiamDaiLy): ?>
-                                    <span class="text-xs text-gray-400 line-through"><?= number_format($giaGoc, 0, ',', '.') ?>đ</span>
                                     <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
                                         <i class="fas fa-handshake text-[9px] mr-0.5"></i> Đại lý -<?= $chietKhauPt ?>%
                                     </span>
-                                <?php elseif (!empty($p['original_price']) && $p['original_price'] > $giaHienThi): ?>
-                                    <span class="text-xs text-gray-400 line-through"><?= number_format($p['original_price'], 0, ',', '.') ?>đ</span>
                                 <?php endif; ?>
                             </div>
                             <span class="text-[11px] text-gray-400">Thời hạn sử dụng: <?= $p['duration_days'] ?> ngày</span>

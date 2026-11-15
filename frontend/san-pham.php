@@ -289,9 +289,6 @@ $siteName = layCaiDatHeThong('site_name', SHOP_NAME);
                                         Đại lý -<span x-text="sp.discount_percent"></span>%
                                     </span>
                                 </template>
-                                <template x-if="sp.is_reseller_price && sp.original_price > sp.price">
-                                    <span class="text-xs text-gray-500 line-through font-mono" x-text="dinhDangTien(sp.original_price)"></span>
-                                </template>
                             </div>
                             <span class="text-[10px] text-green-400 font-semibold bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/30">
                                 Sẵn sàng giao
