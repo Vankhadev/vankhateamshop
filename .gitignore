@@ -9,6 +9,7 @@
 .env.local
 .env.*.local
 *.env
+*.sql
 
 # 2. Tệp nhật ký hệ thống & báo cáo lỗi
 *.log

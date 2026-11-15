@@ -22,6 +22,7 @@ $loaiThongBao = '';
 
 // Xử lý lưu cấu hình
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['luu_cai_dat'])) {
+    batBuocCsrf();
     $caiDatMoi = [
         // 1. Thương hiệu & Liên hệ
         'site_name'             => trim($_POST['site_name'] ?? SHOP_NAME),
@@ -46,9 +47,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['luu_cai_dat'])) {
         'captcha_site_key'      => trim($_POST['captcha_site_key'] ?? ''),
         'captcha_secret_key'    => trim($_POST['captcha_secret_key'] ?? ''),
 
-        // 5. Telegram Bot
-        'telegram_bot_token'    => trim($_POST['telegram_bot_token'] ?? ''),
-        'telegram_chat_id'      => trim($_POST['telegram_chat_id'] ?? '')
+        // 5. Telegram Bot dùng chung, mỗi nhóm nhận một loại thông báo riêng
+        'telegram_bot_token'             => trim($_POST['telegram_bot_token'] ?? ''),
+        'telegram_chat_id'               => trim($_POST['telegram_chat_id'] ?? ''),
+        'telegram_chat_order_id'         => trim($_POST['telegram_chat_order_id'] ?? ''),
+        'telegram_chat_product_new_id'   => trim($_POST['telegram_chat_product_new_id'] ?? ''),
+        'telegram_chat_product_out_id'   => trim($_POST['telegram_chat_product_out_id'] ?? ''),
+        'telegram_chat_product_price_id' => trim($_POST['telegram_chat_product_price_id'] ?? ''),
+        'telegram_chat_catalog_id'       => trim($_POST['telegram_chat_catalog_id'] ?? ''),
+        'telegram_chat_finance_id'       => trim($_POST['telegram_chat_finance_id'] ?? ''),
+        'telegram_chat_support_id'       => trim($_POST['telegram_chat_support_id'] ?? '')
     ];
 
     try {
@@ -147,6 +155,7 @@ try {
 
                 <form method="POST" action="" class="space-y-6">
                     <input type="hidden" name="luu_cai_dat" value="1">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(taoCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
 
                     <!-- KHỐI 1: THÔNG TIN SHOP -->
                     <div class="bg-gray-900 border border-gray-800 rounded-3xl p-6 shadow-xl space-y-4">
