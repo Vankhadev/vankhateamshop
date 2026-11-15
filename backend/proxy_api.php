@@ -64,6 +64,13 @@ if (empty($tokenKhach)) {
     $tokenKhach = trim($_GET['key'] ?? ($_POST['key'] ?? ''));
 }
 
+// Tự động làm sạch nếu khách dán nhầm toàn bộ chuỗi JSON trả về từ đối tác (GenZShop)
+if (strpos($tokenKhach, 'productItemId') !== false || strpos($tokenKhach, 'password') !== false) {
+    if (preg_match('/(sk-ant-api03-[a-zA-Z0-9_\-]+|sk-[0-9a-f]{64}|sk-[a-zA-Z0-9_\-]+)/', $tokenKhach, $mClean)) {
+        $tokenKhach = $mClean[1];
+    }
+}
+
 // 1. ENDPOINT LẤY DANH SÁCH MODEL (/v1/models hoặc /v1/chat/completions/models)
 if (strpos($uri, '/models') !== false && $phuongThuc === 'GET') {
     header('Content-Type: application/json; charset=utf-8');
@@ -86,6 +93,21 @@ if (strpos($uri, '/models') !== false && $phuongThuc === 'GET') {
         http_response_code(401);
         echo json_encode(['error' => ['message' => 'API Key không hợp lệ hoặc đã hết hạn.', 'code' => 'invalid_api_key']], JSON_UNESCAPED_UNICODE);
         exit;
+    }
+
+    if (str_starts_with($tokenKhach, 'sk-ant-')) {
+        // Lấy danh sách model từ Gwai Cloud (GenZShop)
+        $ch = curl_init('https://1gw.gwai.cloud/v1/models');
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $tokenKhach]);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+        $res = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($res && $code === 200) {
+            echo $res;
+            exit;
+        }
     }
 
     if (preg_match('/^sk-[0-9a-f]{64}$/i', $tokenKhach)) {
@@ -223,6 +245,21 @@ if ((strpos($uri, '/usage') !== false || strpos($uri, '/key/check') !== false) &
 
     // Lấy thông tin từ Upstream Taphoaai / Zplay nếu là key 64 hex
     $upstreamUsage = null;
+    if (str_starts_with($tokenKhach, 'sk-ant-')) {
+        // Lấy danh sách model từ Gwai Cloud (GenZShop)
+        $ch = curl_init('https://1gw.gwai.cloud/v1/models');
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $tokenKhach]);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+        $res = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($res && $code === 200) {
+            echo $res;
+            exit;
+        }
+    }
+
     if (preg_match('/^sk-[0-9a-f]{64}$/i', $tokenKhach)) {
         $tryUrls = ['https://api.taphoaai.info.vn/v1/usage', 'https://zplay.io.vn/v1/usage'];
         if ($packageType === 'codex') {
@@ -433,7 +470,12 @@ $matchedSup = $stmtFindSupplier->fetch();
 
 $prodNameLower = mb_strtolower($matchedSup['product_name'] ?? '', 'UTF-8');
 
-if ($isAnthropicMessages) {
+$isGwaiGateway = str_starts_with($tokenKhach, 'sk-ant-');
+
+if ($isGwaiGateway) {
+    // Key đối tác GenZShop / Gwai Cloud (Native Anthropic)
+    $targetUrl = 'https://1gw.gwai.cloud/v1/messages';
+} elseif ($isAnthropicMessages) {
     // Anthropic Native Protocol (/v1/messages)
     $targetUrl = 'https://api.taphoaai.info.vn/v1/messages';
     $isClaudeGateway = true;
@@ -518,6 +560,217 @@ if ($isClaudeGateway) {
     }
 }
 
+// NẾU LÀ KEY CỦA GWAI CLOUD (GENZSHOP) NHƯNG KHÁCH GỌI BẰNG CHUẨN OPENAI (/v1/chat/completions)
+// Gwai Cloud chặn /chat/completions và chỉ nhận /messages, gateway TiemAI sẽ tự động chuyển đổi 2 chiều
+if ($isGwaiGateway && !$isAnthropicMessages) {
+    $systemPrompt = '';
+    $anthropicMessages = [];
+    foreach ($bodyJson['messages'] ?? [] as $m) {
+        $role = $m['role'] ?? 'user';
+        $content = $m['content'] ?? '';
+        if ($role === 'system') {
+            $systemPrompt .= ($systemPrompt ? "\n\n" : "") . (is_string($content) ? $content : json_encode($content, JSON_UNESCAPED_UNICODE));
+        } else {
+            $anthropicMessages[] = [
+                'role' => ($role === 'assistant' ? 'assistant' : 'user'),
+                'content' => $content
+            ];
+        }
+    }
+
+    if (empty($anthropicMessages)) {
+        $anthropicMessages[] = ['role' => 'user', 'content' => 'Hello'];
+    } elseif ($anthropicMessages[0]['role'] === 'assistant') {
+        array_unshift($anthropicMessages, ['role' => 'user', 'content' => 'Continue']);
+    }
+
+    $reqModel = $bodyJson['model'] ?? 'claude-sonnet-5';
+    if (str_contains(strtolower($reqModel), 'opus')) {
+        $gwaiModel = 'claude-opus-5-5';
+    } elseif (str_contains(strtolower($reqModel), 'haiku') || str_contains(strtolower($reqModel), 'fable')) {
+        $gwaiModel = 'claude-fable-5';
+    } else {
+        $gwaiModel = 'claude-sonnet-5';
+    }
+
+    $isStream = !empty($bodyJson['stream']);
+    $anthropicPayload = [
+        'model' => $gwaiModel,
+        'messages' => $anthropicMessages,
+        'max_tokens' => (int)($bodyJson['max_tokens'] ?? 4096),
+        'stream' => $isStream
+    ];
+    if (!empty($systemPrompt)) {
+        $anthropicPayload['system'] = $systemPrompt;
+    }
+
+    $gwaiHeaders = [
+        'Content-Type: application/json',
+        'x-api-key: ' . $tokenKhach,
+        'anthropic-version: 2023-06-01',
+        'Accept: ' . ($isStream ? 'text/event-stream' : 'application/json'),
+        'User-Agent: Mozilla/5.0'
+    ];
+
+    if ($isStream) {
+        header('Content-Type: text/event-stream; charset=utf-8');
+        header('Cache-Control: no-cache, no-transform');
+        header('Connection: keep-alive');
+        header('X-Accel-Buffering: no');
+
+        $streamId = 'chatcmpl-' . bin2hex(random_bytes(12));
+        $chG = curl_init('https://1gw.gwai.cloud/v1/messages');
+        curl_setopt($chG, CURLOPT_POST, true);
+        curl_setopt($chG, CURLOPT_POSTFIELDS, json_encode($anthropicPayload, JSON_UNESCAPED_UNICODE));
+        curl_setopt($chG, CURLOPT_HTTPHEADER, $gwaiHeaders);
+        curl_setopt($chG, CURLOPT_TIMEOUT, 300);
+
+        $lineBuffer = '';
+        curl_setopt($chG, CURLOPT_WRITEFUNCTION, function($ch, $chunk) use (&$lineBuffer, $streamId, $gwaiModel) {
+            $lineBuffer .= $chunk;
+            $lines = explode("\n", $lineBuffer);
+            $lineBuffer = array_pop($lines);
+
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if (empty($line) || str_starts_with($line, 'event:') || str_starts_with($line, ':')) {
+                    continue;
+                }
+                if (str_starts_with($line, 'data:')) {
+                    $jsonStr = trim(substr($line, 5));
+                    if ($jsonStr === '[DONE]') {
+                        echo "data: [DONE]\n\n";
+                        if (ob_get_level() > 0) ob_flush();
+                        flush();
+                        continue;
+                    }
+                    $d = json_decode($jsonStr, true);
+                    if (!$d) continue;
+
+                    $type = $d['type'] ?? '';
+                    if ($type === 'content_block_delta') {
+                        $delta = $d['delta'] ?? [];
+                        if (($delta['type'] ?? '') === 'text_delta') {
+                            $text = $delta['text'] ?? '';
+                            $chunkObj = [
+                                'id' => $streamId,
+                                'object' => 'chat.completion.chunk',
+                                'created' => time(),
+                                'model' => $gwaiModel,
+                                'choices' => [
+                                    [
+                                        'index' => 0,
+                                        'delta' => ['content' => $text],
+                                        'finish_reason' => null
+                                    ]
+                                ]
+                            ];
+                            echo "data: " . json_encode($chunkObj, JSON_UNESCAPED_UNICODE) . "\n\n";
+                            if (ob_get_level() > 0) ob_flush();
+                            flush();
+                        }
+                    } elseif ($type === 'message_stop') {
+                        $chunkObj = [
+                            'id' => $streamId,
+                            'object' => 'chat.completion.chunk',
+                            'created' => time(),
+                            'model' => $gwaiModel,
+                            'choices' => [
+                                [
+                                    'index' => 0,
+                                    'delta' => new stdClass(),
+                                    'finish_reason' => 'stop'
+                                ]
+                            ]
+                        ];
+                        echo "data: " . json_encode($chunkObj, JSON_UNESCAPED_UNICODE) . "\n\n";
+                        echo "data: [DONE]\n\n";
+                        if (ob_get_level() > 0) ob_flush();
+                        flush();
+                    }
+                }
+            }
+            return strlen($chunk);
+        });
+
+        curl_exec($chG);
+        $httpCode = curl_getinfo($chG, CURLINFO_HTTP_CODE);
+        curl_close($chG);
+
+        $doTreMs = round((microtime(true) - $thoiDiemBatDau) * 1000);
+        try {
+            $logStmt = $pdo->prepare("
+                INSERT INTO `api_logs` (`user_id`, `customer_email`, `customer_name`, `api_key_used`, `ip_address`, `is_https`, `endpoint`, `model`, `http_status`, `latency_ms`, `request_body`, `response_summary`, `created_at`)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Streaming SSE response', NOW())
+            ");
+            $logStmt->execute([
+                $userInfo['id'] ?? null, $userInfo['email'] ?? null, $userInfo['name'] ?? null,
+                substr($tokenKhach, 0, 10) . '***', $ipKhach, $isHttps, '/v1/chat/completions', $gwaiModel, $httpCode ?: 200, $doTreMs, mb_substr($bodyRaw, 0, 300)
+            ]);
+        } catch (Exception $e) {}
+        exit;
+    } else {
+        $chG = curl_init('https://1gw.gwai.cloud/v1/messages');
+        curl_setopt($chG, CURLOPT_POST, true);
+        curl_setopt($chG, CURLOPT_POSTFIELDS, json_encode($anthropicPayload, JSON_UNESCAPED_UNICODE));
+        curl_setopt($chG, CURLOPT_HTTPHEADER, $gwaiHeaders);
+        curl_setopt($chG, CURLOPT_TIMEOUT, 120);
+        curl_setopt($chG, CURLOPT_RETURNTRANSFER, true);
+        $resG = curl_exec($chG);
+        $httpCode = curl_getinfo($chG, CURLINFO_HTTP_CODE);
+        curl_close($chG);
+
+        $jsonG = json_decode($resG, true);
+        $textOut = '';
+        if (!empty($jsonG['content'])) {
+            foreach ($jsonG['content'] as $b) {
+                if (($b['type'] ?? '') === 'text') {
+                    $textOut .= $b['text'] ?? '';
+                }
+            }
+        }
+
+        $openAiRes = [
+            'id' => 'chatcmpl-' . ($jsonG['id'] ?? uniqid()),
+            'object' => 'chat.completion',
+            'created' => time(),
+            'model' => $gwaiModel,
+            'choices' => [
+                [
+                    'index' => 0,
+                    'message' => [
+                        'role' => 'assistant',
+                        'content' => $textOut
+                    ],
+                    'finish_reason' => 'stop'
+                ]
+            ],
+            'usage' => [
+                'prompt_tokens' => $jsonG['usage']['input_tokens'] ?? 0,
+                'completion_tokens' => $jsonG['usage']['output_tokens'] ?? 0,
+                'total_tokens' => ($jsonG['usage']['input_tokens'] ?? 0) + ($jsonG['usage']['output_tokens'] ?? 0)
+            ]
+        ];
+
+        header('Content-Type: application/json; charset=utf-8');
+        http_response_code($httpCode ?: 200);
+        echo json_encode($openAiRes, JSON_UNESCAPED_UNICODE);
+
+        $doTreMs = round((microtime(true) - $thoiDiemBatDau) * 1000);
+        try {
+            $logStmt = $pdo->prepare("
+                INSERT INTO `api_logs` (`user_id`, `customer_email`, `customer_name`, `api_key_used`, `ip_address`, `is_https`, `endpoint`, `model`, `http_status`, `latency_ms`, `request_body`, `response_summary`, `created_at`)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'JSON response', NOW())
+            ");
+            $logStmt->execute([
+                $userInfo['id'] ?? null, $userInfo['email'] ?? null, $userInfo['name'] ?? null,
+                substr($tokenKhach, 0, 10) . '***', $ipKhach, $isHttps, '/v1/chat/completions', $gwaiModel, $httpCode ?: 200, $doTreMs, mb_substr($bodyRaw, 0, 300)
+            ]);
+        } catch (Exception $e) {}
+        exit;
+    }
+}
+
 // Xử lý Chuyển tiếp Request (Streaming SSE & Non-streaming)
 $isStream = !empty($bodyJson['stream']);
 
@@ -526,7 +779,7 @@ $requestHeaders = [
     'Authorization: Bearer ' . $forwardKey,
     'Accept: ' . ($isStream ? 'text/event-stream' : 'application/json')
 ];
-if ($isAnthropicMessages) {
+if ($isAnthropicMessages || $isGwaiGateway) {
     $requestHeaders[] = 'x-api-key: ' . $forwardKey;
     $requestHeaders[] = 'anthropic-version: 2023-06-01';
 }

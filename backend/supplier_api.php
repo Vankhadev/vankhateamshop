@@ -284,10 +284,15 @@ class NhaCungCapApi {
                         $formattedAccounts[] = $item['token'];
                     } elseif (!empty($item['apiKey'])) {
                         $formattedAccounts[] = $item['apiKey'];
+                    } elseif (!empty($item['password']) && empty($item['user'])) {
+                        // Trường hợp GenZShop trả về {productItemId, user: "", password: "sk-ant-..."}
+                        $formattedAccounts[] = $item['password'];
                     } elseif (!empty($item['user']) && !empty($item['password'])) {
                         $accStr = $item['user'] . '|' . $item['password'];
                         if (!empty($item['verifyEmail'])) $accStr .= '|' . $item['verifyEmail'];
                         $formattedAccounts[] = $accStr;
+                    } elseif (!empty($item['password'])) {
+                        $formattedAccounts[] = $item['password'];
                     } else {
                         $formattedAccounts[] = json_encode($item, JSON_UNESCAPED_UNICODE);
                     }
