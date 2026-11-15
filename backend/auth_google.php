@@ -135,6 +135,13 @@ try {
         $updateStmt = $pdo->prepare("UPDATE `users` SET `google_id` = ?, `avatar` = ?, `updated_at` = CURRENT_TIMESTAMP WHERE `id` = ?");
         $updateStmt->execute([$googleId, $avatar, $user['id']]);
 
+        // Nếu tài khoản đã bật xác thực 2FA Authenticator, chuyển hướng tới bước nhập OTP
+        if (!empty($user['two_factor_enabled']) && !empty($user['two_factor_secret'])) {
+            $_SESSION['2fa_pending_user_id'] = $user['id'];
+            header('Location: /login?step=2fa');
+            exit;
+        }
+
         // Lưu thông tin vào phiên làm việc (Session)
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['user_name'] = $user['name'];

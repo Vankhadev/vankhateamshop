@@ -7,6 +7,7 @@
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/supplier_api.php';
+require_once __DIR__ . '/mailer.php';
 
 class BoDieuPhoiDonHang {
     private PDO $db;
@@ -24,10 +25,10 @@ class BoDieuPhoiDonHang {
     public function xuLyDonHang($maHoacIdDonHang, bool $forceRetry = false): array {
         // 1. Tìm đơn hàng trong cơ sở dữ liệu
         if (is_numeric($maHoacIdDonHang)) {
-            $stmt = $this->db->prepare("SELECT * FROM `orders` WHERE `id` = ?");
+            $stmt = $this->db->prepare("SELECT o.*, p.name AS product_name FROM `orders` o LEFT JOIN `products` p ON o.product_id = p.id WHERE o.`id` = ?");
             $stmt->execute([(int)$maHoacIdDonHang]);
         } else {
-            $stmt = $this->db->prepare("SELECT * FROM `orders` WHERE `order_code` = ?");
+            $stmt = $this->db->prepare("SELECT o.*, p.name AS product_name FROM `orders` o LEFT JOIN `products` p ON o.product_id = p.id WHERE o.`order_code` = ?");
             $stmt->execute([(string)$maHoacIdDonHang]);
         }
         $donHang = $stmt->fetch();
@@ -130,6 +131,20 @@ class BoDieuPhoiDonHang {
                         $donHang['id']
                     ]);
 
+                    // Tự động gửi email thông báo hoàn thành đơn & giao Key cho khách hàng
+                    try {
+                        guiEmailDonHang('COMPLETED', [
+                            'order_code'     => $donHang['order_code'],
+                            'customer_email' => $donHang['customer_email'],
+                            'product_name'   => $donHang['product_name'] ?? 'Dịch vụ AI',
+                            'quantity'       => (int)$donHang['quantity'],
+                            'total_amount'   => (float)$donHang['total_amount'],
+                            'delivered_data' => $taiKhoanTraVeJson
+                        ]);
+                    } catch (Throwable $eMail) {
+                        error_log("Lỗi gửi email completed từ đối tác: " . $eMail->getMessage());
+                    }
+
                     return [
                         'success' => true,
                         'thanh_cong' => true,
@@ -169,6 +184,20 @@ class BoDieuPhoiDonHang {
                     `error_log` = NULL
                 WHERE `id` = ?
             ")->execute([$taiKhoanTraVeJson, $donHang['id']]);
+
+            // Tự động gửi email cấp bản quyền phần mềm cho khách hàng
+            try {
+                guiEmailDonHang('COMPLETED', [
+                    'order_code'     => $donHang['order_code'],
+                    'customer_email' => $donHang['customer_email'],
+                    'product_name'   => $tenSp ?: 'Bản Quyền Phần Mềm AI',
+                    'quantity'       => (int)$donHang['quantity'],
+                    'total_amount'   => (float)$donHang['total_amount'],
+                    'delivered_data' => $taiKhoanTraVeJson
+                ]);
+            } catch (Throwable $eMail) {
+                error_log("Lỗi gửi email completed software: " . $eMail->getMessage());
+            }
 
             return [
                 'success' => true,

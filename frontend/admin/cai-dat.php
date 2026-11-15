@@ -62,7 +62,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['luu_cai_dat'])) {
         'telegram_chat_product_price_id' => trim($_POST['telegram_chat_product_price_id'] ?? ''),
         'telegram_chat_catalog_id'       => trim($_POST['telegram_chat_catalog_id'] ?? ''),
         'telegram_chat_finance_id'       => trim($_POST['telegram_chat_finance_id'] ?? ''),
-        'telegram_chat_support_id'       => trim($_POST['telegram_chat_support_id'] ?? '')
+        'telegram_chat_support_id'       => trim($_POST['telegram_chat_support_id'] ?? ''),
+
+        // 6. Cấu hình gửi Email thông báo đơn hàng (SMTP Mailer)
+        'smtp_enabled'                   => isset($_POST['smtp_enabled']) ? '1' : '0',
+        'smtp_host'                      => trim($_POST['smtp_host'] ?? 'smtp.gmail.com'),
+        'smtp_port'                      => trim($_POST['smtp_port'] ?? '587'),
+        'smtp_encryption'                => in_array($_POST['smtp_encryption'] ?? '', ['tls', 'ssl', 'none']) ? $_POST['smtp_encryption'] : 'tls',
+        'smtp_username'                  => trim($_POST['smtp_username'] ?? ''),
+        'smtp_password'                  => trim($_POST['smtp_password'] ?? ''),
+        'smtp_from_email'                => trim($_POST['smtp_from_email'] ?? ''),
+        'smtp_from_name'                 => trim($_POST['smtp_from_name'] ?? SHOP_NAME),
+        'email_order_pending_enable'     => isset($_POST['email_order_pending_enable']) ? '1' : '0',
+        'email_order_success_enable'     => isset($_POST['email_order_success_enable']) ? '1' : '0'
     ];
 
     try {
@@ -367,16 +379,104 @@ try {
                         </div>
                     </div>
 
+                    <!-- KHỐI 6: CẤU HÌNH GỬI EMAIL THÔNG BÁO ĐƠN HÀNG (SMTP MAILER) -->
+                    <div class="bg-gray-900 border border-blue-900/50 rounded-3xl p-6 shadow-xl space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-800 pb-3">
+                            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i class="fas fa-envelope-circle-check text-blue-400"></i> 6. Cấu Hình Gửi Email Đơn Hàng (SMTP Mailer Tự Động)
+                            </h2>
+                            <div class="flex items-center gap-3">
+                                <label class="inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" name="smtp_enabled" value="1" <?= (!isset($rawSettings['smtp_enabled']) || $rawSettings['smtp_enabled'] === '1') ? 'checked' : '' ?> class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    <span class="ml-2 text-xs font-bold text-gray-300">Bật Gửi Mail</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- CÁC TÙY CHỌN BẬT/TẮT THEO LOẠI ĐƠN -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-gray-950 rounded-2xl border border-gray-800">
+                            <label class="flex items-center justify-between text-xs cursor-pointer p-2 rounded-xl bg-gray-900/60 hover:bg-gray-900 border border-gray-800/80 transition">
+                                <span class="text-gray-300 font-semibold flex items-center gap-2">
+                                    <i class="fas fa-hourglass-half text-amber-400"></i> Gửi email khi tạo đơn (Chưa thanh toán)
+                                </span>
+                                <input type="checkbox" name="email_order_pending_enable" value="1" <?= (!isset($rawSettings['email_order_pending_enable']) || $rawSettings['email_order_pending_enable'] === '1') ? 'checked' : '' ?> class="w-4 h-4 rounded text-blue-600 bg-gray-900 border-gray-700 focus:ring-0">
+                            </label>
+
+                            <label class="flex items-center justify-between text-xs cursor-pointer p-2 rounded-xl bg-gray-900/60 hover:bg-gray-900 border border-gray-800/80 transition">
+                                <span class="text-gray-300 font-semibold flex items-center gap-2">
+                                    <i class="fas fa-circle-check text-emerald-400"></i> Gửi email khi hoàn thành đơn (Giao Key)
+                                </span>
+                                <input type="checkbox" name="email_order_success_enable" value="1" <?= (!isset($rawSettings['email_order_success_enable']) || $rawSettings['email_order_success_enable'] === '1') ? 'checked' : '' ?> class="w-4 h-4 rounded text-blue-600 bg-gray-900 border-gray-700 focus:ring-0">
+                            </label>
+                        </div>
+
+                        <!-- THÔNG SỐ KẾT NỐI SMTP -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                            <div class="sm:col-span-2">
+                                <label class="block text-gray-300 font-semibold mb-1">Máy chủ SMTP Host:</label>
+                                <input type="text" name="smtp_host" value="<?= htmlspecialchars($rawSettings['smtp_host'] ?? 'smtp.gmail.com') ?>" placeholder="smtp.gmail.com" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-gray-300 font-semibold mb-1">Cổng kết nối (Port):</label>
+                                <input type="number" name="smtp_port" value="<?= htmlspecialchars($rawSettings['smtp_port'] ?? '587') ?>" placeholder="587 hoặc 465" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-gray-300 font-semibold mb-1">Mã hóa (Encryption):</label>
+                                <select name="smtp_encryption" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500">
+                                    <option value="tls" <?= (($rawSettings['smtp_encryption'] ?? 'tls') === 'tls') ? 'selected' : '' ?>>STARTTLS (Khuyên dùng - Port 587)</option>
+                                    <option value="ssl" <?= (($rawSettings['smtp_encryption'] ?? '') === 'ssl') ? 'selected' : '' ?>>SSL (Port 465)</option>
+                                    <option value="none" <?= (($rawSettings['smtp_encryption'] ?? '') === 'none') ? 'selected' : '' ?>>Không mã hóa (Port 25)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-300 font-semibold mb-1">Tài khoản SMTP (Username / Email):</label>
+                                <input type="text" name="smtp_username" value="<?= htmlspecialchars($rawSettings['smtp_username'] ?? '') ?>" placeholder="your-email@gmail.com" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-gray-300 font-semibold mb-1">Mật khẩu ứng dụng (App Password):</label>
+                                <input type="password" name="smtp_password" value="<?= htmlspecialchars($rawSettings['smtp_password'] ?? '') ?>" placeholder="Mật khẩu ứng dụng 16 ký tự" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-gray-300 font-semibold mb-1">Email người gửi hiển thị (From Email):</label>
+                                <input type="text" name="smtp_from_email" value="<?= htmlspecialchars($rawSettings['smtp_from_email'] ?? '') ?>" placeholder="no-reply@tiemai.io.vn hoặc để trống" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500">
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label class="block text-gray-300 font-semibold mb-1">Tên người gửi hiển thị (From Name):</label>
+                                <input type="text" name="smtp_from_name" value="<?= htmlspecialchars($rawSettings['smtp_from_name'] ?? SHOP_NAME) ?>" placeholder="Tiệm AI - VanKha Team" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+                            </div>
+                        </div>
+
+                        <!-- CÔNG CỤ GỬI THỬ EMAIL TEST -->
+                        <div class="p-3.5 bg-gray-950 rounded-2xl border border-gray-800 space-y-2">
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                                <input type="email" id="test-email-recipient" placeholder="Nhập địa chỉ email của bạn để nhận thử mail test..." class="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+                                <button type="button" onclick="testEmailSmtp()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 shrink-0 shadow-md shadow-blue-600/30">
+                                    <i class="fas fa-paper-plane"></i> Gửi Thử Email Ngay
+                                </button>
+                            </div>
+                            <div id="email-test-result" class="text-[11px] font-semibold text-gray-400"></div>
+                        </div>
+
+                        <!-- HƯỚNG DẪN CẤU HÌNH GMAIL -->
+                        <div class="p-3 bg-blue-950/40 rounded-2xl border border-blue-900/40 text-[11px] text-gray-300 space-y-1">
+                            <p class="font-bold text-blue-300"><i class="fas fa-circle-question mr-1"></i> Hướng dẫn tạo Mật khẩu ứng dụng Gmail (App Password):</p>
+                            <p>1. Vào tài khoản Google &rarr; Bảo mật &rarr; Bật <b>Xác minh 2 bước</b>.</p>
+                            <p>2. Tìm mục <b>Mật khẩu ứng dụng (App Passwords)</b> &rarr; Tạo mật khẩu mới đặt tên "TiemAI Shop".</p>
+                            <p>3. Sao chép chuỗi 16 chữ cái viết liền (không dấu cách) dán vào ô <b>Mật khẩu ứng dụng</b> ở trên.</p>
+                        </div>
+                    </div>
+
                     <button type="submit" class="w-full py-3.5 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition duration-200 shadow-xl shadow-amber-600/30 flex items-center justify-center gap-2">
                         <i class="fas fa-floppy-disk"></i> Lưu Toàn Bộ Cấu Hình Hệ Thống
                     </button>
                 </form>
 
-                <!-- KHỐI 6: THIẾT LẬP CRON JOB TỰ ĐỘNG HÓA (CPANEL & MÁY CHỦ VPS) -->
+                <!-- KHỐI 7: THIẾT LẬP CRON JOB TỰ ĐỘNG HÓA (CPANEL & MÁY CHỦ VPS) -->
                 <div class="bg-gray-900 border border-emerald-900/60 rounded-3xl p-6 shadow-xl space-y-5">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-800 pb-3">
                         <h2 class="text-sm font-bold text-white flex items-center gap-2">
-                            <i class="fas fa-clock-rotate-left text-emerald-400"></i> 6. Thiết Lập Cron Job Tự Động Hóa (cPanel & Máy Chủ VPS)
+                            <i class="fas fa-clock-rotate-left text-emerald-400"></i> 7. Thiết Lập Cron Job Tự Động Hóa (cPanel & Máy Chủ VPS)
                         </h2>
                         <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold self-start sm:self-auto">
                             <i class="fas fa-check-circle mr-1"></i> Tác vụ chạy định kỳ mỗi 1 phút
@@ -474,6 +574,37 @@ try {
         } catch (error) {
             result.textContent = 'Lỗi kết nối máy chủ';
             result.className = 'text-[11px] text-red-400';
+        }
+    }
+
+    async function testEmailSmtp() {
+        const result = document.getElementById('email-test-result');
+        const emailInput = document.getElementById('test-email-recipient').value.trim();
+        if (!emailInput) {
+            alert('Vui lòng nhập địa chỉ email nhận thư thử nghiệm!');
+            return;
+        }
+
+        result.textContent = 'Đang kết nối SMTP và gửi email... vui lòng đợi';
+        result.className = 'text-[11px] text-blue-400';
+
+        const form = new FormData();
+        form.append('action', 'admin_test_email');
+        form.append('email', emailInput);
+        form.append('csrf_token', '<?= htmlspecialchars(taoCsrfToken(), ENT_QUOTES, 'UTF-8') ?>');
+
+        try {
+            const response = await fetch('/backend/api.php?action=admin_test_email', {
+                method: 'POST',
+                body: form,
+                headers: {'Accept': 'application/json'}
+            });
+            const data = await response.json();
+            result.textContent = (data.thanh_cong ? '✔ ' : '✖ ') + (data.thong_bao || 'Đã gửi');
+            result.className = 'text-[11px] ' + (data.thanh_cong ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold');
+        } catch (error) {
+            result.textContent = '✖ Lỗi kết nối đến máy chủ API';
+            result.className = 'text-[11px] text-red-400 font-bold';
         }
     }
     </script>

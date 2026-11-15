@@ -60,6 +60,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     WHERE `id` = ?
                 ");
                 $stmtManual->execute([$deliveredJson, $orderId]);
+
+                // Tự động gửi email thông báo hoàn thành & giao key cho khách
+                try {
+                    $stmtOrderInfo = $pdo->prepare("SELECT o.*, p.name AS product_name FROM `orders` o LEFT JOIN `products` p ON o.product_id = p.id WHERE o.id = ?");
+                    $stmtOrderInfo->execute([$orderId]);
+                    $ordInfo = $stmtOrderInfo->fetch();
+                    if ($ordInfo) {
+                        require_once __DIR__ . '/../../backend/mailer.php';
+                        guiEmailDonHang('COMPLETED', $ordInfo, ['delivered_data' => $deliveredJson]);
+                    }
+                } catch (Throwable $eMail) {
+                    error_log("Lỗi gửi email manual key: " . $eMail->getMessage());
+                }
+
                 $thongBao = "Đã cập nhật key thủ công và hoàn thành đơn hàng #{$orderId}!";
                 $loaiThongBao = "success";
             } catch (Exception $e) {

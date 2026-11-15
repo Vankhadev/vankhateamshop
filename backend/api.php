@@ -102,6 +102,20 @@ switch ($hanhDong) {
 
         ghiNhatKyHeThong('INFO', 'TAO_DON_HANG', "Khách tạo đơn {$maDonHang} cho sản phẩm {$sp['name']} giá " . number_format($soTienThanhToan) . "đ");
 
+        // Gửi email thông báo đơn hàng đang chờ thanh toán (kèm thông tin VietQR)
+        try {
+            require_once __DIR__ . '/mailer.php';
+            guiEmailDonHang('PENDING', [
+                'order_code'     => $maDonHang,
+                'customer_email' => $emailKhach,
+                'product_name'   => $sp['name'],
+                'quantity'       => 1,
+                'total_amount'   => $soTienThanhToan
+            ]);
+        } catch (Throwable $eMail) {
+            error_log("Lỗi gửi email pending order: " . $eMail->getMessage());
+        }
+
         $bankBin = defined('BANK_BIN') ? BANK_BIN : '970416';
         $linkVietQr = "https://api.vietqr.io/image/{$bankBin}-" . BANK_ACCOUNT_NO . "-compact2.jpg?amount=" . $soTienThanhToan . "&addInfo=" . $maDonHang . "&accountName=" . urlencode(BANK_ACCOUNT_NAME);
 
@@ -1734,6 +1748,160 @@ switch ($hanhDong) {
                 ? "Đã gửi tin nhắn thử nghiệm thành công tới nhóm [{$eventType}]!" 
                 : "Chưa gửi được! Vui lòng kiểm tra lại Bot Token và Chat ID của nhóm này (đảm bảo Bot đã được add vào nhóm và có quyền gửi tin)."
         ], JSON_UNESCAPED_UNICODE);
+        break;
+
+    // GỬI THỬ EMAIL THÔNG BÁO CHO QUẢN TRỊ VIÊN
+    case 'admin_test_email':
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Không có quyền truy cập']);
+            exit;
+        }
+        batBuocCsrf();
+        $testEmail = trim($_POST['email'] ?? '');
+        if (empty($testEmail) || !filter_var($testEmail, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Vui lòng nhập địa chỉ email nhận hợp lệ']);
+            exit;
+        }
+        require_once __DIR__ . '/mailer.php';
+        $kqEmail = guiEmailThuNghiem($testEmail);
+        echo json_encode($kqEmail, JSON_UNESCAPED_UNICODE);
+        break;
+
+    // ========================================================
+    // PHÂN HỆ QUẢN LÝ XÁC THỰC HAI LỚP (2FA TOTP AUTHENTICATOR)
+    // ========================================================
+    case '2fa_khoi_tao':
+        if (empty($_SESSION['user_id'])) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Vui lòng đăng nhập trước']);
+            exit;
+        }
+        batBuocCsrf();
+        require_once __DIR__ . '/totp.php';
+        $secret = TotpAuth::taoSecretKey(16);
+        $_SESSION['2fa_setup_secret'] = $secret;
+        $userEmail = $_SESSION['user_email'] ?? 'user@tiemai.io.vn';
+        $uri = TotpAuth::layTotpUri($secret, $userEmail, SHOP_NAME ?: 'TiemAI');
+        $qrUrl = TotpAuth::layLinkQrCode($uri, 220);
+        echo json_encode([
+            'thanh_cong' => true,
+            'secret'     => $secret,
+            'qr_url'     => $qrUrl,
+            'totp_uri'   => $uri
+        ], JSON_UNESCAPED_UNICODE);
+        break;
+
+    case '2fa_kich_hoat':
+        if (empty($_SESSION['user_id'])) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Vui lòng đăng nhập trước']);
+            exit;
+        }
+        batBuocCsrf();
+        require_once __DIR__ . '/totp.php';
+        $setupSecret = $_SESSION['2fa_setup_secret'] ?? '';
+        if (empty($setupSecret)) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Phiên cài đặt 2FA đã hết hạn. Vui lòng bấm làm mới mã QR!']);
+            exit;
+        }
+        $code = trim($_POST['code'] ?? '');
+        if (!TotpAuth::xacThuc($setupSecret, $code)) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Mã xác thực 6 số không đúng hoặc đã hết hạn! Vui lòng kiểm tra lại giờ hệ thống trên điện thoại.']);
+            exit;
+        }
+
+        // Tạo 8 mã dự phòng khẩn cấp
+        $backupCodes = TotpAuth::taoDanhSachMaDuPhong(8);
+        $backupJson = json_encode($backupCodes);
+
+        $stmt = $pdo->prepare("UPDATE `users` SET `two_factor_secret` = ?, `two_factor_enabled` = 1, `two_factor_recovery_codes` = ? WHERE `id` = ?");
+        $stmt->execute([$setupSecret, $backupJson, $_SESSION['user_id']]);
+        unset($_SESSION['2fa_setup_secret']);
+
+        echo json_encode([
+            'thanh_cong'     => true,
+            'thong_bao'      => 'Đã kích hoạt xác thực hai lớp qua Authenticator thành công!',
+            'recovery_codes' => $backupCodes
+        ], JSON_UNESCAPED_UNICODE);
+        break;
+
+    case '2fa_tat':
+        if (empty($_SESSION['user_id'])) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Vui lòng đăng nhập trước']);
+            exit;
+        }
+        batBuocCsrf();
+        require_once __DIR__ . '/totp.php';
+        $code = trim($_POST['code'] ?? '');
+        if (empty($code)) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Vui lòng nhập mã OTP hoặc mật khẩu để xác nhận tắt 2FA']);
+            exit;
+        }
+
+        $stmtU = $pdo->prepare("SELECT two_factor_secret, password FROM `users` WHERE `id` = ?");
+        $stmtU->execute([$_SESSION['user_id']]);
+        $uData = $stmtU->fetch();
+
+        $valid = false;
+        if (!empty($uData['two_factor_secret']) && TotpAuth::xacThuc($uData['two_factor_secret'], $code)) {
+            $valid = true;
+        } elseif (!empty($uData['password']) && password_verify($code, $uData['password'])) {
+            $valid = true;
+        }
+
+        if (!$valid) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Mã OTP hoặc mật khẩu xác nhận không chính xác!']);
+            exit;
+        }
+
+        $pdo->prepare("UPDATE `users` SET `two_factor_secret` = NULL, `two_factor_enabled` = 0, `two_factor_recovery_codes` = NULL WHERE `id` = ?")
+            ->execute([$_SESSION['user_id']]);
+
+        echo json_encode(['thanh_cong' => true, 'thong_bao' => 'Đã tắt xác thực 2FA thành công']);
+        break;
+
+    case '2fa_lay_ma_du_phong':
+        if (empty($_SESSION['user_id'])) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Vui lòng đăng nhập trước']);
+            exit;
+        }
+        batBuocCsrf();
+        require_once __DIR__ . '/totp.php';
+        $code = trim($_POST['code'] ?? '');
+        $stmtU = $pdo->prepare("SELECT two_factor_secret, two_factor_recovery_codes FROM `users` WHERE `id` = ?");
+        $stmtU->execute([$_SESSION['user_id']]);
+        $uData = $stmtU->fetch();
+
+        if (empty($uData['two_factor_secret']) || !TotpAuth::xacThuc($uData['two_factor_secret'], $code)) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Mã OTP 6 số không đúng. Vui lòng nhập đúng mã từ Authenticator!']);
+            exit;
+        }
+
+        $codes = json_decode($uData['two_factor_recovery_codes'] ?? '[]', true) ?: [];
+        echo json_encode(['thanh_cong' => true, 'recovery_codes' => $codes], JSON_UNESCAPED_UNICODE);
+        break;
+
+    case '2fa_tao_lai_ma_du_phong':
+        if (empty($_SESSION['user_id'])) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Vui lòng đăng nhập trước']);
+            exit;
+        }
+        batBuocCsrf();
+        require_once __DIR__ . '/totp.php';
+        $code = trim($_POST['code'] ?? '');
+        $stmtU = $pdo->prepare("SELECT two_factor_secret FROM `users` WHERE `id` = ?");
+        $stmtU->execute([$_SESSION['user_id']]);
+        $sec = $stmtU->fetchColumn();
+
+        if (empty($sec) || !TotpAuth::xacThuc($sec, $code)) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Mã OTP không hợp lệ!']);
+            exit;
+        }
+
+        $newCodes = TotpAuth::taoDanhSachMaDuPhong(8);
+        $pdo->prepare("UPDATE `users` SET `two_factor_recovery_codes` = ? WHERE `id` = ?")
+            ->execute([json_encode($newCodes), $_SESSION['user_id']]);
+
+        echo json_encode(['thanh_cong' => true, 'recovery_codes' => $newCodes, 'thong_bao' => 'Đã tạo lại bộ 8 mã dự phòng mới!'], JSON_UNESCAPED_UNICODE);
         break;
 
     default:
