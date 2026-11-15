@@ -238,7 +238,7 @@ if ((strpos($uri, '/usage') !== false || strpos($uri, '/key/check') !== false) &
             curl_close($ch);
             if ($res && $code === 200) {
                 $parsed = json_decode($res, true);
-                if (!empty($parsed) && (isset($parsed['usage']) || isset($parsed['quota']))) {
+                if (!empty($parsed) && (isset($parsed['usage']) || isset($parsed['quota']) || isset($parsed['request_quota']))) {
                     $upstreamUsage = $parsed;
                     break;
                 }
@@ -249,14 +249,48 @@ if ((strpos($uri, '/usage') !== false || strpos($uri, '/key/check') !== false) &
     $upQuotaLimit = 0;
     $upQuotaUsed = 0;
     $statusText = 'active';
+    $tokenQuotaLimit = null;
+    $tokenQuotaDisplay = null;
 
     if ($upstreamUsage) {
+        $upStatus = strtolower(trim($upstreamUsage['status'] ?? ''));
+        $isQuotaExhausted = ($upStatus === 'quota_exhausted');
+
+        // USD Quota
         $upQuotaLimit = (float)($upstreamUsage['quota']['limit'] ?? 0);
         $upQuotaUsed = (float)($upstreamUsage['quota']['used'] ?? ($upstreamUsage['usage']['total']['actual_cost'] ?? 0));
-        $usedRequests = (int)($upstreamUsage['usage']['total']['requests'] ?? $usedRequests);
-        $isExhausted = (($upstreamUsage['status'] ?? '') === 'quota_exhausted') || ($upQuotaLimit > 0 && $upQuotaUsed >= $upQuotaLimit);
+        $upQuotaRemaining = isset($upstreamUsage['quota']['remaining']) ? (float)$upstreamUsage['quota']['remaining'] : null;
+
+        // Request Quota
+        $upReqLimit = (int)($upstreamUsage['request_quota']['limit'] ?? 0);
+        $upReqUsed = (int)($upstreamUsage['request_quota']['used'] ?? 0);
+        $upReqRemaining = isset($upstreamUsage['request_quota']['remaining']) ? (int)$upstreamUsage['request_quota']['remaining'] : null;
+
+        // Token RPM Quota
+        $upTokenLimit = (int)($upstreamUsage['request_token_quota']['limit'] ?? 0);
+        if ($upTokenLimit > 0) {
+            $tokenQuotaLimit = $upTokenLimit;
+            $tokenQuotaDisplay = round($upTokenLimit / 1000000) . 'M Token RPM';
+        }
+
+        if ($upReqLimit > 0) {
+            $totalRequests = $upReqLimit;
+            $usedRequests = $upReqUsed;
+            $remaining = ($upReqRemaining !== null) ? $upReqRemaining : max(0, $upReqLimit - $upReqUsed);
+        } else {
+            $usedRequests = (int)($upstreamUsage['usage']['total']['requests'] ?? $usedRequests);
+            $remaining = max(0, $totalRequests - $usedRequests);
+        }
+
+        $isExhausted = $isQuotaExhausted 
+            || ($upQuotaLimit > 0 && $upQuotaUsed >= $upQuotaLimit) 
+            || ($upReqLimit > 0 && $usedRequests >= $totalRequests) 
+            || ($upQuotaRemaining !== null && $upQuotaRemaining <= 0)
+            || ($upReqRemaining !== null && $upReqRemaining <= 0);
+
         if ($isExhausted) {
             $statusText = 'quota_exhausted';
+            $remaining = 0;
         }
     }
 
@@ -271,6 +305,8 @@ if ((strpos($uri, '/usage') !== false || strpos($uri, '/key/check') !== false) &
         'total_requests' => $totalRequests,
         'used_requests' => $usedRequests,
         'remaining_requests' => $remaining,
+        'token_quota_limit' => $tokenQuotaLimit,
+        'token_quota_display' => $tokenQuotaDisplay,
         'package' => $pkgName,
         'package_type' => $packageType,
         'recommended_model' => $recommendedModel,

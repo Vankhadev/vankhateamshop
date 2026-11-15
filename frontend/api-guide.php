@@ -108,12 +108,14 @@ thietLapBaoMatHeaders();
             <div x-show="ketQuaTest" x-cloak class="rounded-xl p-5 space-y-4 transition-all text-xs"
                  :class="ketQuaTest?.ok ? 'card-success' : 'card-warning'">
                 <div class="flex items-center justify-between border-b pb-3" :class="ketQuaTest?.ok ? 'border-green-800/40' : 'border-red-800/40'">
-                    <div class="flex items-center gap-2 font-bold text-sm" :class="ketQuaTest?.ok ? 'text-green-400' : 'text-red-400'">
-                        <i class="fas" :class="ketQuaTest?.ok ? 'fa-check-circle text-base' : 'fa-triangle-exclamation text-base'"></i>
-                        <span x-text="ketQuaTest?.ok ? 'API Key hợp lệ & Đang hoạt động bình thường' : 'Không thể xác thực API Key'"></span>
+                    <div class="flex items-center gap-2 font-bold text-sm" :class="ketQuaTest?.ok ? (ketQuaTest?.status === 'quota_exhausted' ? 'text-amber-400' : 'text-green-400') : 'text-red-400'">
+                        <i class="fas" :class="ketQuaTest?.ok ? (ketQuaTest?.status === 'quota_exhausted' ? 'fa-triangle-exclamation text-amber-400' : 'fa-check-circle text-green-400') : 'fa-triangle-exclamation text-red-400'"></i>
+                        <span x-text="ketQuaTest?.ok ? (ketQuaTest?.status === 'quota_exhausted' ? 'API Key đã dùng hết hạn mức' : 'API Key hợp lệ & Đang hoạt động bình thường') : 'Không thể xác thực API Key'"></span>
                     </div>
-                    <span x-show="ketQuaTest?.ok" class="bg-green-500/20 text-green-300 border border-green-500/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                        Active
+                    <span x-show="ketQuaTest?.ok" 
+                          :class="ketQuaTest?.status === 'quota_exhausted' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-green-500/20 text-green-300 border-green-500/30'"
+                          class="border px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                          x-text="ketQuaTest?.status === 'quota_exhausted' ? 'Hết hạn mức' : 'Active'">
                     </span>
                 </div>
 
@@ -123,6 +125,7 @@ thietLapBaoMatHeaders();
                             <div>
                                 <span class="text-gray-500 block text-[11px]">Gói dịch vụ đã mua:</span>
                                 <strong class="text-white text-xs block truncate mt-0.5" x-text="ketQuaTest?.package"></strong>
+                                <span x-show="ketQuaTest?.token_quota_display" class="text-[10px] text-cyan-400 block" x-text="'Băng thông: ' + ketQuaTest?.token_quota_display"></span>
                             </div>
                             <div>
                                 <span class="text-gray-500 block text-[11px]">Model chuẩn nên chọn:</span>
@@ -130,11 +133,11 @@ thietLapBaoMatHeaders();
                             </div>
                             <div>
                                 <span class="text-gray-500 block text-[11px]">Hạn mức đã dùng:</span>
-                                <span class="text-amber-400 font-semibold" x-text="ketQuaTest?.used_requests + ' / ' + ketQuaTest?.total_requests + ' requests'"></span>
+                                <span class="text-amber-400 font-semibold" x-text="ketQuaTest?.cost_display ? (ketQuaTest.cost_display + ' (' + ketQuaTest.used_requests + ' req)') : (ketQuaTest?.used_requests + ' / ' + ketQuaTest?.total_requests + ' requests')"></span>
                             </div>
                             <div>
                                 <span class="text-gray-500 block text-[11px]">Số request còn lại:</span>
-                                <span class="text-green-400 font-bold" x-text="ketQuaTest?.remaining_requests + ' requests'"></span>
+                                <span :class="ketQuaTest?.remaining_requests <= 0 ? 'text-red-400' : 'text-green-400'" class="font-bold" x-text="ketQuaTest?.remaining_requests + ' requests'"></span>
                             </div>
                         </div>
 

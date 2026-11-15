@@ -402,10 +402,10 @@ switch ($hanhDong) {
                 $resetLuc = 'Theo chu kỳ gói (' . $soNgay . ' ngày)';
                 $tuanChuKy = 'Gói ' . $soNgay . ' ngày (' . $shortDisplay . ')';
                 $requestsLimitDisplay = $shortDisplay;
-                $requestsCapacityNumber = 1000000; // Không giới hạn số lượng request
+                $requestsCapacityNumber = 500; // Mặc định gói Token RPM là 500 requests/ngày (đồng bộ tự động từ upstream)
                 $tokenLimit = $tokenDisplay;
                 $costLimit = 'Đã bao gồm trọn gói';
-                $conLaiText = $tokenDisplay . ' (Không giới hạn req)';
+                $conLaiText = '500 requests';
             } elseif (preg_match('/(\d+)\$\s*Credit/iu', $combinedInfo, $mCredit)) {
                 $creditVal = $mCredit[1];
                 $resetLuc = 'Theo chu kỳ gói (' . $soNgay . ' ngày)';
@@ -500,13 +500,13 @@ switch ($hanhDong) {
                     $ch = curl_init($u);
                     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $actualKey, 'User-Agent: Mozilla/5.0']);
                     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                    curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+                    curl_setopt($ch, CURLOPT_TIMEOUT, 4);
                     $res = curl_exec($ch);
                     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
                     curl_close($ch);
                     if ($res && $code === 200) {
                         $parsed = json_decode($res, true);
-                        if (!empty($parsed) && (isset($parsed['usage']) || isset($parsed['quota']))) {
+                        if (!empty($parsed) && (isset($parsed['usage']) || isset($parsed['quota']) || isset($parsed['request_quota']))) {
                             $upstreamUsage = $parsed;
                             break;
                         }
@@ -525,34 +525,127 @@ switch ($hanhDong) {
             $trangThaiText = $hetHan ? 'Đã hết hạn' : 'Đang hoạt động';
 
             if ($upstreamUsage) {
+                $upStatus = strtolower(trim($upstreamUsage['status'] ?? ''));
+                $isQuotaExhausted = ($upStatus === 'quota_exhausted');
+
+                // 1. Quota tiền USD (Gói Claude Code 10$, 300$...)
                 $upQuotaLimit = (float)($upstreamUsage['quota']['limit'] ?? 0);
                 $upQuotaUsed = (float)($upstreamUsage['quota']['used'] ?? ($upstreamUsage['usage']['total']['actual_cost'] ?? ($upstreamUsage['usage']['total']['cost'] ?? 0)));
-                $upTokens = (int)($upstreamUsage['usage']['total']['total_tokens'] ?? 0);
-                $upReqs = (int)($upstreamUsage['usage']['total']['requests'] ?? 0);
-                $isExhausted = (($upstreamUsage['status'] ?? '') === 'quota_exhausted') || ($upQuotaLimit > 0 && $upQuotaUsed >= $upQuotaLimit);
+                $upQuotaRemaining = isset($upstreamUsage['quota']['remaining']) ? (float)$upstreamUsage['quota']['remaining'] : null;
 
+                // 2. Quota lượt requests (Gói Codex Token RPM hoặc Request limit)
+                $upReqLimit = (int)($upstreamUsage['request_quota']['limit'] ?? 0);
+                $upReqUsed = (int)($upstreamUsage['request_quota']['used'] ?? ($upstreamUsage['usage']['total']['requests'] ?? 0));
+                $upReqRemaining = isset($upstreamUsage['request_quota']['remaining']) ? (int)$upstreamUsage['request_quota']['remaining'] : null;
+
+                // 3. Quota Token RPM (Gói Codex 30M / 900M Token RPM)
+                $upTokenLimit = (int)($upstreamUsage['request_token_quota']['limit'] ?? 0);
+                $upTokenUsed = (int)($upstreamUsage['request_token_quota']['used'] ?? 0);
+                $upTokenRemaining = isset($upstreamUsage['request_token_quota']['remaining']) ? (int)$upstreamUsage['request_token_quota']['remaining'] : null;
+
+                // 4. Tổng dữ liệu tiêu thụ thực tế
+                $upTotalTokens = (int)($upstreamUsage['usage']['total']['total_tokens'] ?? 0);
+                $upTotalReqs = (int)($upstreamUsage['usage']['total']['requests'] ?? $upReqUsed);
+                $upActualCost = (float)($upstreamUsage['usage']['total']['actual_cost'] ?? ($upstreamUsage['usage']['total']['cost'] ?? 0));
+
+                // 5. Đồng bộ thời hạn hết hạn chính xác từ đối tác
+                if (!empty($upstreamUsage['expires_at'])) {
+                    $upExpTs = strtotime($upstreamUsage['expires_at']);
+                    if ($upExpTs > 0) {
+                        $thoiGianHetHan = $upExpTs;
+                        $giayConLai = max(0, $thoiGianHetHan - time());
+                        $ngayConLai = ceil($giayConLai / 86400);
+                        if ($giayConLai <= 0) {
+                            $hetHan = true;
+                        } elseif ($giayConLai < 86400) {
+                            $hours = floor($giayConLai / 3600);
+                            $mins = floor(($giayConLai % 3600) / 60);
+                            $hanDungText = ($hours > 0 ? "{$hours} giờ " : "") . "{$mins} phút nữa";
+                        } else {
+                            $hanDungText = $ngayConLai . ' ngày nữa';
+                        }
+                    }
+                }
+
+                // XỬ LÝ THEO LOẠI GÓI THỰC TẾ
                 if ($upQuotaLimit > 0) {
-                    // Gói tính theo hạn mức $ Credit (Ví dụ: Gói 10$ Credit)
+                    // === LOẠI 1: GÓI CREDIT USD (Vd: CLAUDE_CODE 10$, 300$...) ===
+                    $isExhausted = $isQuotaExhausted || ($upQuotaUsed >= $upQuotaLimit) || ($upQuotaRemaining !== null && $upQuotaRemaining <= 0);
                     $phanTramDung = min(100, round(($upQuotaUsed / $upQuotaLimit) * 100));
+                    if ($isExhausted) {
+                        $phanTramDung = 100;
+                        $hetHan = true;
+                    }
+
+                    $requestsVal = number_format($upTotalReqs) . ' requests';
+                    $requestsSub = number_format($upQuotaLimit, 0) . '$ Credit';
+
+                    $tokensVal = number_format($upTotalTokens) . ' Tokens';
+                    $tokensSub = 'Đã tiêu thụ: ' . number_format($upTotalTokens) . ' tokens';
+
                     $costVal = '$' . number_format($upQuotaUsed, 2) . ' / $' . number_format($upQuotaLimit, 2);
                     $costSub = 'Hạn mức ' . number_format($upQuotaLimit, 0) . '$ Credit';
-                    $tokensVal = number_format($upTokens) . ' Tokens';
-                    $tokensSub = 'Đã tiêu thụ: ' . number_format($upTokens) . ' tokens';
-                    $requestsVal = number_format($upReqs) . ' requests';
-                    $requestsSub = number_format($upQuotaLimit, 0) . '$ Credit';
+
                     $progressText = '$' . number_format($upQuotaUsed, 2) . ' / $' . number_format($upQuotaLimit, 2) . ' (' . $phanTramDung . '%)';
-                    
+
                     if ($isExhausted) {
-                        $hetHan = true;
-                        $trangThaiText = 'Đã dùng hết hạn mức ($' . number_format($upQuotaLimit, 0) . ')';
+                        $trangThaiText = 'Đã hết hạn mức ($' . number_format($upQuotaLimit, 0) . ')';
                         $conLaiText = '$0.00 Credit (Đã dùng hết 100%)';
                     } else {
-                        $conLaiText = '$' . number_format(max(0, $upQuotaLimit - $upQuotaUsed), 2) . ' Credit còn lại';
+                        $conLaiVal = ($upQuotaRemaining !== null) ? $upQuotaRemaining : max(0, $upQuotaLimit - $upQuotaUsed);
+                        $conLaiText = '$' . number_format($conLaiVal, 2) . ' Credit còn lại';
+                    }
+                } elseif ($upReqLimit > 0) {
+                    // === LOẠI 2: GÓI THEO SỐ REQUEST / TOKEN RPM (Vd: Codex 30TRIỆU Token RPM - 500 req) ===
+                    $isExhausted = $isQuotaExhausted || ($upReqUsed >= $upReqLimit) || ($upReqRemaining !== null && $upReqRemaining <= 0);
+                    $phanTramDung = min(100, round(($upReqUsed / max(1, $upReqLimit)) * 100));
+                    if ($isExhausted) {
+                        $phanTramDung = 100;
+                        $hetHan = true;
+                    }
+
+                    $requestsCapacityNumber = $upReqLimit;
+                    $daDungPeriod = $upReqUsed;
+                    $conLaiRequest = max(0, $requestsCapacityNumber - $daDungPeriod);
+
+                    $requestsVal = number_format($upReqUsed) . ' / ' . number_format($upReqLimit);
+                    $requestsSub = 'Hạn mức: ' . number_format($upReqLimit) . ' Requests';
+
+                    $tokensVal = number_format($upTotalTokens) . ' Tokens';
+                    if ($upTokenLimit > 0) {
+                        $tokensSub = 'Hạn mức: ' . round($upTokenLimit / 1000000) . 'M Token RPM';
+                        $tokenLimit = number_format($upTokenLimit, 0, ',', '.') . ' Token RPM';
+                    } else {
+                        $tokensSub = 'Đã tiêu thụ: ' . number_format($upTotalTokens) . ' tokens';
+                    }
+
+                    $costVal = '$' . number_format($upActualCost, 2);
+                    $costSub = 'Chi phí thực tế: $' . number_format($upActualCost, 2) . ' USD';
+
+                    $progressText = number_format($upReqUsed) . ' / ' . number_format($upReqLimit) . ' requests (' . $phanTramDung . '%)';
+
+                    if ($isExhausted) {
+                        $trangThaiText = 'Đã hết hạn mức (' . number_format($upReqLimit) . ' req)';
+                        $conLaiText = '0 requests (Đã dùng hết 100%)';
+                    } else {
+                        $conLaiReq = ($upReqRemaining !== null) ? $upReqRemaining : max(0, $upReqLimit - $upReqUsed);
+                        $conLaiText = number_format($conLaiReq) . ' requests còn lại';
                     }
                 } else {
-                    $daDungPeriod = $upReqs ?: $daDungPeriod;
-                    $tokensVal = number_format($upTokens) . ' Tokens';
-                    $tokensSub = 'Đã tiêu thụ: ' . number_format($upTokens) . ' tokens';
+                    // === LOẠI 3: GÓI KHÁC HOẶC KHÔNG CÓ LIMIT CỤ THỂ ===
+                    $daDungPeriod = $upTotalReqs ?: $daDungPeriod;
+                    $tokensVal = number_format($upTotalTokens) . ' Tokens';
+                    $tokensSub = 'Đã tiêu thụ: ' . number_format($upTotalTokens) . ' tokens';
+                    if ($upActualCost > 0) {
+                        $costVal = '$' . number_format($upActualCost, 2);
+                        $costSub = 'Chi phí thực tế: $' . number_format($upActualCost, 2) . ' USD';
+                    }
+                    if ($isQuotaExhausted) {
+                        $hetHan = true;
+                        $trangThaiText = 'Đã dùng hết hạn mức';
+                        $conLaiText = '0 requests (Đã dùng hết 100%)';
+                        $phanTramDung = 100;
+                    }
                 }
 
                 // Cập nhật daily_usage nếu đối tác có dữ liệu chuẩn
@@ -576,8 +669,8 @@ switch ($hanhDong) {
                     $requestsSub = 'Băng thông: ' . $shortDisplay;
                     $tokensVal = $tokenDisplay;
                     $tokensSub = 'Đã tiêu thụ: ' . number_format($daDungTotal * 1250) . ' tokens';
-                    $progressText = $daDungPeriod . ' req / Không giới hạn';
-                    $phanTramDung = min(100, round(($daDungPeriod / 100) * 100));
+                    $progressText = $daDungPeriod . ' req / ' . number_format($requestsCapacityNumber);
+                    $phanTramDung = min(100, round(($daDungPeriod / max(1, $requestsCapacityNumber)) * 100));
                 } elseif ($isDailyReset) {
                     $requestsVal = $daDungPeriod . ' / 200 - 400';
                     $requestsSub = '200 - 400 tin nhắn/ngày';
@@ -618,27 +711,29 @@ switch ($hanhDong) {
                 }
             }
 
-            // Lịch sử 7 ngày (Daily Usage)
-            $dailyUsage = [];
-            for ($i = 0; $i < 7; $i++) {
-                $dayStamp = strtotime("-$i days");
-                $dayDb = date('Y-m-d', $dayStamp);
-                $dayLabel = ($i === 0) ? 'Hôm nay (' . date('d/m', $dayStamp) . ')' : (($i === 1) ? 'Hôm qua (' . date('d/m', $dayStamp) . ')' : date('d/m/Y', $dayStamp));
-                
-                $stmtDay = $pdo->prepare("
-                    SELECT COUNT(*) FROM `api_logs` 
-                    WHERE (`api_key_used` LIKE ? OR `customer_email` = ?) AND DATE(created_at) = ?
-                ");
-                $stmtDay->execute(["%$shortKey%", $order['customer_email'], $dayDb]);
-                $reqDay = (int)$stmtDay->fetchColumn();
+            // Lịch sử 7 ngày (Daily Usage) - Chỉ dùng api_logs nếu đối tác chưa có daily_usage
+            if (empty($dailyUsage)) {
+                $dailyUsage = [];
+                for ($i = 0; $i < 7; $i++) {
+                    $dayStamp = strtotime("-$i days");
+                    $dayDb = date('Y-m-d', $dayStamp);
+                    $dayLabel = ($i === 0) ? 'Hôm nay (' . date('d/m', $dayStamp) . ')' : (($i === 1) ? 'Hôm qua (' . date('d/m', $dayStamp) . ')' : date('d/m/Y', $dayStamp));
+                    
+                    $stmtDay = $pdo->prepare("
+                        SELECT COUNT(*) FROM `api_logs` 
+                        WHERE (`api_key_used` LIKE ? OR `customer_email` = ?) AND DATE(created_at) = ?
+                    ");
+                    $stmtDay->execute(["%$shortKey%", $order['customer_email'], $dayDb]);
+                    $reqDay = (int)$stmtDay->fetchColumn();
 
-                $dailyUsage[] = [
-                    'date'     => $dayLabel,
-                    'requests' => $reqDay . ' req',
-                    'tokens'   => number_format($reqDay * 1250) . ' tokens',
-                    'cost'     => '0 đ',
-                    'status'   => 'Bình thường'
-                ];
+                    $dailyUsage[] = [
+                        'date'     => $dayLabel,
+                        'requests' => $reqDay . ' req',
+                        'tokens'   => number_format($reqDay * 1250) . ' tokens',
+                        'cost'     => '0 đ',
+                        'status'   => 'Bình thường'
+                    ];
+                }
             }
 
             // Lấy 10 request gần nhất (Request logs)
