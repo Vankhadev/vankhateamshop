@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../../backend/config.php';
-require_once __DIR__ . '/../../backend/db.php';
+require_once __DIR__ . '/backend/config.php';
+require_once __DIR__ . '/backend/db.php';
 
 try {
     $sql = "INSERT INTO `products` (`id`, `category_id`, `name`, `slug`, `sku`, `price`, `description`, `is_active`)
