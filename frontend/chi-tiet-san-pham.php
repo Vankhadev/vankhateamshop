@@ -81,15 +81,21 @@ $relatedProducts = $stmtRelated->fetchAll();
 // Thông tin người dùng hiện tại (nếu có đăng nhập)
 $userHienTai = null;
 if (!empty($_SESSION['user_id'])) {
-    $stmtUser = $pdo->prepare("SELECT id, name, email, balance, role FROM `users` WHERE `id` = ?");
+    $stmtUser = $pdo->prepare("SELECT id, name, email, avatar, balance, role, is_reseller, reseller_discount, reseller_key FROM `users` WHERE `id` = ?");
     $stmtUser->execute([$_SESSION['user_id']]);
     $userHienTai = $stmtUser->fetch();
 }
 
+$giaInfo = tinhGiaDaiLyChoSanPham($pdo, $product, $userHienTai);
+$giaHienThi = (float)$giaInfo['price'];
+$giaGoc = (float)$giaInfo['retail_price'];
+$coGiamDaiLy = $giaInfo['is_discounted'];
+$chietKhauPt = $giaInfo['discount_percent'];
+
 // Tính % giảm giá nếu có
 $ptGiam = 0;
-if (!empty($product['original_price']) && $product['original_price'] > $product['price']) {
-    $ptGiam = round((($product['original_price'] - $product['price']) / $product['original_price']) * 100);
+if (!empty($product['original_price']) && $product['original_price'] > $giaHienThi) {
+    $ptGiam = round((($product['original_price'] - $giaHienThi) / $product['original_price']) * 100);
 }
 
 $siteNameDisplay = layCaiDatHeThong('site_name', SHOP_NAME);
@@ -401,12 +407,24 @@ $seoKeywords = htmlspecialchars($product['name']) . ", mua " . htmlspecialchars(
                     <!-- Khung Giá Bán -->
                     <div class="my-5 p-4 sm:p-5 rounded-2xl bg-gray-900/90 border border-gray-800 flex flex-wrap items-baseline gap-3 sm:gap-4">
                         <div class="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">
-                            <?= number_format($product['price'], 0, ',', '.') ?> VNĐ
+                            <?= number_format($giaHienThi, 0, ',', '.') ?> VNĐ
                         </div>
 
-                        <span class="ml-auto inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-900/40 text-blue-300 border border-blue-700/50">
-                            <i class="fas fa-tag"></i> Giá Đại Lý
-                        </span>
+                        <?php if ($coGiamDaiLy): ?>
+                            <div class="text-sm text-gray-400 line-through font-mono">
+                                <?= number_format($giaGoc, 0, ',', '.') ?> VNĐ
+                            </div>
+                            <span class="ml-auto inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-purple-900/40 text-purple-300 border border-purple-700/50">
+                                <i class="fas fa-handshake"></i> Chiết Khấu Đại Lý -<?= $chietKhauPt ?>%
+                            </span>
+                        <?php elseif (!empty($product['original_price']) && $product['original_price'] > $giaHienThi): ?>
+                            <div class="text-sm text-gray-400 line-through font-mono">
+                                <?= number_format($product['original_price'], 0, ',', '.') ?> VNĐ
+                            </div>
+                            <span class="ml-auto inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-900/40 text-blue-300 border border-blue-700/50">
+                                <i class="fas fa-tag"></i> -<?= $ptGiam ?>%
+                            </span>
+                        <?php endif; ?>
                     </div>
 
                     <!-- Checklist tính năng của gói -->
@@ -484,7 +502,7 @@ $seoKeywords = htmlspecialchars($product['name']) . ", mua " . htmlspecialchars(
                                 <span>Tạm Hết Hàng</span>
                             </button>
                         <?php else: ?>
-                            <button @click="moThanhToan(<?= $product['id'] ?>, '<?= addslashes($product['name']) ?>', <?= $product['price'] ?>)" class="flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-sm transition shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2">
+                            <button @click="moThanhToan(<?= $product['id'] ?>, '<?= addslashes($product['name']) ?>', <?= $giaHienThi ?>)" class="flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-sm transition shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2">
                                 <i class="fas fa-qrcode text-base"></i>
                                 <span>Mua Ngay (VietQR Tự Động)</span>
                             </button>
@@ -1057,7 +1075,7 @@ $seoKeywords = htmlspecialchars($product['name']) . ", mua " . htmlspecialchars(
         return {
             idGoiMua: <?= (int)$product['id'] ?>,
             tenGoiMua: '<?= addslashes($product['name']) ?>',
-            giaGoiMua: <?= (float)$product['price'] ?>,
+            giaGoiMua: <?= (float)$giaHienThi ?>,
             emailKhachHang: '<?= !empty($userHienTai['email']) ? addslashes($userHienTai['email']) : '' ?>',
             maGiamGia: '',
 

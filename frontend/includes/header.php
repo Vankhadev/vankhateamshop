@@ -30,7 +30,7 @@ $backendPfx = $isClientDir ? '../../backend/' : '../backend/';
 // Lấy thông tin người dùng nếu đã đăng nhập
 if (!empty($_SESSION['user_id']) && (!isset($userHienTai) || !is_array($userHienTai)) && isset($pdo)) {
     try {
-        $stmtHdr = $pdo->prepare("SELECT id, name, email, balance, role, avatar FROM `users` WHERE `id` = ?");
+        $stmtHdr = $pdo->prepare("SELECT id, name, email, balance, role, avatar, is_reseller, reseller_discount, reseller_key FROM `users` WHERE `id` = ?");
         $stmtHdr->execute([$_SESSION['user_id']]);
         $userHienTai = $stmtHdr->fetch();
     } catch (Exception $e) {
@@ -174,6 +174,14 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                             <span><?= number_format($userHienTai['balance'] ?? 0, 0, ',', '.') ?>đ</span>
                         </a>
 
+                        <?php if (!empty($userHienTai['is_reseller'])): ?>
+                            <!-- Huy hiệu Đại Lý độc quyền -->
+                            <span class="hidden sm:inline-flex text-[11px] font-extrabold px-2.5 py-1 rounded-xl bg-purple-500/15 text-purple-300 border border-purple-500/30 items-center gap-1 whitespace-nowrap shadow-sm" title="Tài khoản đại lý - Chiết khấu <?= (float)($userHienTai['reseller_discount'] ?? 0) ?>%">
+                                <i class="fas fa-handshake text-purple-400 text-xs"></i>
+                                <span>Đại Lý -<?= (float)($userHienTai['reseller_discount'] ?? 0) ?>%</span>
+                            </span>
+                        <?php endif; ?>
+
                         <?php if (!empty($userHienTai['role']) && $userHienTai['role'] === 'admin'): ?>
                             <!-- Nút tắt Admin: Chỉ hiển thị trên Desktop lg -->
                             <a href="/admin/dashboard" class="hidden lg:inline-flex text-amber-400 hover:text-amber-300 transition text-xs font-bold px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 items-center gap-1 whitespace-nowrap shadow-sm">
@@ -274,6 +282,17 @@ $linkTeleHeader = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('site_c
                         <i class="fas fa-plus-circle"></i> Nạp Ngay
                     </a>
                 </div>
+
+                <?php if (!empty($userHienTai['is_reseller'])): ?>
+                    <div class="bg-purple-950/30 border border-purple-800/40 rounded-2xl p-2.5 flex items-center justify-between text-xs">
+                        <span class="text-purple-300 font-semibold flex items-center gap-1.5">
+                            <i class="fas fa-handshake text-purple-400"></i> Cấp bậc Đại Lý
+                        </span>
+                        <span class="font-extrabold text-purple-400 bg-purple-500/15 border border-purple-500/30 px-2 py-0.5 rounded-lg text-[11px]">
+                            Giảm <?= (float)($userHienTai['reseller_discount'] ?? 0) ?>%
+                        </span>
+                    </div>
+                <?php endif; ?>
             <?php else: ?>
                 <!-- Nút đăng nhập nổi bật cho khách trên Mobile -->
                 <a href="/login" @click="moMenuMobile = false" class="w-full py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-center font-bold text-xs shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2">

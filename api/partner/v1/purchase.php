@@ -131,9 +131,9 @@ if (!$product['is_active']) {
     exit;
 }
 
-// 7. Tính tiền theo chiết khấu đại lý
-$chietKhau = (float)$reseller['reseller_discount'];
-$donGiaDaiLy = round((float)$product['price'] * (1 - ($chietKhau / 100)));
+// 7. Tính tiền theo chiết khấu đại lý (Ràng buộc sàn giá nhập không bán lỗ)
+$giaInfo = tinhGiaDaiLyChoSanPham($pdo, $product, $reseller);
+$donGiaDaiLy = (float)$giaInfo['price'];
 $tongTienPhaiTra = $donGiaDaiLy * $quantity;
 
 try {

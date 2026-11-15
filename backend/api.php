@@ -61,21 +61,36 @@ switch ($hanhDong) {
             exit;
         }
 
+        $userId = $_SESSION['user_id'] ?? null;
+        $userObj = null;
+        if (!empty($userId)) {
+            $stmtU = $pdo->prepare("SELECT `id`, `is_reseller`, `reseller_discount` FROM `users` WHERE `id` = ?");
+            $stmtU->execute([(int)$userId]);
+            $userObj = $stmtU->fetch();
+        }
+
+        // Tính giá thực tế (Tự động áp dụng chiết khấu đại lý & Ràng buộc sàn giá nhập)
+        $giaInfo = tinhGiaDaiLyChoSanPham($pdo, $sp, $userObj);
+        $soTienThanhToan = $giaInfo['price'];
+        $costPrice = $giaInfo['cost_price'];
+
         // Tính toán giảm giá coupon nếu có
-        $soTienThanhToan = (float)$sp['price'];
         if (!empty($couponCode)) {
             $stmtC = $pdo->prepare("SELECT * FROM `coupons` WHERE `code` = ? AND `is_active` = 1 AND (expires_at IS NULL OR expires_at > NOW()) AND used_count < max_uses");
             $stmtC->execute([$couponCode]);
             $cp = $stmtC->fetch();
             if ($cp && $soTienThanhToan >= (float)$cp['min_order_amount']) {
                 $giam = ($cp['discount_type'] === 'PERCENT') ? ($soTienThanhToan * (float)$cp['discount_value'] / 100) : (float)$cp['discount_value'];
-                $soTienThanhToan = max(1000, $soTienThanhToan - $giam);
+                $giaSauCoupon = round($soTienThanhToan - $giam);
+                if ($costPrice > 0 && $giaSauCoupon < $costPrice) {
+                    $giaSauCoupon = $costPrice;
+                }
+                $soTienThanhToan = max(1000, $giaSauCoupon);
                 $pdo->prepare("UPDATE `coupons` SET `used_count` = `used_count` + 1 WHERE `id` = ?")->execute([$cp['id']]);
             }
         }
 
         $ipKhach = layIpNguoiDung();
-        $userId = $_SESSION['user_id'] ?? null;
         // Sinh mã đơn hàng chuẩn tiemai + 16 chữ số ngẫu nhiên (VD: tiemai9284710385920184)
         $maDonHang = 'tiemai' . sprintf('%08d%08d', mt_rand(10000000, 99999999), mt_rand(10000000, 99999999));
 
@@ -141,7 +156,10 @@ switch ($hanhDong) {
                 exit;
             }
 
-            $giaTien = (float)$sp['price'];
+            // Tính giá thực tế (Tự động áp dụng chiết khấu đại lý & Ràng buộc sàn giá nhập)
+            $giaInfo = tinhGiaDaiLyChoSanPham($pdo, $sp, $user);
+            $giaTien = $giaInfo['price'];
+            $costPrice = $giaInfo['cost_price'];
 
             // Kiểm tra coupon nếu có
             if (!empty($couponCode)) {
@@ -150,7 +168,11 @@ switch ($hanhDong) {
                 $cp = $stmtC->fetch();
                 if ($cp && $giaTien >= (float)$cp['min_order_amount']) {
                     $giam = ($cp['discount_type'] === 'PERCENT') ? ($giaTien * (float)$cp['discount_value'] / 100) : (float)$cp['discount_value'];
-                    $giaTien = max(1000, $giaTien - $giam);
+                    $giaSauCoupon = round($giaTien - $giam);
+                    if ($costPrice > 0 && $giaSauCoupon < $costPrice) {
+                        $giaSauCoupon = $costPrice;
+                    }
+                    $giaTien = max(1000, $giaSauCoupon);
                     $pdo->prepare("UPDATE `coupons` SET `used_count` = `used_count` + 1 WHERE `id` = ?")->execute([$cp['id']]);
                 }
             }
@@ -1014,10 +1036,21 @@ switch ($hanhDong) {
         }
 
         $spGia = 0;
+        $costPrice = 0;
         if ($productId > 0) {
-            $stmtP = $pdo->prepare("SELECT price FROM `products` WHERE id = ?");
-            $stmtP->execute([$productId]);
-            $spGia = (float)$stmtP->fetchColumn();
+            $userObj = null;
+            if (!empty($_SESSION['user_id'])) {
+                try {
+                    $stmtU = $pdo->prepare("SELECT `id`, `is_reseller`, `reseller_discount` FROM `users` WHERE `id` = ?");
+                    $stmtU->execute([(int)$_SESSION['user_id']]);
+                    $userObj = $stmtU->fetch();
+                } catch (Exception $e) {
+                    $userObj = null;
+                }
+            }
+            $giaInfo = tinhGiaDaiLyChoSanPham($pdo, $productId, $userObj);
+            $spGia = $giaInfo['price'];
+            $costPrice = $giaInfo['cost_price'];
         }
 
         if ($spGia > 0 && $spGia < (float)$coupon['min_order_amount']) {
@@ -1037,13 +1070,18 @@ switch ($hanhDong) {
             $chuGiam = number_format($giamGia, 0, ',', '.') . 'đ';
         }
 
+        $giaSauGiam = round($spGia - $giamGia);
+        if ($costPrice > 0 && $giaSauGiam < $costPrice) {
+            $giaSauGiam = $costPrice;
+        }
+
         echo json_encode([
             'thanh_cong'      => true,
             'thong_bao'       => "Áp dụng thành công! Giảm {$chuGiam}",
             'discount_type'   => $coupon['discount_type'],
             'discount_value'  => (float)$coupon['discount_value'],
             'discount_amount' => $giamGia,
-            'final_price'     => max(1000, $spGia - $giamGia),
+            'final_price'     => max(1000, $giaSauGiam),
             'code'            => $coupon['code']
         ]);
         break;

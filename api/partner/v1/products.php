@@ -61,9 +61,9 @@ $dsSanPham = $stmtSp->fetchAll();
 
 $danhSachTraVe = [];
 foreach ($dsSanPham as $sp) {
-    // Giá đại lý = Giá bán lẻ trừ đi % chiết khấu của đại lý
-    $giaGoc = (float)$sp['price'];
-    $giaDaiLy = round($giaGoc * (1 - ($chietKhauPhanTram / 100)));
+    // Giá đại lý = Giá bán lẻ trừ đi % chiết khấu của đại lý (Ràng buộc sàn giá nhập không bán lỗ)
+    $giaInfo = tinhGiaDaiLyChoSanPham($pdo, $sp, $reseller);
+    $giaDaiLy = (float)$giaInfo['price'];
 
     $danhSachTraVe[] = [
         'product_id'        => $sp['sku'],

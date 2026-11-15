@@ -117,6 +117,15 @@ $danhSachUserThuong = $stmtUsers->fetchAll();
                 </div>
             </div>
 
+            <!-- HỘP THÔNG BÁO BẢO VỆ SÀN GIÁ NHẬP -->
+            <div class="mb-5 p-3.5 rounded-xl bg-blue-950/40 border border-blue-800/60 text-xs text-blue-300 flex items-start gap-3">
+                <i class="fas fa-shield-halved text-blue-400 text-base shrink-0 mt-0.5"></i>
+                <div class="leading-relaxed">
+                    <strong class="text-white font-semibold">Cơ chế sàn giá vốn tự động (Không bán lỗ):</strong>
+                    Mức chiết khấu (%) này sẽ tự động giảm trừ trực tiếp khi đại lý mua trên Website hoặc gọi API. Tuy nhiên, đơn giá chiết khấu sẽ <strong class="text-amber-300">không bao giờ được thấp hơn giá nhập (giá vốn)</strong> từ các nhà cung cấp đang bật để bảo đảm an toàn lợi nhuận cho shop.
+                </div>
+            </div>
+
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
                     <thead class="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-800">

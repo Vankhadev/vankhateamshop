@@ -130,3 +130,97 @@ function layCaiDatHeThong(string $khoa, $macDinh = '') {
 
     return layGiaTriEnv(strtoupper($khoa), $macDinh);
 }
+
+/**
+ * Tính giá bán thực tế cho sản phẩm dựa theo tài khoản người mua (Đại lý vs Khách thường).
+ * RÀNG BUỘC SÀN GIÁ NHẬP: Chiết khấu đại lý KHÔNG ĐƯỢC THẤP HƠN GIÁ NHẬP (giá vốn lớn nhất từ các nguồn đang bật).
+ *
+ * @param PDO|null $pdo Đối tượng kết nối CSDL
+ * @param array|int $product Thông tin mảng sản phẩm hoặc ID sản phẩm
+ * @param array|null $user Thông tin tài khoản người mua (nếu null sẽ lấy từ $_SESSION['user_id'])
+ * @return array ['price' => float, 'retail_price' => float, 'is_reseller' => bool, 'is_discounted' => bool, 'discount_percent' => float, 'cost_price' => float]
+ */
+function tinhGiaDaiLyChoSanPham($pdo, $product, $user = null): array {
+    if (!$pdo) {
+        $retail = is_array($product) ? (float)($product['price'] ?? 0) : 0;
+        return [
+            'price'            => $retail,
+            'retail_price'     => $retail,
+            'is_reseller'      => false,
+            'is_discounted'    => false,
+            'discount_percent' => 0,
+            'cost_price'       => 0
+        ];
+    }
+
+    if (is_numeric($product)) {
+        $stmt = $pdo->prepare("SELECT * FROM `products` WHERE `id` = ?");
+        $stmt->execute([(int)$product]);
+        $product = $stmt->fetch();
+    }
+    if (!$product) {
+        return [
+            'price'            => 0,
+            'retail_price'     => 0,
+            'is_reseller'      => false,
+            'is_discounted'    => false,
+            'discount_percent' => 0,
+            'cost_price'       => 0
+        ];
+    }
+
+    $retailPrice = (float)($product['price'] ?? 0);
+    $productId = (int)($product['id'] ?? 0);
+
+    // Lấy thông tin user nếu chưa truyền
+    if ($user === null && !empty($_SESSION['user_id'])) {
+        try {
+            $stmtU = $pdo->prepare("SELECT `id`, `is_reseller`, `reseller_discount` FROM `users` WHERE `id` = ?");
+            $stmtU->execute([(int)$_SESSION['user_id']]);
+            $user = $stmtU->fetch();
+        } catch (Exception $e) {
+            $user = null;
+        }
+    }
+
+    $isReseller = !empty($user['is_reseller']) && (int)$user['is_reseller'] === 1;
+    $discountPercent = $isReseller ? max(0, min(90, (float)($user['reseller_discount'] ?? 0))) : 0;
+
+    // Sàn giá nhập: Lấy giá vốn cao nhất từ các nguồn cung cấp đang hoạt động
+    $costPrice = 0.0;
+    try {
+        $stmtCost = $pdo->prepare("
+            SELECT MAX(cost_price) 
+            FROM `supplier_product_mappings` 
+            WHERE `product_id` = ? AND `is_active` = 1 AND `cost_price` > 0
+        ");
+        $stmtCost->execute([$productId]);
+        $costPrice = (float)($stmtCost->fetchColumn() ?: 0);
+    } catch (Exception $e) {
+        $costPrice = 0.0;
+    }
+
+    $finalPrice = $retailPrice;
+    $isDiscounted = false;
+
+    if ($isReseller && $discountPercent > 0) {
+        $tentativePrice = round($retailPrice * (1 - ($discountPercent / 100)));
+        // RÀNG BUỘC SÀN GIÁ: Chiết khấu KHÔNG ĐƯỢC THẤP HƠN GIÁ NHẬP
+        if ($costPrice > 0 && $tentativePrice < $costPrice) {
+            $finalPrice = $costPrice;
+        } else {
+            $finalPrice = $tentativePrice;
+        }
+        $isDiscounted = true;
+    }
+
+    return [
+        'price'            => (float)$finalPrice,
+        'retail_price'     => (float)$retailPrice,
+        'is_reseller'      => $isReseller,
+        'is_discounted'    => $isDiscounted,
+        'discount_percent' => $discountPercent,
+        'cost_price'       => (float)$costPrice
+    ];
+}
+

@@ -17,7 +17,7 @@ $daDangNhap = !empty($_SESSION['user_id']);
 $userHienTai = null;
 
 if ($daDangNhap) {
-    $stmtUser = $pdo->prepare("SELECT id, name, email, avatar, balance, role FROM `users` WHERE `id` = ?");
+    $stmtUser = $pdo->prepare("SELECT id, name, email, avatar, balance, role, is_reseller, reseller_discount, reseller_key FROM `users` WHERE `id` = ?");
     $stmtUser->execute([$_SESSION['user_id']]);
     $userHienTai = $stmtUser->fetch();
 }
@@ -783,6 +783,11 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             <?php foreach ($products as $p): 
                 $features = json_decode($p['features'] ?? '[]', true) ?: [];
+                $giaInfo = tinhGiaDaiLyChoSanPham($pdo, $p, $userHienTai);
+                $giaHienThi = $giaInfo['price'];
+                $giaGoc = $giaInfo['retail_price'];
+                $coGiamDaiLy = $giaInfo['is_discounted'];
+                $chietKhauPt = $giaInfo['discount_percent'];
             ?>
                 <div x-show="danhMucDangChon === 0 || danhMucDangChon === <?= $p['category_id'] ?>" 
                      class="bg-[#111827] border border-gray-800/90 hover:border-blue-500/50 rounded-2xl p-5 flex flex-col justify-between transition duration-200 hover:-translate-y-1 shadow-lg hover:shadow-blue-500/10 relative group">
@@ -825,8 +830,16 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
 
                         <!-- Giá bán -->
                         <div class="mb-4">
-                            <div class="flex items-baseline gap-2">
-                                <span class="text-2xl font-black text-white"><?= number_format($p['price'], 0, ',', '.') ?>đ</span>
+                            <div class="flex items-baseline gap-2 flex-wrap">
+                                <span class="text-2xl font-black text-white"><?= number_format($giaHienThi, 0, ',', '.') ?>đ</span>
+                                <?php if ($coGiamDaiLy): ?>
+                                    <span class="text-xs text-gray-400 line-through"><?= number_format($giaGoc, 0, ',', '.') ?>đ</span>
+                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                        <i class="fas fa-handshake text-[9px] mr-0.5"></i> Đại lý -<?= $chietKhauPt ?>%
+                                    </span>
+                                <?php elseif (!empty($p['original_price']) && $p['original_price'] > $giaHienThi): ?>
+                                    <span class="text-xs text-gray-400 line-through"><?= number_format($p['original_price'], 0, ',', '.') ?>đ</span>
+                                <?php endif; ?>
                             </div>
                             <span class="text-[11px] text-gray-400">Thời hạn sử dụng: <?= $p['duration_days'] ?> ngày</span>
                         </div>
@@ -847,7 +860,7 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                         <a href="/san-pham/<?= htmlspecialchars($p['slug']) ?>" class="py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs transition flex items-center justify-center gap-1.5 border border-gray-700">
                             <i class="fas fa-eye text-blue-400"></i> Chi Tiết
                         </a>
-                        <button @click="moThanhToan(<?= $p['id'] ?>, '<?= addslashes($p['name']) ?>', '<?= addslashes($p['request_count'] ?? '') ?>', <?= $p['price'] ?>)" 
+                        <button @click="moThanhToan(<?= $p['id'] ?>, '<?= addslashes($p['name']) ?>', '<?= addslashes($p['request_count'] ?? '') ?>', <?= $giaHienThi ?>)" 
                                 class="py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition duration-200 shadow-md shadow-blue-600/30 flex items-center justify-center gap-1.5">
                             <i class="fas fa-bolt"></i> Mua Ngay
                         </button>

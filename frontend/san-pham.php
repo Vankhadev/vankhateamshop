@@ -46,37 +46,40 @@ $sqlProducts = "
      $products = $pdo->query("SELECT p.*, c.name AS category_name, c.slug AS category_slug, 999 AS stock FROM `products` p JOIN `categories` c ON p.category_id = c.id WHERE p.is_active = 1 ORDER BY c.sort_order ASC, c.id ASC, p.price ASC, p.id ASC")->fetchAll();
  }
 
- // Chuẩn bị dữ liệu JSON cho Alpine.js xử lý tìm kiếm và lọc tức thì
+ $daDangNhap = !empty($_SESSION['user_id']);
+ $userHienTai = null;
+ if ($daDangNhap) {
+     $stmtMe = $pdo->prepare("SELECT id, name, email, avatar, balance, role, is_reseller, reseller_discount, reseller_key FROM users WHERE id = ?");
+     $stmtMe->execute([$_SESSION['user_id']]);
+     $userHienTai = $stmtMe->fetch();
+ }
 
+ // Chuẩn bị dữ liệu JSON cho Alpine.js xử lý tìm kiếm và lọc tức thì
 $sanPhamJs = [];
 foreach ($products as $p) {
     $featuresArr = !empty($p['features']) ? json_decode($p['features'], true) : [];
     if (!is_array($featuresArr)) $featuresArr = [];
+    $giaInfo = tinhGiaDaiLyChoSanPham($pdo, $p, $userHienTai);
     $sanPhamJs[] = [
-        'id'             => (int)$p['id'],
-        'category_id'    => (int)$p['category_id'],
-        'name'           => $p['name'],
-        'slug'           => $p['slug'],
-        'sku'            => $p['sku'],
-        'image'          => $p['image'] ?? '',
-        'price'          => (float)$p['price'],
-        'original_price' => (float)$p['original_price'],
-        'badge'          => $p['badge'],
-        'request_count'  => $p['request_count'],
-        'duration_days'  => (int)$p['duration_days'],
-        'features'       => $featuresArr,
-        'description'    => $p['description'],
-        'is_hot'         => (bool)$p['is_hot']
+        'id'                => (int)$p['id'],
+        'category_id'       => (int)$p['category_id'],
+        'name'              => $p['name'],
+        'slug'              => $p['slug'],
+        'sku'               => $p['sku'],
+        'image'             => $p['image'] ?? '',
+        'price'             => (float)$giaInfo['price'],
+        'original_price'    => $giaInfo['is_discounted'] ? (float)$giaInfo['retail_price'] : (float)$p['original_price'],
+        'is_reseller_price' => (bool)$giaInfo['is_discounted'],
+        'discount_percent'  => (float)$giaInfo['discount_percent'],
+        'badge'             => $p['badge'],
+        'request_count'     => $p['request_count'],
+        'duration_days'     => (int)$p['duration_days'],
+        'features'          => $featuresArr,
+        'description'       => $p['description'],
+        'is_hot'            => (bool)$p['is_hot']
     ];
 }
 $siteName = layCaiDatHeThong('site_name', SHOP_NAME);
-$daDangNhap = !empty($_SESSION['user_id']);
-$userHienTai = null;
-if ($daDangNhap) {
-    $stmtMe = $pdo->prepare("SELECT id, name, email, balance FROM users WHERE id = ?");
-    $stmtMe->execute([$_SESSION['user_id']]);
-    $userHienTai = $stmtMe->fetch();
-}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -279,8 +282,16 @@ if ($daDangNhap) {
                     <!-- Khu vực giá & nút mua -->
                     <div class="border-t border-gray-800/80 pt-4 mt-2">
                         <div class="flex items-baseline justify-between mb-3">
-                            <div>
+                            <div class="flex items-baseline gap-1.5 flex-wrap">
                                 <span class="text-lg font-black text-amber-400 font-mono" x-text="dinhDangTien(sp.price)"></span>
+                                <template x-if="sp.is_reseller_price">
+                                    <span class="text-[10px] font-bold text-purple-300 bg-purple-500/20 px-1.5 py-0.5 rounded border border-purple-500/30">
+                                        Đại lý -<span x-text="sp.discount_percent"></span>%
+                                    </span>
+                                </template>
+                                <template x-if="sp.is_reseller_price && sp.original_price > sp.price">
+                                    <span class="text-xs text-gray-500 line-through font-mono" x-text="dinhDangTien(sp.original_price)"></span>
+                                </template>
                             </div>
                             <span class="text-[10px] text-green-400 font-semibold bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/30">
                                 Sẵn sàng giao

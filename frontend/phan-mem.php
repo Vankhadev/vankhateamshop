@@ -34,7 +34,7 @@ $teleDisplay = layCaiDatHeThong('site_contact_telegram', SHOP_TELEGRAM);
 $daDangNhap = !empty($_SESSION['user_id']);
 $userHienTai = null;
 if ($daDangNhap) {
-    $stmtMe = $pdo->prepare("SELECT id, name, email, balance FROM users WHERE id = ?");
+    $stmtMe = $pdo->prepare("SELECT id, name, email, avatar, balance, role, is_reseller, reseller_discount, reseller_key FROM users WHERE id = ?");
     $stmtMe->execute([$_SESSION['user_id']]);
     $userHienTai = $stmtMe->fetch();
 }
@@ -43,23 +43,26 @@ $sanPhamJs = [];
 foreach ($softwares as $p) {
     $featuresArr = !empty($p['features']) ? json_decode($p['features'], true) : [];
     if (!is_array($featuresArr)) $featuresArr = [];
+    $giaInfo = tinhGiaDaiLyChoSanPham($pdo, $p, $userHienTai);
     // Tự động thay thế TungDV thành Tên Website trên toàn bộ giao diện
     $tenHienThi = preg_replace('/TungDV\s*/i', $tenNganSite . ' ', $p['name']);
     $moTaHienThi = preg_replace('/TungDV\s*/i', $tenNganSite . ' ', $p['description'] ?? '');
     $sanPhamJs[] = [
-        'id'             => (int)$p['id'],
-        'category_id'    => (int)$p['category_id'],
-        'name'           => $tenHienThi,
-        'slug'           => $p['slug'],
-        'sku'            => $p['sku'],
-        'image'          => $p['image'] ?? '',
-        'price'          => (float)$p['price'],
-        'original_price' => (float)$p['original_price'],
-        'badge'          => $p['badge'] ?? 'Bản quyền AI',
-        'request_count'  => $p['request_count'],
-        'features'       => $featuresArr,
-        'description'    => $moTaHienThi,
-        'is_hot'         => (bool)$p['is_hot']
+        'id'                => (int)$p['id'],
+        'category_id'       => (int)$p['category_id'],
+        'name'              => $tenHienThi,
+        'slug'              => $p['slug'],
+        'sku'               => $p['sku'],
+        'image'             => $p['image'] ?? '',
+        'price'             => (float)$giaInfo['price'],
+        'original_price'    => $giaInfo['is_discounted'] ? (float)$giaInfo['retail_price'] : (float)$p['original_price'],
+        'is_reseller_price' => (bool)$giaInfo['is_discounted'],
+        'discount_percent'  => (float)$giaInfo['discount_percent'],
+        'badge'             => $p['badge'] ?? 'Bản quyền AI',
+        'request_count'     => $p['request_count'],
+        'features'          => $featuresArr,
+        'description'       => $moTaHienThi,
+        'is_hot'            => (bool)$p['is_hot']
     ];
 }
 ?>
@@ -208,7 +211,17 @@ foreach ($softwares as $p) {
                             <div class="flex items-baseline justify-between mb-4">
                                 <div>
                                     <span class="text-xs text-gray-400 block">Giá thanh toán:</span>
-                                    <div class="text-xl font-black text-emerald-400" x-text="dinhDangTien(sp.price)"></div>
+                                    <div class="flex items-baseline gap-1.5 flex-wrap">
+                                        <div class="text-xl font-black text-emerald-400" x-text="dinhDangTien(sp.price)"></div>
+                                        <template x-if="sp.is_reseller_price">
+                                            <span class="text-[10px] font-bold text-purple-300 bg-purple-500/20 px-1.5 py-0.5 rounded border border-purple-500/30">
+                                                Đại lý -<span x-text="sp.discount_percent"></span>%
+                                            </span>
+                                        </template>
+                                        <template x-if="sp.is_reseller_price && sp.original_price > sp.price">
+                                            <span class="text-xs text-gray-500 line-through font-mono" x-text="dinhDangTien(sp.original_price)"></span>
+                                        </template>
+                                    </div>
                                 </div>
                             </div>
 
