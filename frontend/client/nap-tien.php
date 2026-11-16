@@ -76,9 +76,6 @@ try {
                 <a href="/user/nap-tien" class="text-blue-400 font-bold shrink-0 border-b-2 border-blue-500 pb-1">
                     <i class="fas fa-wallet mr-1 text-green-400"></i> Nạp Tiền Ví
                 </a>
-                <a href="/user/api-docs" class="text-gray-400 hover:text-white shrink-0">
-                    <i class="fas fa-code mr-1"></i> Kết Nối API & Cursor
-                </a>
                 <a href="/user/bien-dong-so-du" class="text-gray-400 hover:text-white shrink-0">
                     <i class="fas fa-clock-rotate-left mr-1"></i> Biến Động Số Dư
                 </a>
@@ -114,6 +111,9 @@ try {
                 <div class="mb-5">
                     <label class="block text-xs font-semibold text-gray-300 mb-2">Chọn nhanh số tiền nạp:</label>
                     <div class="grid grid-cols-3 gap-2 text-xs font-bold">
+                        <button type="button" @click="chonNhanh(5000)" :class="soTienNap === 5000 ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'" class="py-2.5 rounded-xl border border-gray-700 transition">5.000đ</button>
+                        <button type="button" @click="chonNhanh(10000)" :class="soTienNap === 10000 ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'" class="py-2.5 rounded-xl border border-gray-700 transition">10.000đ</button>
+                        <button type="button" @click="chonNhanh(30000)" :class="soTienNap === 30000 ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'" class="py-2.5 rounded-xl border border-gray-700 transition">30.000đ</button>
                         <button type="button" @click="chonNhanh(50000)" :class="soTienNap === 50000 ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'" class="py-2.5 rounded-xl border border-gray-700 transition">50.000đ</button>
                         <button type="button" @click="chonNhanh(100000)" :class="soTienNap === 100000 ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'" class="py-2.5 rounded-xl border border-gray-700 transition">100.000đ</button>
                         <button type="button" @click="chonNhanh(200000)" :class="soTienNap === 200000 ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'" class="py-2.5 rounded-xl border border-gray-700 transition">200.000đ</button>
@@ -218,11 +218,10 @@ try {
                                 <span class="block text-[10px] font-bold text-amber-700 uppercase tracking-wider">NẠP TỐI THIỂU</span>
                                 <span class="block text-xs font-extrabold text-amber-900 mt-0.5"><?= number_format($walletMinDeposit, 0, ',', '.') ?> VNĐ</span>
                             </div>
-                            <span class="text-[10px] text-amber-600 italic">Chuyển dưới mức này sẽ không cộng ví</span>
                         </div>
 
                         <!-- 4. NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC) -->
-                        <div class="border-2 border-dashed border-[#0284c7] bg-[#f0f9ff] rounded-xl px-3.5 py-2.5 flex items-center justify-between">
+                        <div class="border border-amber-200 bg-amber-50/60 rounded-xl px-3.5 py-2.5 flex items-center justify-between">
                             <div>
                                 <span class="block text-[10px] font-extrabold text-rose-500 uppercase tracking-wider">NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC)</span>
                                 <span class="block text-base font-black text-rose-600 mt-0.5 font-mono tracking-wide" x-text="maNapTien"></span>
