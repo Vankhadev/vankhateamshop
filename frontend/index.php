@@ -1631,6 +1631,8 @@ $captchaSiteKey   = function_exists('layCaiDatHeThong') ? layCaiDatHeThong('capt
                 daThanhToan: false,
                 keyDaTraVe: '',
                 thongBaoLoiPopup: '',
+                phuongThucThanhToan: 'VietQR Tự Động',
+                soDuViConLai: null,
                 oNhapKey: '',
                 ketQuaTraCuu: null,
                 timerPolling: null,
