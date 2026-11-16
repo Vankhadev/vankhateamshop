@@ -43,6 +43,11 @@ $orders = $stmtOrders->fetchAll();
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+    <!-- Favicon Logo Website Tiem AI -->
+    <link rel="icon" type="image/png" href="/assets/images/logo.png">
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/images/logo.png">
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bảng Điều Khiển Khách Hàng - <?= SHOP_NAME ?></title>

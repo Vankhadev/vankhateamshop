@@ -515,3 +515,7 @@ function khoDieuHuongHeader() {
     }
 }
 </script>
+
+<!-- Script Brand Vankha Team & F12 Console & Favicon Enforce -->
+<script src="/assets/js/vankha-brand.js?v=<?= time() ?>"></script>
+
