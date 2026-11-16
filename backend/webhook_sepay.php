@@ -28,47 +28,51 @@ try {
     // 3. XÁC THỰC BẢO MẬT (Hỗ trợ cả HMAC-SHA256 chuẩn cao nhất và API Key)
     $signature = $_SERVER['HTTP_X_SEPAY_SIGNATURE'] ?? '';
     $timestamp = (int)($_SERVER['HTTP_X_SEPAY_TIMESTAMP'] ?? 0);
-    $webhookSecret = layGiaTriEnv('SEPAY_WEBHOOK_SECRET', '');
-    // Nếu trong .env chưa có, kiểm tra bảng settings được cấu hình trong Admin
-    if (empty($webhookSecret) || $webhookSecret === 'your_sepay_webhook_secret_here') {
-        try {
-            $stmtSec = $pdo->prepare("SELECT `value` FROM `settings` WHERE `key` = 'sepay_webhook_secret' LIMIT 1");
-            $stmtSec->execute();
-            $val = $stmtSec->fetchColumn();
-            if (!empty($val)) {
-                $webhookSecret = trim($val);
-            }
-        } catch (Exception $e) {}
-    }
-    $apiKey = layGiaTriEnv('SEPAY_API_KEY', '');
-    if (empty($apiKey) || $apiKey === 'YOUR_SEPAY_API_KEY') {
-        try {
-            $stmtKey = $pdo->prepare("SELECT `value` FROM `settings` WHERE `key` = 'sepay_api_key' LIMIT 1");
-            $stmtKey->execute();
-            $valKey = $stmtKey->fetchColumn();
-            if (!empty($valKey)) {
-                $apiKey = trim($valKey);
-            }
-        } catch (Exception $e) {}
-    }
     $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    $webhookSecretHopLe = !empty($webhookSecret) && $webhookSecret !== 'your_sepay_webhook_secret_here';
-    $apiKeyHopLe = !empty($apiKey) && $apiKey !== 'YOUR_SEPAY_API_KEY';
 
-    // Không được xử lý webhook nếu production chưa có ít nhất một cơ chế xác thực.
-    if (!$webhookSecretHopLe && !$apiKeyHopLe) {
+    // Thu thập tất cả các khóa bí mật SePay từ DB và .env (chống lỗi dán nhầm ô)
+    $candidateKeys = [];
+    $blacklistedValues = [
+        '',
+        'your_sepay_webhook_secret_here',
+        'your_sepay_api_key_here',
+        'YOUR_SEPAY_WEBHOOK_SECRET',
+        'YOUR_SEPAY_API_KEY',
+        'YOUR_SEPAY_API_TOKEN'
+    ];
+
+    // 1. Đọc từ .env
+    $envSecret = trim((string)layGiaTriEnv('SEPAY_WEBHOOK_SECRET', ''));
+    if (!in_array($envSecret, $blacklistedValues, true)) {
+        $candidateKeys[] = $envSecret;
+    }
+    $envApiKey = trim((string)layGiaTriEnv('SEPAY_API_KEY', ''));
+    if (!in_array($envApiKey, $blacklistedValues, true)) {
+        $candidateKeys[] = $envApiKey;
+    }
+
+    // 2. Đọc từ bảng settings trong DB (Admin Cài Đặt)
+    try {
+        $stmtSec = $pdo->query("SELECT `value` FROM `settings` WHERE `key` IN ('sepay_webhook_secret', 'sepay_api_key')");
+        while ($val = $stmtSec->fetchColumn()) {
+            $val = trim((string)$val);
+            if (!in_array($val, $blacklistedValues, true) && !in_array($val, $candidateKeys, true)) {
+                $candidateKeys[] = $val;
+            }
+        }
+    } catch (Exception $e) {}
+
+    // Nếu hệ thống hoàn toàn chưa thiết lập bất kỳ khóa bí mật nào
+    if (empty($candidateKeys)) {
         http_response_code(503);
         echo json_encode(['success' => false, 'message' => 'Webhook authentication is not configured']);
         exit;
     }
 
-    // CÁCH 1: Xác thực bằng HMAC-SHA256 (Khuyến nghị chuẩn Production)
+    $xacThucThanhCong = false;
+
+    // CÁCH 1: Xác thực bằng HMAC-SHA256 (Header X-SePay-Signature & X-SePay-Timestamp)
     if (!empty($signature)) {
-        if (!$webhookSecretHopLe) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Invalid webhook authentication']);
-            exit;
-        }
         // Chống replay attack: Timestamp lệch quá 5 phút (300 giây) sẽ bị từ chối
         if ($timestamp <= 0 || abs(time() - $timestamp) > 300) {
             http_response_code(401);
@@ -76,22 +80,57 @@ try {
             exit;
         }
 
-        // Tái tạo chữ ký và so sánh thời gian không đổi (Constant-time hash_equals)
-        $expectedSignature = 'sha256=' . hash_hmac('sha256', $timestamp . '.' . $body, $webhookSecret);
-        if (!hash_equals($expectedSignature, $signature)) {
+        foreach ($candidateKeys as $key) {
+            // Chuẩn 1 của SePay: sha256=hash_hmac('sha256', timestamp.raw_body, key)
+            $expected1 = 'sha256=' . hash_hmac('sha256', $timestamp . '.' . $body, $key);
+            if (hash_equals($expected1, $signature)) {
+                $xacThucThanhCong = true;
+                break;
+            }
+
+            // Chuẩn 2 (dự phòng không tiền tố sha256=)
+            $expected2 = hash_hmac('sha256', $timestamp . '.' . $body, $key);
+            if (hash_equals($expected2, $signature)) {
+                $xacThucThanhCong = true;
+                break;
+            }
+
+            // Chuẩn 3 (dự phòng hash raw_body trực tiếp)
+            $expected3 = 'sha256=' . hash_hmac('sha256', $body, $key);
+            if (hash_equals($expected3, $signature)) {
+                $xacThucThanhCong = true;
+                break;
+            }
+        }
+
+        if (!$xacThucThanhCong) {
+            error_log("Webhook SePay: Invalid signature [Sig: {$signature}, Time: {$timestamp}]");
             http_response_code(401);
             echo json_encode(['success' => false, 'message' => 'Invalid signature']);
             exit;
         }
     } 
     // CÁCH 2: Xác thực bằng API Key (Header Authorization: Apikey YOUR_KEY)
-    else {
+    elseif (!empty($authHeader)) {
         $prefix = 'Apikey ';
-        if (!$apiKeyHopLe || !str_starts_with($authHeader, $prefix) || !hash_equals($apiKey, substr($authHeader, strlen($prefix)))) {
+        if (str_starts_with($authHeader, $prefix)) {
+            $clientKey = substr($authHeader, strlen($prefix));
+            foreach ($candidateKeys as $key) {
+                if (hash_equals($key, $clientKey)) {
+                    $xacThucThanhCong = true;
+                    break;
+                }
+            }
+        }
+        if (!$xacThucThanhCong) {
             http_response_code(401);
             echo json_encode(['success' => false, 'message' => 'Unauthorized']);
             exit;
         }
+    } else {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'message' => 'Missing signature or authorization header']);
+        exit;
     }
 
     // 4. Giải mã dữ liệu JSON từ SePay
