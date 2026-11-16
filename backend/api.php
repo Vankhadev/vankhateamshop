@@ -352,11 +352,16 @@ switch ($hanhDong) {
 
             if ($ketQuaGiao['thanh_cong'] || !empty($ketQuaGiao['success'])) {
                 echo json_encode([
-                    'thanh_cong' => true,
-                    'ma_don_hang' => $maDonHang,
-                    'thong_bao' => 'Thanh toán thành công và đã nhận key!',
-                    'tai_khoan' => $ketQuaGiao['accounts'] ?? $ketQuaGiao['tai_khoan'] ?? [],
-                    'so_du_moi' => $soDuMoi
+                    'thanh_cong'    => true,
+                    'ma_don_hang'   => $maDonHang,
+                    'ten_san_pham'  => $sp['name'],
+                    'so_tien'       => $giaTien,
+                    'so_tien_chu'   => number_format($giaTien, 0, ',', '.') . ' VNĐ',
+                    'phuong_thuc'   => 'Số dư ví',
+                    'thong_bao'     => 'Thanh toán bằng số dư ví thành công và đã nhận key!',
+                    'tai_khoan'     => $ketQuaGiao['accounts'] ?? $ketQuaGiao['tai_khoan'] ?? [],
+                    'so_du_moi'     => $soDuMoi,
+                    'so_du_moi_chu' => number_format($soDuMoi, 0, ',', '.') . ' VNĐ'
                 ]);
             } else {
                 echo json_encode([

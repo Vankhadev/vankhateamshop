@@ -512,11 +512,21 @@ $siteName = layCaiDatHeThong('site_name', SHOP_NAME);
                         <span class="font-mono font-black text-emerald-400 text-sm" x-text="dinhDangTien(giaTienChon)"></span>
                     </div>
                     <div class="flex items-center justify-between text-xs border-t border-gray-800/80 pt-2">
+                        <span class="text-gray-400">Phương thức:</span>
+                        <span class="font-semibold text-blue-400 text-xs" x-text="phuongThucThanhToan || 'Số dư ví'"></span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs border-t border-gray-800/80 pt-2">
                         <span class="text-gray-400">Trạng thái:</span>
                         <span class="font-bold text-emerald-400 flex items-center gap-1 text-xs">
                             <i class="fas fa-circle-check"></i> Đã thanh toán
                         </span>
                     </div>
+                    <template x-if="soDuViConLai !== null">
+                        <div class="flex items-center justify-between text-xs border-t border-gray-800/80 pt-2">
+                            <span class="text-gray-400">Số dư ví còn lại:</span>
+                            <span class="font-mono font-bold text-amber-400 text-xs" x-text="dinhDangTien(soDuViConLai)"></span>
+                        </div>
+                    </template>
                 </div>
 
                 <!-- KHUNG THÔNG TIN KEY NHẬN ĐƯỢC -->
@@ -579,6 +589,8 @@ $siteName = layCaiDatHeThong('site_name', SHOP_NAME);
             giaTienChon: 0,
             keyDaTraVe: '',
             thongBaoLoiPopup: '',
+            phuongThucThanhToan: 'VietQR Tự Động',
+            soDuViConLai: null,
 
             // Quản lý đếm ngược 5s & kiểm tra thanh toán
             demNguoc5s: 5,
@@ -625,6 +637,8 @@ $siteName = layCaiDatHeThong('site_name', SHOP_NAME);
                 this.daTaoDon = false;
                 this.daThanhToan = false;
                 this.thongBaoLoiPopup = '';
+                this.phuongThucThanhToan = 'VietQR Tự Động';
+                this.soDuViConLai = null;
                 this.moPopupThanhToan = true;
             },
 
@@ -686,6 +700,10 @@ $siteName = layCaiDatHeThong('site_name', SHOP_NAME);
                     this.dangTaoDon = false;
                     if (data.thanh_cong) {
                         this.maDonHang = data.ma_don_hang;
+                        if (data.so_tien) this.giaTienChon = data.so_tien;
+                        if (data.ten_san_pham && this.sanPhamDangMua) this.sanPhamDangMua.name = data.ten_san_pham;
+                        this.phuongThucThanhToan = 'Số dư ví Shop';
+                        this.soDuViConLai = data.so_du_moi ?? null;
                         this.daThanhToan = true;
                         if (data.tai_khoan && data.tai_khoan.length > 0) {
                             this.keyDaTraVe = data.tai_khoan.join("\n");
