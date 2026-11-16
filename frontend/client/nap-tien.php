@@ -271,6 +271,51 @@ try {
         </div>
     </main>
 
+    <!-- POPUP MODAL THÔNG BÁO NẠP TIỀN VÀO VÍ THÀNH CÔNG -->
+    <div x-show="popupNapThanhCong" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" style="display: none;">
+        <div class="bg-gray-900 border border-gray-700 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center relative">
+            
+            <!-- Icon thành công hiệu ứng lấp lánh -->
+            <div class="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 flex items-center justify-center mx-auto mb-4 text-3xl shadow-lg shadow-emerald-500/30">
+                <i class="fas fa-check"></i>
+            </div>
+
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 mb-2">
+                <i class="fas fa-circle-check"></i> Đã Cộng Thành Công
+            </span>
+
+            <h3 class="text-xl font-black text-white mb-1">Nạp Tiền Vào Ví Thành Công!</h3>
+            <p class="text-xs text-gray-400 mb-5">Hệ thống VietQR tự động đã xác nhận giao dịch chuyển khoản</p>
+
+            <!-- Khung chi tiết giao dịch -->
+            <div class="bg-gray-950 border border-gray-800 rounded-2xl p-4 text-left space-y-3 mb-5">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-gray-400">Mã nạp ví:</span>
+                    <span class="font-mono font-bold text-amber-400 text-sm" x-text="maNapTien"></span>
+                </div>
+                <div class="flex justify-between items-center text-xs border-t border-gray-800/80 pt-2.5">
+                    <span class="text-gray-400">Trạng thái:</span>
+                    <span class="font-bold text-emerald-400 flex items-center gap-1">
+                        <i class="fas fa-check-circle"></i> Đã thanh toán
+                    </span>
+                </div>
+                <div class="flex justify-between items-center text-xs border-t border-gray-800/80 pt-2.5">
+                    <span class="text-gray-400">Số tiền nạp:</span>
+                    <span class="font-mono font-black text-emerald-400 text-base" x-text="dinhDangTien(soTienVuaNap)"></span>
+                </div>
+                <div class="flex justify-between items-center text-xs border-t border-gray-800/80 pt-2.5">
+                    <span class="text-gray-400">Số dư ví hiện tại:</span>
+                    <span class="font-mono font-bold text-amber-400 text-sm" x-text="dinhDangTien(soDuMoiNhan)"></span>
+                </div>
+            </div>
+
+            <!-- Nút đóng / Hoàn tất -->
+            <button type="button" @click="window.location.reload()" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-bold text-sm transition shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2">
+                <i class="fas fa-wallet"></i> Xác Nhận & Xem Số Dư
+            </button>
+        </div>
+    </div>
+
     <!-- FOOTER CHÂN TRANG ĐỒNG BỘ TOÀN BỘ WEBSITE -->
     <?php require_once __DIR__ . '/../includes/footer.php'; ?>
 
@@ -292,6 +337,9 @@ try {
                 boDemGiay: null,
                 dangKiemTraNgay: false,
                 thongBaoLoi: '',
+                popupNapThanhCong: false,
+                soTienVuaNap: 0,
+                soDuMoiNhan: <?= (float)$user['balance'] ?>,
 
                 init() {
                     // Trạng thái ban đầu chưa tạo mã nạp
@@ -373,8 +421,10 @@ try {
                             if (data.da_nap || (data.so_du && data.so_du > this.soDuHienTai)) {
                                 if (this.boDemGiay) clearInterval(this.boDemGiay);
                                 let soTienCong = (data.so_tien_nap) ? data.so_tien_nap : (data.so_du - this.soDuHienTai);
-                                alert('🎉 Chúc mừng! Bạn vừa nạp thành công ' + this.dinhDangTien(soTienCong) + ' vào tài khoản! Số dư mới: ' + data.so_du_chu);
-                                window.location.reload();
+                                this.soTienVuaNap = soTienCong;
+                                this.soDuMoiNhan = data.so_du || (this.soDuHienTai + soTienCong);
+                                this.soDuHienTai = this.soDuMoiNhan;
+                                this.popupNapThanhCong = true;
                             } else if (data.bi_tu_choi) {
                                 if (this.boDemGiay) clearInterval(this.boDemGiay);
                                 alert('⚠️ ' + data.thong_bao);

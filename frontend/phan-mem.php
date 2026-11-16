@@ -410,8 +410,6 @@ foreach ($softwares as $p) {
 
                     </div>
                 </div>
-                    </div>
-                </div>
 
                 <div class="pt-1 space-y-2">
                     <div class="flex items-center justify-center gap-2 text-xs text-blue-400 font-semibold bg-gray-900/90 border border-gray-800 rounded-xl py-2 px-3">
@@ -426,25 +424,65 @@ foreach ($softwares as $p) {
                 </div>
             </div>
 
-            <!-- BƯỚC 3: NHẬN BẢN QUYỀN THÀNH CÔNG -->
-            <div x-show="daThanhToan" class="text-center py-4 space-y-4">
-                <div class="w-14 h-14 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-2xl">
+            <!-- BƯỚC 3: ĐÃ NHẬN TIỀN -> POPUP THÔNG BÁO ĐƠN HÀNG MUA THÀNH CÔNG -->
+            <div x-show="daThanhToan" class="text-center py-2">
+                <div class="w-16 h-16 bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-2.5 text-2xl shadow-lg shadow-emerald-500/30">
                     <i class="fas fa-check"></i>
                 </div>
-                <h3 class="text-lg font-bold text-white">Kích Hoạt Bản Quyền Thành Công!</h3>
-                <p class="text-xs text-gray-400">Mã đơn: <span class="font-mono text-white" x-text="maDonHang"></span></p>
 
-                <div class="bg-gray-950 border border-emerald-500/40 rounded-xl p-4 text-left">
-                    <p class="text-[11px] font-bold text-emerald-400 uppercase mb-2">Thông tin Bản quyền & Hướng dẫn cài đặt:</p>
-                    <textarea readonly class="w-full h-28 bg-gray-900 border border-gray-700 rounded-lg p-2.5 font-mono text-xs text-white select-all focus:outline-none resize-none" x-text="thongTinKeyNhanDuoc"></textarea>
-                    <button @click="saoChep(thongTinKeyNhanDuoc)" class="mt-2.5 w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 mb-2">
+                    <i class="fas fa-circle-check"></i> Đã Thanh Toán
+                </span>
+
+                <h3 class="text-xl font-black text-white mb-1">Đơn Hàng Mua Thành Công!</h3>
+                <p class="text-xs text-gray-400 mb-4">Hệ thống đã tự động kích hoạt mã bản quyền phần mềm cho bạn</p>
+
+                <!-- KHUNG CHI TIẾT ĐƠN HÀNG: MÃ ĐƠN, TÊN SẢN PHẨM, GIÁ TIỀN, ĐÃ THANH TOÁN -->
+                <div class="bg-gray-950 border border-gray-800 rounded-2xl p-4 text-left space-y-2.5 mb-4 shadow-inner">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-gray-400">Mã đơn hàng:</span>
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono font-bold text-amber-400 text-sm" x-text="maDonHang"></span>
+                            <button type="button" @click="saoChep(maDonHang, 'Mã đơn')" class="text-gray-400 hover:text-white text-xs">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between text-xs border-t border-gray-800/80 pt-2">
+                        <span class="text-gray-400">Tên phần mềm:</span>
+                        <span class="font-bold text-white text-xs truncate max-w-[220px]" x-text="sanPhamDangMua?.name"></span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs border-t border-gray-800/80 pt-2">
+                        <span class="text-gray-400">Giá tiền:</span>
+                        <span class="font-mono font-black text-emerald-400 text-sm" x-text="dinhDangTien(giaTienChon)"></span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs border-t border-gray-800/80 pt-2">
+                        <span class="text-gray-400">Trạng thái:</span>
+                        <span class="font-bold text-emerald-400 flex items-center gap-1 text-xs">
+                            <i class="fas fa-circle-check"></i> Đã thanh toán
+                        </span>
+                    </div>
+                </div>
+
+                <!-- KHUNG THÔNG TIN BẢN QUYỀN NHẬN ĐƯỢC -->
+                <div class="bg-gray-900 border border-emerald-500/40 rounded-2xl p-3.5 text-left mb-3">
+                    <p class="text-[11px] font-bold text-emerald-400 uppercase mb-2 flex items-center justify-between">
+                        <span><i class="fas fa-key mr-1"></i> Thông tin Bản quyền & Kích hoạt:</span>
+                    </p>
+                    <textarea readonly class="w-full h-24 bg-gray-950 border border-gray-700 rounded-xl p-2.5 font-mono text-xs text-white select-all focus:outline-none resize-none" x-text="thongTinKeyNhanDuoc"></textarea>
+                    <button @click="saoChep(thongTinKeyNhanDuoc, 'Bản quyền')" type="button" class="mt-2.5 w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/30">
                         <i class="fas fa-copy"></i> Sao chép Bản Quyền
                     </button>
                 </div>
 
-                <button @click="dongThanhToan()" class="w-full py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold transition">
-                    Hoàn Tất & Đóng
-                </button>
+                <div class="grid grid-cols-2 gap-2">
+                    <a href="/user/don-hang" class="py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition flex items-center justify-center gap-1 shadow-md shadow-blue-600/20">
+                        <i class="fas fa-box-open mr-1"></i> Đơn hàng của tôi
+                    </a>
+                    <button @click="dongThanhToan()" type="button" class="py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold transition">
+                        Đóng cửa sổ
+                    </button>
+                </div>
             </div>
 
         </div>
