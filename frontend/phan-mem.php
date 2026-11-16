@@ -218,6 +218,9 @@ foreach ($softwares as $p) {
                                                 Đại lý -<span x-text="sp.discount_percent"></span>%
                                             </span>
                                         </template>
+                                        <template x-if="sp.is_reseller_price && sp.original_price > sp.price">
+                                            <span class="text-xs text-gray-500 line-through font-mono" x-text="dinhDangTien(sp.original_price)"></span>
+                                        </template>
                                     </div>
                                 </div>
                             </div>

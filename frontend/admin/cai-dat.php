@@ -41,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['luu_cai_dat'])) {
         'sepay_bank_name'       => trim($_POST['sepay_bank_name'] ?? BANK_NAME),
         'sepay_api_key'         => trim($_POST['sepay_api_key'] ?? SEPAY_API_KEY),
         'sepay_webhook_secret'  => trim($_POST['sepay_webhook_secret'] ?? ''),
+        'wallet_min_deposit'    => max(1000, (int)($_POST['wallet_min_deposit'] ?? 20000)),
 
         // 3. Google OAuth 2.0
         'google_login_enabled'  => isset($_POST['google_login_enabled']) ? '1' : '0',
@@ -220,9 +221,15 @@ try {
                                 <label class="block text-gray-300 font-semibold mb-1">API Key SePay.vn:</label>
                                 <input type="text" name="sepay_api_key" value="<?= htmlspecialchars($rawSettings['sepay_api_key'] ?? SEPAY_API_KEY) ?>" placeholder="API Key từ SePay.vn" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500">
                             </div>
-                            <div class="sm:col-span-2">
+                            <div>
+                                <label class="block text-gray-300 font-semibold mb-1">Số tiền nạp tối thiểu vào ví (VNĐ):</label>
+                                <input type="number" step="1000" min="1000" name="wallet_min_deposit" value="<?= htmlspecialchars($rawSettings['wallet_min_deposit'] ?? '20000') ?>" placeholder="VD: 20000" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-amber-400 font-bold focus:outline-none focus:border-amber-500">
+                                <span class="text-[10px] text-gray-400 mt-1 block">Chuyển khoản dưới số tiền này hệ thống sẽ KHÔNG tự động cộng vào ví.</span>
+                            </div>
+                            <div>
                                 <label class="block text-gray-300 font-semibold mb-1">Webhook Secret Key (HMAC-SHA256):</label>
                                 <input type="text" name="sepay_webhook_secret" value="<?= htmlspecialchars($rawSettings['sepay_webhook_secret'] ?? '') ?>" placeholder="VD: whsec_abc123... (Chọn phương thức HMAC-SHA256 trên SePay rồi dán Secret Key vào đây)" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-green-400 font-mono focus:outline-none focus:border-amber-500">
+                                <span class="text-[10px] text-gray-400 mt-1 block">Secret Key HMAC-SHA256 tạo trên SePay.vn.</span>
                             </div>
                         </div>
 

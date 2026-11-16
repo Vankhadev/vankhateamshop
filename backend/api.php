@@ -1555,6 +1555,134 @@ switch ($hanhDong) {
         ]);
         break;
 
+    // 19.1 TẠO MÃ NẠP TIỀN VÀO VÍ (VIETQR CHUẨN ACB)
+    case 'tao_ma_nap_vi':
+        if (empty($_SESSION['user_id'])) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Vui lòng đăng nhập để nạp tiền!']);
+            exit;
+        }
+        $userId = (int)$_SESSION['user_id'];
+        $amount = max(0, (float)($_POST['amount'] ?? ($_GET['amount'] ?? 0)));
+
+        // Lấy mức nạp tối thiểu từ settings
+        $walletMinDeposit = 20000;
+        try {
+            $stmtMin = $pdo->prepare("SELECT `value` FROM `settings` WHERE `key` = 'wallet_min_deposit' LIMIT 1");
+            $stmtMin->execute();
+            $valMin = $stmtMin->fetchColumn();
+            if ($valMin !== false && $valMin !== null && is_numeric($valMin)) {
+                $walletMinDeposit = (float)$valMin;
+            }
+        } catch (Exception $e) {}
+
+        if ($amount < $walletMinDeposit) {
+            echo json_encode([
+                'thanh_cong' => false,
+                'thong_bao' => 'Số tiền nạp tối thiểu là ' . number_format($walletMinDeposit, 0, ',', '.') . ' VNĐ. Vui lòng nhập số tiền hợp lệ!'
+            ]);
+            exit;
+        }
+
+        // Sinh mã nạp tiemai + 5 số ngẫu nhiên
+        $maNapTien = '';
+        $maxThu = 5;
+        while ($maxThu > 0) {
+            $maThu = 'tiemai' . sprintf('%05d', mt_rand(10000, 99999));
+            try {
+                $stmtIns = $pdo->prepare("INSERT INTO `wallet_deposit_codes` (`user_id`, `code`, `amount`, `status`) VALUES (?, ?, ?, 'PENDING')");
+                $stmtIns->execute([$userId, $maThu, $amount]);
+                $maNapTien = $maThu;
+                break;
+            } catch (Exception $e) {
+                $maxThu--;
+            }
+        }
+
+        if (empty($maNapTien)) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Không thể tạo mã nạp tiền lúc này, vui lòng thử lại!']);
+            exit;
+        }
+
+        // Lấy thông tin tài khoản ngân hàng từ settings hoặc config
+        $bankName = BANK_NAME;
+        $bankAccount = BANK_ACCOUNT_NO;
+        $accountName = BANK_ACCOUNT_NAME;
+        $bankBin = defined('BANK_BIN') ? BANK_BIN : '970416';
+
+        try {
+            $stmtBank = $pdo->query("SELECT `key`, `value` FROM `settings` WHERE `key` IN ('sepay_bank_name', 'sepay_bank_account', 'sepay_account_name')");
+            $bRows = $stmtBank->fetchAll(PDO::FETCH_KEY_PAIR);
+            if (!empty($bRows['sepay_bank_name'])) $bankName = $bRows['sepay_bank_name'];
+            if (!empty($bRows['sepay_bank_account'])) $bankAccount = $bRows['sepay_bank_account'];
+            if (!empty($bRows['sepay_account_name'])) $accountName = $bRows['sepay_account_name'];
+        } catch (Exception $e) {}
+
+        $qrUrl = "https://api.vietqr.io/image/{$bankBin}-{$bankAccount}-compact2.jpg?amount=" . (int)$amount . "&addInfo=" . urlencode($maNapTien) . "&accountName=" . urlencode($accountName);
+
+        echo json_encode([
+            'thanh_cong'            => true,
+            'code'                  => $maNapTien,
+            'amount'                => $amount,
+            'amount_formatted'      => number_format($amount, 0, ',', '.') . ' VNĐ',
+            'min_deposit'           => $walletMinDeposit,
+            'min_deposit_formatted' => number_format($walletMinDeposit, 0, ',', '.') . ' VNĐ',
+            'bank_name'             => $bankName,
+            'bank_account'          => $bankAccount,
+            'account_name'          => $accountName,
+            'qr_url'                => $qrUrl
+        ]);
+        break;
+
+    // 19.2 KIỂM TRA TRẠNG THÁI MÃ NẠP TIỀN
+    case 'kiem_tra_trang_thai_nap_vi':
+        if (empty($_SESSION['user_id'])) {
+            echo json_encode(['thanh_cong' => false, 'thong_bao' => 'Chưa đăng nhập']);
+            exit;
+        }
+        $userId = (int)$_SESSION['user_id'];
+        $code = trim($_GET['code'] ?? ($_POST['code'] ?? ''));
+
+        $stmtCode = $pdo->prepare("SELECT * FROM `wallet_deposit_codes` WHERE `user_id` = ? AND LOWER(`code`) = LOWER(?) ORDER BY `id` DESC LIMIT 1");
+        $stmtCode->execute([$userId, $code]);
+        $depositCode = $stmtCode->fetch();
+
+        // Lấy số dư hiện tại của user
+        $stmtU = $pdo->prepare("SELECT balance FROM `users` WHERE `id` = ?");
+        $stmtU->execute([$userId]);
+        $currentBalance = (float)$stmtU->fetchColumn();
+
+        if ($depositCode && $depositCode['status'] === 'COMPLETED') {
+            echo json_encode([
+                'thanh_cong'        => true,
+                'da_nap'            => true,
+                'trang_thai'        => 'COMPLETED',
+                'so_tien_nap'       => (float)$depositCode['amount'],
+                'so_tien_nap_chu'   => number_format((float)$depositCode['amount'], 0, ',', '.') . ' VNĐ',
+                'so_du'             => $currentBalance,
+                'so_du_chu'         => number_format($currentBalance, 0, ',', '.') . ' VNĐ'
+            ]);
+            exit;
+        }
+
+        if ($depositCode && $depositCode['status'] === 'REJECTED_UNDER_MIN') {
+            echo json_encode([
+                'thanh_cong'        => false,
+                'bi_tu_choi'        => true,
+                'trang_thai'        => 'REJECTED_UNDER_MIN',
+                'thong_bao'         => 'Giao dịch chuyển khoản của bạn bị từ chối do số tiền nạp nhỏ hơn hạn mức tối thiểu quy định!'
+            ]);
+            exit;
+        }
+
+        echo json_encode([
+            'thanh_cong'    => true,
+            'da_nap'        => false,
+            'trang_thai'    => $depositCode ? $depositCode['status'] : 'PENDING',
+            'so_du'         => $currentBalance,
+            'so_du_chu'     => number_format($currentBalance, 0, ',', '.') . ' VNĐ'
+        ]);
+        break;
+
     // 20. ADMIN: CẬP NHẬT VAI TRÒ & QUYỀN ĐẠI LÝ TOÀN DIỆN
     case 'admin_cap_nhat_vai_tro_dai_ly':
         if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {

@@ -183,53 +183,93 @@ try {
         // TRƯỜNG HỢP A: NẠP TIỀN VÀO SỐ DƯ VÍ TÀI KHOẢN (NAPQUY...)
         // ========================================================
         if ($userIdNap && $soTienChuyen > 0) {
-            $pdo->beginTransaction();
+            // Lấy cấu hình số tiền nạp tối thiểu vào ví từ bảng settings
+            $walletMinDeposit = 5000;
             try {
-                $stmtUser = $pdo->prepare("SELECT `id`, `name`, `email`, `balance` FROM `users` WHERE `id` = ? FOR UPDATE");
-                $stmtUser->execute([$userIdNap]);
-                $user = $stmtUser->fetch();
+                $stmtMin = $pdo->prepare("SELECT `value` FROM `settings` WHERE `key` = 'wallet_min_deposit' LIMIT 1");
+                $stmtMin->execute();
+                $valMin = $stmtMin->fetchColumn();
+                if ($valMin !== false && $valMin !== null && is_numeric($valMin)) {
+                    $walletMinDeposit = (float)$valMin;
+                }
+            } catch (Exception $e) {}
 
-                if ($user) {
-                    $soDuCu = (float)$user['balance'];
-                    $soDuMoi = $soDuCu + $soTienChuyen;
-
-                    // 1. Cập nhật số dư ví
-                    $pdo->prepare("UPDATE `users` SET `balance` = ? WHERE `id` = ?")->execute([$soDuMoi, $userIdNap]);
-
-                    // 2. Ghi nhật ký biến động số dư nội bộ
-                    $stmtTx = $pdo->prepare("
-                        INSERT INTO `transactions` (`user_id`, `type`, `amount`, `balance_before`, `balance_after`, `note`)
-                        VALUES (?, 'DEPOSIT', ?, ?, ?, ?)
-                    ");
-                    $stmtTx->execute([
-                        $userIdNap,
-                        $soTienChuyen,
-                        $soDuCu,
-                        $soDuMoi,
-                        "Nạp tiền tự động VietQR {$data['gateway']} (Mã GD SePay: {$data['id']})"
-                    ]);
-
-                    // 3. Nếu dùng mã nạp ví ngẫu nhiên tiemai + 5 số, cập nhật trạng thái đã nạp
+            // KIỂM TRA MỨC NẠP TỐI THIỂU: DƯỚI TỐI THIỂU -> KHÔNG CỘNG TIỀN VÀO VÍ
+            if ($soTienChuyen < $walletMinDeposit) {
+                try {
                     if ($codeNapViUsed) {
-                        $pdo->prepare("UPDATE `wallet_deposit_codes` SET `status` = 'COMPLETED', `amount` = ? WHERE LOWER(`code`) = LOWER(?)")
+                        $pdo->prepare("UPDATE `wallet_deposit_codes` SET `status` = 'REJECTED_UNDER_MIN', `amount` = ? WHERE LOWER(`code`) = LOWER(?)")
                             ->execute([$soTienChuyen, $codeNapViUsed]);
                     }
 
-                    $pdo->commit();
+                    // Lấy tên người dùng để bắn thông báo Telegram
+                    $stmtUser = $pdo->prepare("SELECT `id`, `name`, `balance` FROM `users` WHERE `id` = ?");
+                    $stmtUser->execute([$userIdNap]);
+                    $user = $stmtUser->fetch();
+                    $userName = $user ? $user['name'] : "User #{$userIdNap}";
 
-                    // Bắn thông báo Telegram cho Admin
-                    $noiDungTele = "💰 <b>NẠP TIỀN TỰ ĐỘNG THÀNH CÔNG!</b>\n";
-                    $noiDungTele .= "👤 Thành viên: <b>{$user['name']}</b> (#{$userIdNap})\n";
-                    $noiDungTele .= "💵 Số tiền nạp: <b>" . number_format($soTienChuyen, 0, ',', '.') . " VNĐ</b>\n";
-                    $noiDungTele .= "🏦 Ngân hàng: <b>{$data['gateway']}</b>\n";
-                    $noiDungTele .= "📈 Số dư mới: <b>" . number_format($soDuMoi, 0, ',', '.') . " VNĐ</b>";
+                    // Bắn cảnh báo Telegram cho Admin về việc nạp dưới hạn mức tối thiểu
+                    $noiDungTele = "⚠️ <b>GIAO DỊCH NẠP VÍ DƯỚI MỨC TỐI THIỂU!</b>\n";
+                    $noiDungTele .= "👤 Thành viên: <b>{$userName}</b> (#{$userIdNap})\n";
+                    $noiDungTele .= "💵 Số tiền chuyển: <b>" . number_format($soTienChuyen, 0, ',', '.') . " VNĐ</b>\n";
+                    $noiDungTele .= "⛔ Hạn mức tối thiểu: <b>" . number_format($walletMinDeposit, 0, ',', '.') . " VNĐ</b>\n";
+                    $noiDungTele .= "❌ Trạng thái: <b>HỆ THỐNG KHÔNG CỘNG TIỀN VÀO VÍ</b>\n";
+                    $noiDungTele .= "🏦 Ngân hàng: <b>{$data['gateway']}</b> (Mã GD SePay: {$data['id']})\n";
+                    $noiDungTele .= "📝 Nội dung: <i>{$noiDungChuyenKhoan}</i>";
                     guiThongBaoTelegram($noiDungTele, 'finance');
-                } else {
-                    $pdo->rollBack();
+                } catch (Exception $e) {
+                    error_log("Lỗi ghi nhận nạp ví dưới tối thiểu: " . $e->getMessage());
                 }
-            } catch (Exception $e) {
-                if ($pdo->inTransaction()) $pdo->rollBack();
-                error_log("Lỗi nạp tiền ví SePay: " . $e->getMessage());
+            } else {
+                // SỐ TIỀN BẰNG HOẶC LỚN HƠN TỐI THIỂU -> CỘNG TIỀN VÀO VÍ
+                $pdo->beginTransaction();
+                try {
+                    $stmtUser = $pdo->prepare("SELECT `id`, `name`, `email`, `balance` FROM `users` WHERE `id` = ? FOR UPDATE");
+                    $stmtUser->execute([$userIdNap]);
+                    $user = $stmtUser->fetch();
+
+                    if ($user) {
+                        $soDuCu = (float)$user['balance'];
+                        $soDuMoi = $soDuCu + $soTienChuyen;
+
+                        // 1. Cập nhật số dư ví
+                        $pdo->prepare("UPDATE `users` SET `balance` = ? WHERE `id` = ?")->execute([$soDuMoi, $userIdNap]);
+
+                        // 2. Ghi nhật ký biến động số dư nội bộ
+                        $stmtTx = $pdo->prepare("
+                            INSERT INTO `transactions` (`user_id`, `type`, `amount`, `balance_before`, `balance_after`, `note`)
+                            VALUES (?, 'DEPOSIT', ?, ?, ?, ?)
+                        ");
+                        $stmtTx->execute([
+                            $userIdNap,
+                            $soTienChuyen,
+                            $soDuCu,
+                            $soDuMoi,
+                            "Nạp tiền tự động VietQR {$data['gateway']} (Mã GD SePay: {$data['id']})"
+                        ]);
+
+                        // 3. Nếu dùng mã nạp ví ngẫu nhiên tiemai + 5 số, cập nhật trạng thái đã nạp
+                        if ($codeNapViUsed) {
+                            $pdo->prepare("UPDATE `wallet_deposit_codes` SET `status` = 'COMPLETED', `amount` = ? WHERE LOWER(`code`) = LOWER(?)")
+                                ->execute([$soTienChuyen, $codeNapViUsed]);
+                        }
+
+                        $pdo->commit();
+
+                        // Bắn thông báo Telegram cho Admin
+                        $noiDungTele = "💰 <b>NẠP TIỀN TỰ ĐỘNG THÀNH CÔNG!</b>\n";
+                        $noiDungTele .= "👤 Thành viên: <b>{$user['name']}</b> (#{$userIdNap})\n";
+                        $noiDungTele .= "💵 Số tiền nạp: <b>" . number_format($soTienChuyen, 0, ',', '.') . " VNĐ</b>\n";
+                        $noiDungTele .= "🏦 Ngân hàng: <b>{$data['gateway']}</b>\n";
+                        $noiDungTele .= "📈 Số dư mới: <b>" . number_format($soDuMoi, 0, ',', '.') . " VNĐ</b>";
+                        guiThongBaoTelegram($noiDungTele, 'finance');
+                    } else {
+                        $pdo->rollBack();
+                    }
+                } catch (Exception $e) {
+                    if ($pdo->inTransaction()) $pdo->rollBack();
+                    error_log("Lỗi nạp tiền ví SePay: " . $e->getMessage());
+                }
             }
         }
 
